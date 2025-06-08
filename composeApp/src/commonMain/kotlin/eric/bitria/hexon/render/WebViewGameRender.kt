@@ -1,4 +1,4 @@
-package eric.bitria.hexon.screen
+package eric.bitria.hexon.render
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 *
 * @constructor Creates a new WebView game screen instance
 */
-class WebViewGameScreen : GameScreen {
+class WebViewGameRender : GameRender {
     // Callbacks for JSON message reception
     private val jsonCallbacks = mutableListOf<suspend (String) -> Unit>()
 
@@ -107,9 +107,11 @@ class WebViewGameScreen : GameScreen {
      */
     override suspend fun sendJson(json: String) {
         if (isLoaded) {
-            navigator?.evaluateJavaScript("window.receiveFromApp('${json.escapeJS()}')")
+            navigator?.evaluateJavaScript("window.receiveFromApp('${json.escapeForJS()}')")
+            println(json.escapeForJS())
         }
     }
+
 
     /**
      * Registers a callback for receiving JSON from the game.
@@ -123,5 +125,12 @@ class WebViewGameScreen : GameScreen {
      * Escapes special characters in JSON for safe JavaScript evaluation.
      * @return Escaped string safe for JS evaluation
      */
-    private fun String.escapeJS(): String = replace("'", "\\'")
+    fun String.escapeForJS(): String {
+        return this
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("'", "\\'")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+    }
 }

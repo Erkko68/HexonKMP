@@ -1,28 +1,41 @@
-import * as THREE from "three";
+import { SceneManager } from './SceneManager.js';
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+const sceneManager = new SceneManager();
 
-const geometry = new THREE.BoxGeometry();
-const material = new THREE.MeshNormalMaterial();
-const cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
-window.cube = cube;
+/**
+ * Called by Kotlin via evaluateJavaScript to send JSON data.
+ */
+window.receiveFromApp = function(json) {
+    try {
+        const data = JSON.parse(json);
+        handleAppMessage(data);
+    } catch (e) {
+        sendToApp({ type: 'error', message: 'Invalid JSON from app: ' + json })
+    }
+};
 
-camera.position.z = 5;
-
-function animate() {
-    requestAnimationFrame(animate);
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.01;
-    renderer.render(scene, camera);
-
-    const { x, y, z, w } = cube.quaternion;
-    const quaternionString = `Quaternion: (x: ${x.toFixed(2)}, y: ${y.toFixed(2)}, z: ${z.toFixed(2)}, w: ${w.toFixed(2)})`;
-    window.kmpJsBridge.callNative("Quaternion", quaternionString, null);
+/**
+ * Handles messages from Kotlin.
+ */
+function handleAppMessage(data) {
+    if (data.type === 'updateCubeScale' && data.scale) {
+        sceneManager.updateCubeScale(data.scale);
+        sendToApp({ type: 'success', message: 'Cube scale updated' })
+    } else {
+        sendToApp({ type: 'error', message: 'Unknown message type: ' + JSON.stringify(data) });
+    }
 }
 
-animate();
+/**
+ * Sends data back to the Kotlin app.
+ */
+function sendToApp(data) {
+    const json = JSON.stringify(data);
+    if (window.webkit?.messageHandlers?.GameEvent) {
+        window.webkit.messageHandlers.GameEvent.postMessage({ params: json });
+    } else if (window.GameEvent) {
+        window.GameEvent.postMessage({ params: json });
+    } else {
+        console.warn('No JS bridge available to send message:', json);
+    }
+}

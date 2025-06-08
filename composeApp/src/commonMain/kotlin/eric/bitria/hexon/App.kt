@@ -21,7 +21,7 @@ import eric.bitria.hexon.viewmodel.GameViewModel
 @Composable
 fun App() {
     val viewModel = remember { GameViewModel() }
-    val gameEvents = viewModel.gameEvents.collectAsState(initial = "")
+    val gameEvents = viewModel.gameEvents.collectAsState(initial = "Hola tet")
 
     MaterialTheme {
         Box(
@@ -30,7 +30,7 @@ fun App() {
                 .background(Color.Black)
         ) {
             // Pure rendering - no logic
-            viewModel.gameScreen.Render(Modifier.fillMaxSize())
+            viewModel.gameRender.Render(Modifier.fillMaxSize())
 
             // UI Layer
             Column(
@@ -40,13 +40,14 @@ fun App() {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Button(
-                    onClick = { viewModel.sendCommand("""{"action":"start"}""") },
+                    onClick = {
+                        viewModel.sendCommand("""{"type": "updateCubeScale","scale": {"x": 1.5,"y": 2.0,"z": 1.0}}""".trimIndent())
+                    },
                     modifier = Modifier.padding(16.dp)
                 ) {
                     Text("Start Game", color = Color.White)
                 }
-
-                Text("Last event: $gameEvents", color = Color.White)
+                Text("Last event: ${gameEvents.value}", color = Color.White)
             }
         }
     }

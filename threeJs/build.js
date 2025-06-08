@@ -5,7 +5,7 @@ esbuild.build({
   entryPoints: ['main.js'],
   bundle: true,
   outfile: path.resolve(__dirname, '../composeApp/src/commonMain/composeResources/files/bundle.js'),
-  format: 'iife', // Wrap for browser
+  format: 'iife',
   target: ['es2017'],
   minify: true,
 }).then(() => {

@@ -1,4 +1,4 @@
-package eric.bitria.hexon.screen
+package eric.bitria.hexon.render
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
  * Interface for game screen rendering and communication.
  * Provides a platform-agnostic way to render game content and exchange JSON messages.
  */
-interface GameScreen {
+interface GameRender {
     /**
      * Renders the game screen content.
      * @param modifier Compose modifier for layout customization
