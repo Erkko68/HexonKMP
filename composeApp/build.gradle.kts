@@ -44,6 +44,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(projects.shared)
+            api(libs.compose.webview.multiplatform)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
