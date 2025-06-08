@@ -83,3 +83,15 @@ dependencies {
     debugImplementation(compose.uiTooling)
 }
 
+val bundleThreeJs by tasks.registering(Exec::class) {
+    group = "build"
+    workingDir = file("../threeJs")
+    commandLine = listOf("npm", "run", "build")
+    isIgnoreExitValue = false
+    standardOutput = System.out
+    errorOutput = System.err
+}
+
+tasks.matching { it.name == "preBuild" }.configureEach {
+    dependsOn(bundleThreeJs)
+}
