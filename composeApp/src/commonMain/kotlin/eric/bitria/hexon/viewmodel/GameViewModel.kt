@@ -19,7 +19,7 @@ class GameViewModel : ViewModel() {
     init {
         viewModelScope.launch {
             _gameRender.receiveJson { json ->
-                println("Received from JS: $json")
+                //println("Received from JS: $json")
                 _gameEvents.emit(json)
             }
         }

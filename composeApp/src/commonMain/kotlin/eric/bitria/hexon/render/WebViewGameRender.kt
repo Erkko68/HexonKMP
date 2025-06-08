@@ -21,78 +21,83 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
-* WebView-based implementation of GameScreen.
-* Uses a WebView to render game content and establishes a bidirectional JSON communication channel.
-*
-* @constructor Creates a new WebView game screen instance
-*/
+ * WebView-based implementation of [GameRender] used to render game content via HTML/JavaScript.
+ *
+ * This class creates a bidirectional JSON communication channel between Kotlin and the embedded
+ * WebView. Messages from JavaScript are dispatched to registered suspend callbacks, while commands
+ * from Kotlin are sent to the JS context via an exposed interface.
+ */
 class WebViewGameRender : GameRender {
-    // Callbacks for JSON message reception
+
+    /**
+     * A list of registered suspend callbacks to be invoked when a message is received from JavaScript.
+     */
     private val jsonCallbacks = mutableListOf<suspend (String) -> Unit>()
 
-    // WebView navigation controller
+    /**
+     * Reference to the WebView's navigation controller for executing JavaScript and navigation actions.
+     */
     private var navigator: WebViewNavigator? = null
 
-    // Tracks if WebView content is loaded
+    /**
+     * Indicates whether the WebView content has finished loading.
+     */
     private var isLoaded = false
 
-    // Coroutine scope for internal operations
+    /**
+     * Coroutine scope tied to the main dispatcher for managing UI-bound coroutines.
+     */
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
     /**
-     * Renders the game content in a WebView.
-     * @param modifier Compose modifier for layout customization
+     * Composable function that sets up and renders the WebView with bundled HTML and JS.
+     * Also registers a JS bridge handler for incoming messages.
+     *
+     * @param modifier A [Modifier] for layout customization.
      */
     @Composable
     override fun Render(modifier: Modifier) {
-        // State for holding HTML content
         var html by remember { mutableStateOf("") }
-
-        // State for holding JavaScript content
         var js by remember { mutableStateOf("") }
 
-        // Load game assets asynchronously
+        // Load HTML and JS content from bundled resources.
         LaunchedEffect(Unit) {
             html = Res.readBytes("files/index.html").decodeToString()
             js = Res.readBytes("files/bundle.js").decodeToString()
         }
 
-        // WebView state with loaded HTML/JS content
+        // Initialize the WebView state with injected JS code.
         val webViewState = rememberWebViewStateWithHTMLData(
             data = html.replace("/*CODE*/", js)
         )
 
-        // WebView navigation controller
         val currentNavigator = rememberWebViewNavigator()
-
-        // JavaScript bridge for communication
         val bridge = rememberWebViewJsBridge()
 
-        // Setup message handler when navigator is available
-        LaunchedEffect(currentNavigator) {
-            navigator = currentNavigator
-            bridge.register(object : IJsMessageHandler {
-                override fun handle(
-                    message: JsMessage,
-                    navigator: WebViewNavigator?,
-                    callback: (String) -> Unit
-                ) {
-                    // Dispatch received messages to all registered callbacks
-                    coroutineScope.launch {
-                        jsonCallbacks.forEach { cb -> cb(message.params) }
-                    }
+        // Register a JS message handler to dispatch events to Kotlin callbacks.
+        bridge.register(object : IJsMessageHandler {
+            override fun handle(
+                message: JsMessage,
+                navigator: WebViewNavigator?,
+                callback: (String) -> Unit
+            ) {
+                coroutineScope.launch {
+                    jsonCallbacks.forEach { cb -> cb(message.params) }
                 }
+            }
 
-                override fun methodName() = "GameEvent"
-            })
-        }
+            override fun methodName() = "GameEvent"
+        })
 
-        // Track loading state
+        // Store the navigator reference for later use.
+        navigator = currentNavigator
+
+        // Track WebView loading state to enable JS communication only after content is ready.
         LaunchedEffect(webViewState.loadingState) {
             isLoaded = webViewState.loadingState is LoadingState.Finished
         }
 
-        // Actual WebView component
+        // Render the actual WebView.
         WebView(
             modifier = modifier,
             state = webViewState,
@@ -102,35 +107,37 @@ class WebViewGameRender : GameRender {
     }
 
     /**
-     * Sends JSON data to the game.
-     * @param json The JSON string to send
+     * Sends a JSON-encoded message to the JavaScript context inside the WebView.
+     *
+     * @param json The JSON string to send to JavaScript.
      */
     override suspend fun sendJson(json: String) {
         if (isLoaded) {
             navigator?.evaluateJavaScript("window.receiveFromApp('${json.escapeForJS()}')")
-            println(json.escapeForJS())
         }
     }
 
-
     /**
-     * Registers a callback for receiving JSON from the game.
-     * @param callback Function to receive JSON strings
+     * Registers a callback to be invoked when a message is received from JavaScript.
+     *
+     * @param callback A suspend function to handle the JSON payload from JS.
      */
     override fun receiveJson(callback: suspend (String) -> Unit) {
         jsonCallbacks.add(callback)
     }
 
     /**
-     * Escapes special characters in JSON for safe JavaScript evaluation.
-     * @return Escaped string safe for JS evaluation
+     * Escapes a [String] to be safely embedded inside a JavaScript string literal.
+     *
+     * @receiver The raw string to escape.
+     * @return The escaped JavaScript-safe string.
      */
-    fun String.escapeForJS(): String {
-        return this
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("'", "\\'")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-    }
+    private fun String.escapeForJS(): String = this
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\'", "\\'")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\u2028", "\\u2028")
+        .replace("\u2029", "\\u2029")
 }

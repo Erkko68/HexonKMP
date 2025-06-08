@@ -31,11 +31,5 @@ function handleAppMessage(data) {
  */
 function sendToApp(data) {
     const json = JSON.stringify(data);
-    if (window.webkit?.messageHandlers?.GameEvent) {
-        window.webkit.messageHandlers.GameEvent.postMessage({ params: json });
-    } else if (window.GameEvent) {
-        window.GameEvent.postMessage({ params: json });
-    } else {
-        console.warn('No JS bridge available to send message:', json);
-    }
+    window.kmpJsBridge.callNative("GameEvent", json, null);
 }
