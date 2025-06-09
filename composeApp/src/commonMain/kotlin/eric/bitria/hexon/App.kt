@@ -27,10 +27,10 @@ fun App() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(Color.Yellow)
         ) {
             // Pure rendering - no logic
-            viewModel.gameRender.Render(Modifier.fillMaxSize())
+            viewModel.gameRender.render(Modifier.fillMaxSize())
 
             // UI Layer
             Column(

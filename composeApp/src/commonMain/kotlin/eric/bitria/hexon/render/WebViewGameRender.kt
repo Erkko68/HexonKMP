@@ -56,7 +56,7 @@ class WebViewGameRender : GameRender {
      * @param modifier A [Modifier] for layout customization.
      */
     @Composable
-    override fun Render(modifier: Modifier) {
+    override fun render(modifier: Modifier) {
         var html by remember { mutableStateOf("") }
         var js by remember { mutableStateOf("") }
 

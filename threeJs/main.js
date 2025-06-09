@@ -20,7 +20,7 @@ window.receiveFromApp = function(json) {
 function handleAppMessage(data) {
     if (data.type === 'updateCubeScale' && data.scale) {
         sceneManager.updateCubeScale(data.scale);
-        sendToApp({ type: 'success', message: 'Cube scale updated' })
+        sendToApp({ type: 'success', message: 'Cube scale updated' });
     } else {
         sendToApp({ type: 'error', message: 'Unknown message type: ' + JSON.stringify(data) });
     }
