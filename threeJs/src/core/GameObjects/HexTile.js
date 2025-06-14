@@ -8,23 +8,28 @@ export class HexTile {
         this.mesh = this.createMesh();
     }
 
+    // In your HexTile class
     createMesh() {
-        const geometry = new THREE.CylinderGeometry(1, 1, 0.2, 6);
+        const geometry = new THREE.CircleGeometry(1, 6);
         const material = new THREE.MeshStandardMaterial({
             color: this.getColorByType(),
             roughness: 0.3,
-            metalness: 0.1
+            metalness: 0.1,
+            side: THREE.DoubleSide
         });
 
         const mesh = new THREE.Mesh(geometry, material);
 
-        // Convert axial (q,r) to isometric world coordinates
-        const size = 1.75; // Tile size adjustment
-        const x = (this.position.q - this.position.r) * (size * 0.866); // 0.866 = sin(60°)
-        const z = (this.position.q + this.position.r) * (size * 0.5);   // 0.5 = cos(60°)
+        // CORRECTED axial to world coordinates
+        const size = 1.75;
+        const hexWidth = Math.sqrt(3) * size;
+        const hexHeight = 2 * size;
 
-        mesh.position.set(x, 0.1, z);
-        mesh.rotation.x = Math.PI / 2;
+        // Proper isometric projection
+        const x = size * (Math.sqrt(3) * this.position.q + Math.sqrt(3)/2 * this.position.r);
+        const z = size * (3/2 * this.position.r);
+
+        mesh.position.set(x, 0.1, z); // Keep slight Y offset to avoid z-fighting
         return mesh;
     }
 

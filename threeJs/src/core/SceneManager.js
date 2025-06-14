@@ -6,33 +6,44 @@ export class SceneManager {
         this.container = container;
         this.scene = new THREE.Scene();
 
+        this.setupLights();
         this.setupCamera();
         this.setupRenderer();
         this.setupEventListeners();
         this.boardManager = new BoardManager(this.scene);
 
-        this.initScene();
+        this.visualizeGrid();
         this.animate();
     }
 
     setupCamera() {
         const aspect = window.innerWidth / window.innerHeight;
-        const viewSize = 15;
+        const d = 20;  // Camera frustum size
 
+        // Orthographic camera for isometric view
         this.camera = new THREE.OrthographicCamera(
-            -viewSize * aspect,
-            viewSize * aspect,
-            viewSize,
-            -viewSize,
-            0.1,
-            1000
+            -d * aspect,  // left
+            d * aspect,   // right
+            d,           // top
+            -d,          // bottom
+            1,          // near
+            1000        // far
         );
 
-        // Isometric position looking at center (0,0,0)
+        // Set camera position for isometric view
         this.camera.position.set(20, 20, 20);
         this.camera.lookAt(0, 0, 0);
-        this.camera.zoom = 1.5;
-        this.camera.updateProjectionMatrix();
+    }
+
+    setupLights() {
+        // Ambient light for general illumination
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        this.scene.add(ambientLight);
+
+        // Directional light for shadows and highlights
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(1, 1, 0.5).normalize();
+        this.scene.add(directionalLight);
     }
 
     setupRenderer() {
@@ -49,40 +60,29 @@ export class SceneManager {
         window.addEventListener('resize', this.onWindowResize.bind(this));
     }
 
-    initScene() {
-        // Isometric grid
-        const gridSize = 100;
-        const gridGeometry = new THREE.PlaneGeometry(gridSize, gridSize, 20, 20);
-        const gridMaterial = new THREE.MeshBasicMaterial({
-            wireframe: true,
-            color: 0x555555,
-            opacity: 0.3,
-            transparent: true
-        });
-        this.grid = new THREE.Mesh(gridGeometry, gridMaterial);
-        this.grid.rotation.order = 'YXZ';
-        this.grid.rotation.y = -Math.PI / 2;
-        this.grid.rotation.x = -Math.PI / 2;
-        this.scene.add(this.grid);
-
-        // Lighting
-        this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(1, 1, 1).normalize();
-        this.scene.add(directionalLight);
+    visualizeGrid(size = 100, divisions = 50) {
+        this.gridHelper = new THREE.GridHelper(
+            size,
+            divisions,
+            0x888888,
+            0x444444
+        );
+        this.scene.add(this.gridHelper);
+        this.axesHelper = new THREE.AxesHelper(10);
+        this.scene.add(this.axesHelper);
     }
 
     onWindowResize() {
+        // Update orthographic camera frustum
         const aspect = window.innerWidth / window.innerHeight;
-        const viewSize = 15;
+        const d = 20;
 
-        this.camera.left = -viewSize * aspect;
-        this.camera.right = viewSize * aspect;
-        this.camera.top = viewSize;
-        this.camera.bottom = -viewSize;
+        this.camera.left = -d * aspect;
+        this.camera.right = d * aspect;
+        this.camera.top = d;
+        this.camera.bottom = -d;
+
         this.camera.updateProjectionMatrix();
-
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
