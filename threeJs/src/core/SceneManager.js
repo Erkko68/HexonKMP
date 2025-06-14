@@ -72,24 +72,24 @@ export class SceneManager {
         this.statsFPS = new Stats();
         this.statsFPS.showPanel(0); // FPS panel
         this.statsFPS.dom.style.position = 'fixed';
-        this.statsFPS.dom.style.top = '0px';
-        this.statsFPS.dom.style.left = '0px';
+        this.statsFPS.dom.style.top = '10px';
+        this.statsFPS.dom.style.left = '10px';
         this.statsFPS.dom.style.zIndex = '100';
         document.body.appendChild(this.statsFPS.dom);
 
         this.statsMS = new Stats();
         this.statsMS.showPanel(1); // MS/frame panel
         this.statsMS.dom.style.position = 'fixed';
-        this.statsMS.dom.style.top = '40px';   // move below FPS panel
-        this.statsMS.dom.style.left = '0px';
+        this.statsMS.dom.style.top = '50px';   // move below FPS panel
+        this.statsMS.dom.style.left = '10px';
         this.statsMS.dom.style.zIndex = '100';
         document.body.appendChild(this.statsMS.dom);
 
         this.statsMem = new Stats();
         this.statsMem.showPanel(2); // Memory panel
         this.statsMem.dom.style.position = 'fixed';
-        this.statsMem.dom.style.top = '80px'; // move below MS panel
-        this.statsMem.dom.style.left = '0px';
+        this.statsMem.dom.style.top = '90px'; // move below MS panel
+        this.statsMem.dom.style.left = '10px';
         this.statsMem.dom.style.zIndex = '100';
         document.body.appendChild(this.statsMem.dom);
     }
