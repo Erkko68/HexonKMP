@@ -15,16 +15,18 @@ export class SceneManager {
         this.setupLights();           // Set up ambient and directional lighting
         this.setupCamera();           // Set up orthographic camera
         this.setupRenderer();         // Create WebGL renderer and attach to DOM
-        this.setupEventListeners();   // Handle window resize events
 
         this.boardManager = new BoardManager(this.scene); // Handle board generation
         this.inputHandler = new InputHandler(this);       // Handle user input
 
+        // DEBUG
         this.visualizeGrid();         // Optional: add grid and axes helpers for debugging
         this.setupStats();            // Add FPS counter
 
         this.animate();               // Start animation loop
     }
+
+    // RENDERING
 
     /**
      * Sets up an orthographic camera for an isometric perspective.
@@ -66,6 +68,34 @@ export class SceneManager {
     }
 
     /**
+     * Main render loop using requestAnimationFrame. Also updates FPS stats.
+     */
+    animate() {
+        this.statsFPS.begin();
+        this.statsMS.begin();
+        this.statsMem.begin();
+
+        requestAnimationFrame(() => this.animate());
+        this.renderer.render(this.scene, this.camera);
+
+        this.statsFPS.end();
+        this.statsMS.end();
+        this.statsMem.end();
+    }
+
+    // GAME RENDER
+
+    /**
+     * Public method to delegate board generation to the BoardManager.
+     * @param {Object} boardConfig - Configuration object for board layout
+     */
+    generateBoard(boardConfig) {
+        this.boardManager.generateBoard(boardConfig);
+    }
+
+    // DEBUG
+
+    /**
      * Adds FPS monitor using stats.js.
      */
     setupStats() {
@@ -95,13 +125,6 @@ export class SceneManager {
     }
 
     /**
-     * Adds event listeners such as window resize handling.
-     */
-    setupEventListeners() {
-        window.addEventListener('resize', this.onWindowResize.bind(this));
-    }
-
-    /**
      * Adds optional visual debugging tools: grid and axes helpers.
      */
     visualizeGrid(size = 100, divisions = 50) {
@@ -112,43 +135,4 @@ export class SceneManager {
         this.scene.add(this.axesHelper);
     }
 
-    /**
-     * Handles responsive resizing of the camera and renderer.
-     */
-    onWindowResize() {
-        const aspect = window.innerWidth / window.innerHeight;
-        const d = 20;
-
-        this.camera.left = -d * aspect;
-        this.camera.right = d * aspect;
-        this.camera.top = d;
-        this.camera.bottom = -d;
-
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    /**
-     * Main render loop using requestAnimationFrame. Also updates FPS stats.
-     */
-    animate() {
-        this.statsFPS.begin();
-        this.statsMS.begin();
-        this.statsMem.begin();
-
-        requestAnimationFrame(() => this.animate());
-        this.renderer.render(this.scene, this.camera);
-
-        this.statsFPS.end();
-        this.statsMS.end();
-        this.statsMem.end();
-    }
-
-    /**
-     * Public method to delegate board generation to the BoardManager.
-     * @param {Object} boardConfig - Configuration object for board layout
-     */
-    generateBoard(boardConfig) {
-        this.boardManager.generateBoard(boardConfig);
-    }
 }

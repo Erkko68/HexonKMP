@@ -23,6 +23,7 @@ export class InputHandler {
      */
     constructor(sceneManager) {
         this.camera = sceneManager.camera;
+        this.renderer = sceneManager.renderer;
         this.dom = sceneManager.renderer.domElement;
         this.enabled = true;
 
@@ -46,6 +47,7 @@ export class InputHandler {
         this._defaultZoom = this.camera.zoom;
 
         // Set up event listeners
+        window.addEventListener('resize', this.onWindowResize.bind(this));
         this.dom.addEventListener('touchstart', this.touchstart.bind(this), {passive: false});
         this.dom.addEventListener('touchmove', this.touchmove.bind(this), {passive: false});
         this.dom.addEventListener('touchend', this.touchend.bind(this));
@@ -207,5 +209,21 @@ export class InputHandler {
         this.camera.zoom = this._defaultZoom;
         this.camera.updateProjectionMatrix();
         this.camera.updateMatrixWorld();
+    }
+
+    /**
+     * Handles responsive resizing of the camera and renderer.
+     */
+    onWindowResize() {
+        const aspect = window.innerWidth / window.innerHeight;
+        const d = 20;
+
+        this.camera.left = -d * aspect;
+        this.camera.right = d * aspect;
+        this.camera.top = d;
+        this.camera.bottom = -d;
+
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 }
