@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "esbuild": "^0.25.5",
+    "stats.js": "^0.17.0",
     "three": "^0.177.0"
   }
 }
