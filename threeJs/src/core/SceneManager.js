@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BoardManager } from './BoardManager.js';
+import { InputHandler } from './InputHandler.js';
 
 export class SceneManager {
     constructor(container = document.body) {
@@ -11,6 +12,7 @@ export class SceneManager {
         this.setupRenderer();
         this.setupEventListeners();
         this.boardManager = new BoardManager(this.scene);
+        this.inputHandler = new InputHandler(this);
 
         this.visualizeGrid();
         this.animate();

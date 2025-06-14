@@ -3,14 +3,13 @@ import * as THREE from 'three';
 export class HexTile {
     constructor(config) {
         this.type = config.type;
-        this.position = config.position;
+        this.position = config.position; // Should be {q, r} axial coordinates
         this.token = config.token;
         this.mesh = this.createMesh();
     }
 
-    // In your HexTile class
     createMesh() {
-        const geometry = new THREE.CircleGeometry(1, 6);
+        const geometry = new THREE.CircleGeometry(1, 6); // Radius 1, 6 segments for hexagon
         const material = new THREE.MeshStandardMaterial({
             color: this.getColorByType(),
             roughness: 0.3,
@@ -20,16 +19,20 @@ export class HexTile {
 
         const mesh = new THREE.Mesh(geometry, material);
 
-        // CORRECTED axial to world coordinates
-        const size = 1.75;
-        const hexWidth = Math.sqrt(3) * size;
-        const hexHeight = 2 * size;
+        // Convert axial coordinates (q, r) to world coordinates (x, z)
+        const size = 1.0; // Radius of the hexagon
+        const spacing = 1.0; // Spacing between hexagons
 
-        // Proper isometric projection
-        const x = size * (Math.sqrt(3) * this.position.q + Math.sqrt(3)/2 * this.position.r);
-        const z = size * (3/2 * this.position.r);
+        // Standard axial to world coordinate conversion (flat-top hexagons)
+        const x = size * (3/2) * this.position.q * spacing;
+        const z = size * (Math.sqrt(3)/2 * this.position.q + Math.sqrt(3) * this.position.r) * spacing;
 
-        mesh.position.set(x, 0.1, z); // Keep slight Y offset to avoid z-fighting
+        mesh.position.set(x, 0, z); // Y position is 0 for flat layout
+        mesh.rotation.x = -Math.PI / 2; // Rotate to lie flat on XZ plane
+
+        // Slightly elevate to avoid z-fighting with grid
+        mesh.position.y = 0.01;
+
         return mesh;
     }
 
