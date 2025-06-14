@@ -63,7 +63,7 @@ class WebViewGameRender : GameRender {
         // Load HTML and JS content from bundled resources.
         LaunchedEffect(Unit) {
             html = Res.readBytes("files/index.html").decodeToString()
-            js = Res.readBytes("files/bundle.js").decodeToString()
+            js = Res.readBytes("files/main.js").decodeToString()
         }
 
         // Initialize the WebView state with injected JS code.

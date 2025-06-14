@@ -19,15 +19,16 @@ import androidx.compose.ui.unit.dp
 import eric.bitria.hexon.viewmodel.GameViewModel
 
 @Composable
-fun App() {
-    val viewModel = remember { GameViewModel() }
+fun App(
+    viewModel: GameViewModel = remember { GameViewModel() }
+) {
     val gameEvents = viewModel.gameEvents.collectAsState(initial = "Hola tet")
 
     MaterialTheme {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Yellow)
+                .background(Color.Black)
         ) {
             // Pure rendering - no logic
             viewModel.gameRender.render(Modifier.fillMaxSize())
@@ -41,7 +42,49 @@ fun App() {
             ) {
                 Button(
                     onClick = {
-                        viewModel.sendCommand("""{"type": "updateCubeScale","scale": {"x": 1.5,"y": 2.0,"z": 1.0}}""".trimIndent())
+                        viewModel.sendCommand("""{
+  "type": "INIT_BOARD",
+  "config": {
+    "radius": 2,
+    "tiles": [
+      {
+        "type": "forest",
+        "position": { "q": 0, "r": 0 },
+        "token": 5
+      },
+      {
+        "type": "hills",
+        "position": { "q": 1, "r": 0 },
+        "token": 2
+      },
+      {
+        "type": "pasture",
+        "position": { "q": 0, "r": -1 },
+        "token": 10
+      },
+      {
+        "type": "desert",
+        "position": { "q": -1, "r": 0 },
+        "token": null
+      },
+      {
+        "type": "fields",
+        "position": { "q": -1, "r": 1 },
+        "token": 3
+      },
+      {
+        "type": "mountains",
+        "position": { "q": 1, "r": -1 },
+        "token": 6
+      },
+      {
+        "type": "fields",
+        "position": { "q": 0, "r": 1 },
+        "token": 8
+      }
+    ]
+  }
+}""".trimIndent())
                     },
                     modifier = Modifier.padding(16.dp)
                 ) {

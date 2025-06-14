@@ -29,5 +29,6 @@ dependencyResolutionManagement {
 }
 
 include(":composeApp")
+include(":threeJs")
 include(":server")
 include(":shared")
