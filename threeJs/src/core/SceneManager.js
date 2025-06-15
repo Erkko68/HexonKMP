@@ -20,8 +20,17 @@ export class SceneManager {
         this.inputHandler = new InputHandler(this);       // Handle user input
 
         // DEBUG
-        this.visualizeGrid();         // Optional: add grid and axes helpers for debugging
-        this.setupStats();            // Add FPS counter
+        //this.visualizeGrid();         // Optional: add grid and axes helpers for debugging
+        //this.setupStats();            // Add FPS counter
+
+        const geometry = new THREE.BoxGeometry(2, 2, 2); // width, height, depth
+        const material = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // red cube
+        const cube = new THREE.Mesh(geometry, material);
+        cube.position.set(0, 0, 0);
+        cube.castShadow = true;
+        cube.receiveShadow = true;
+        this.scene.add(cube);
+
 
         this.animate();               // Start animation loop
     }
@@ -49,11 +58,15 @@ export class SceneManager {
      * Adds basic ambient and directional lighting to the scene.
      */
     setupLights() {
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        this.scene.background = new THREE.Color('#76e0e8');
+
+        const ambientLight = new THREE.AmbientLight(0xe0e0ff, 1.4);
         this.scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(1, 1, 0.5).normalize();
+        const directionalLight = new THREE.DirectionalLight(0xfff6e5, 2);
+        directionalLight.castShadow = true;
+        directionalLight.position.set(1, 0.5, -1).normalize();
+
         this.scene.add(directionalLight);
     }
 
@@ -63,6 +76,8 @@ export class SceneManager {
     setupRenderer() {
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMapSoft = true;
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.container.appendChild(this.renderer.domElement);
     }
@@ -71,16 +86,16 @@ export class SceneManager {
      * Main render loop using requestAnimationFrame. Also updates FPS stats.
      */
     animate() {
-        this.statsFPS.begin();
-        this.statsMS.begin();
-        this.statsMem.begin();
+        //this.statsFPS.begin();
+        //this.statsMS.begin();
+        //this.statsMem.begin();
 
         requestAnimationFrame(() => this.animate());
         this.renderer.render(this.scene, this.camera);
 
-        this.statsFPS.end();
-        this.statsMS.end();
-        this.statsMem.end();
+        //this.statsFPS.end();
+        //this.statsMS.end();
+        //this.statsMem.end();
     }
 
     // GAME RENDER

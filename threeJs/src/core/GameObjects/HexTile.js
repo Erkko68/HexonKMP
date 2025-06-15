@@ -23,6 +23,8 @@ export class HexTile {
         const size = 1.0; // Radius of the hexagon
         const spacing = 1.0; // Spacing between hexagons
 
+        mesh.receiveShadow = true;
+
         // Standard axial to world coordinate conversion (flat-top hexagons)
         const x = size * (3/2) * this.position.q * spacing;
         const z = size * (Math.sqrt(3)/2 * this.position.q + Math.sqrt(3) * this.position.r) * spacing;
