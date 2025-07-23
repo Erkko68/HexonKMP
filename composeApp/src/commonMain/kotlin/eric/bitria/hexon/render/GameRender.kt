@@ -13,7 +13,7 @@ interface GameRender {
      * @param modifier Compose modifier for layout customization
      */
     @Composable
-    fun render(modifier: Modifier = Modifier)
+    fun Render(modifier: Modifier = Modifier)
 
     /**
      * Sends JSON data to the game screen.
@@ -26,5 +26,5 @@ interface GameRender {
      * Registers a callback to receive JSON data from the game screen.
      * @param callback Suspending function that receives JSON strings from the game
      */
-    fun receiveJson(callback: suspend (String) -> Unit)
+    fun registerJsonCallback(callback: suspend (String) -> Unit)
 }

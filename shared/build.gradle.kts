@@ -22,7 +22,7 @@ kotlin {
     
     sourceSets {
         commonMain.dependencies {
-            // put your Multiplatform dependencies here
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

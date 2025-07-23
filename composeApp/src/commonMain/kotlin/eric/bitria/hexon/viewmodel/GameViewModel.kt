@@ -2,32 +2,27 @@ package eric.bitria.hexon.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.render.GameRender
-import eric.bitria.hexon.render.WebViewGameRender
-import kotlinx.coroutines.flow.MutableSharedFlow
+import eric.bitria.hexon.communication.GameCommunication
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 class GameViewModel : ViewModel() {
-    private val _gameRender: GameRender = WebViewGameRender()
-    val gameRender: GameRender get() = _gameRender
+    private val _gameCommunication = GameCommunication()
+    val gameCommunication: GameCommunication get() = _gameCommunication
 
-    private val _gameEvents = MutableSharedFlow<String>()
-    val gameEvents: SharedFlow<String> = _gameEvents.asSharedFlow()
+    val gameEvents: SharedFlow<String> = _gameCommunication.gameEvents
 
     init {
         viewModelScope.launch {
-            _gameRender.receiveJson { json ->
-                //println("Received from JS: $json")
-                _gameEvents.emit(json)
+            _gameCommunication.gameEvents.collect { json ->
+                // Handle game events if needed, or just expose the flow directly
             }
         }
     }
 
     fun sendCommand(command: String) {
         viewModelScope.launch {
-            _gameRender.sendJson(command)
+            _gameCommunication.sendJson(command)
         }
     }
 }

@@ -56,7 +56,7 @@ class WebViewGameRender : GameRender {
      * @param modifier A [Modifier] for layout customization.
      */
     @Composable
-    override fun render(modifier: Modifier) {
+    override fun Render(modifier: Modifier) {
         var html by remember { mutableStateOf("") }
         var js by remember { mutableStateOf("") }
 
@@ -122,7 +122,7 @@ class WebViewGameRender : GameRender {
      *
      * @param callback A suspend function to handle the JSON payload from JS.
      */
-    override fun receiveJson(callback: suspend (String) -> Unit) {
+    override fun registerJsonCallback(callback: suspend (String) -> Unit) {
         jsonCallbacks.add(callback)
     }
 

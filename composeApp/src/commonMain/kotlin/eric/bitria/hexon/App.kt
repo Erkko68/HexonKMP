@@ -16,13 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import eric.bitria.hexon.ui.elements.GameScreen
 import eric.bitria.hexon.viewmodel.GameViewModel
 
 @Composable
 fun App(
     viewModel: GameViewModel = remember { GameViewModel() }
 ) {
-    val gameEvents = viewModel.gameEvents.collectAsState(initial = "Hola tet")
+    val gameEvents = viewModel.gameEvents.collectAsState(initial = "Waiting for events...")
 
     MaterialTheme {
         Box(
@@ -30,8 +31,10 @@ fun App(
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
-            // Pure rendering - no logic
-            viewModel.gameRender.render(Modifier.fillMaxSize())
+            GameScreen(
+                communication = viewModel.gameCommunication,
+                modifier = Modifier.fillMaxSize()
+            )
 
             // UI Layer
             Column(
