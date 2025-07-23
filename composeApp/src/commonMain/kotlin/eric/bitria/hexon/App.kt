@@ -16,7 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import eric.bitria.hexon.ui.elements.GameScreen
+import eric.bitria.hexon.ui.screen.GameScreen
 import eric.bitria.hexon.viewmodel.GameViewModel
 
 @Composable
@@ -32,8 +32,8 @@ fun App(
                 .background(Color.Black)
         ) {
             GameScreen(
-                communication = viewModel.gameCommunication,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                viewModel = viewModel
             )
 
             // UI Layer
