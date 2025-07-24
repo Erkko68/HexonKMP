@@ -8,24 +8,19 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 class GameViewModel : ViewModel() {
-
-    // Debug Flow
     private val _gameEvents = MutableSharedFlow<String>()
     val gameEvents: SharedFlow<String> = _gameEvents.asSharedFlow()
 
-    private var sendJsonHandler: (suspend (String) -> Unit)? = null
-
-    fun setSendJsonHandler(handler: suspend (String) -> Unit) {
-        sendJsonHandler = handler
-    }
+    private val _sendJson = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val sendJson: SharedFlow<String> = _sendJson.asSharedFlow()
 
     fun sendCommand(command: String) {
         viewModelScope.launch {
-            sendJsonHandler?.invoke(command)
+            _sendJson.emit(command)
         }
     }
 
-    fun handleReceivedJson(json: String) {
+    fun onJsonReceived(json: String) {
         viewModelScope.launch {
             _gameEvents.emit(json)
         }

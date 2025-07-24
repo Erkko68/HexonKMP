@@ -1,4 +1,4 @@
-package eric.bitria.hexon.ui.screen
+package eric.bitria.hexon.ui.screens
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,16 +22,15 @@ fun GameScreen(
     val webViewRender = remember { WebViewGameRender() }
 
     LaunchedEffect(viewModel) {
-        viewModel.setSendJsonHandler { json ->
-            webViewRender.sendJson(json)
-        }
+        // Register a callback to handle JSON messages from the WebView
+        val callback: (String) -> Unit = { viewModel.onJsonReceived(it) }
+        webViewRender.registerJsonCallback(callback)
 
-        // Register a callback to handle incoming JSON messages from the WebView
-        webViewRender.registerJsonCallback { json ->
-            viewModel.handleReceivedJson(json)
+        // Collect JSON messages from the ViewModel and send them to the WebView
+        viewModel.sendJson.collect { json ->
+            webViewRender.sendJson(json)
         }
     }
 
-    // Render the WebView
     webViewRender.Render(modifier)
 }
