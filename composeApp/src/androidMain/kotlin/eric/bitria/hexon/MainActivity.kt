@@ -7,16 +7,15 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import eric.bitria.hexon.viewmodel.GameViewModel
+import eric.bitria.hexon.viewmodel.UIViewModel
 
 class MainActivity : ComponentActivity() {
-    private val viewModel by lazy { GameViewModel() }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         setContent {
-            App(viewModel)
+            App()
         }
     }
 }

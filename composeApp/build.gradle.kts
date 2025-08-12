@@ -41,14 +41,15 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
-            implementation(libs.androidx.lifecycle.viewmodel)
+            implementation(libs.lifecycle.viewmodel.compose)
+            implementation(libs.androidx.navigation.compose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(projects.shared)
             api(libs.compose.webview.multiplatform)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }

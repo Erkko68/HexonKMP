@@ -25,4 +25,53 @@ class GameViewModel : ViewModel() {
             _gameEvents.emit(json)
         }
     }
+
+    fun testCommand() {
+        viewModelScope.launch {
+            _sendJson.emit(
+"""{
+          "type": "INIT_BOARD",
+          "config": {
+            "radius": 2,
+            "tiles": [
+              {
+                "type": "forest",
+                "position": { "q": 0, "r": 0 },
+                "token": 5
+              },
+              {
+                "type": "hills",
+                "position": { "q": 1, "r": 0 },
+                "token": 2
+              },
+              {
+                "type": "pasture",
+                "position": { "q": 0, "r": -1 },
+                "token": 10
+              },
+              {
+                "type": "desert",
+                "position": { "q": -1, "r": 0 },
+                "token": null
+              },
+              {
+                "type": "fields",
+                "position": { "q": -1, "r": 1 },
+                "token": 3
+              },
+              {
+                "type": "mountains",
+                "position": { "q": 1, "r": -1 },
+                "token": 6
+              },
+              {
+                "type": "fields",
+                "position": { "q": 0, "r": 1 },
+                "token": 8
+              }
+            ]
+          }
+    }""".trimIndent())
+        }
+    }
 }

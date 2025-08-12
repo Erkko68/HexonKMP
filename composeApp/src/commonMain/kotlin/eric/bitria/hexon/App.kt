@@ -15,14 +15,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import eric.bitria.hexon.ui.screens.GameScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
+import eric.bitria.hexon.render.GameLayer
 import eric.bitria.hexon.viewmodel.GameViewModel
+import eric.bitria.hexon.viewmodel.UIViewModel
 
 @Composable
 fun App(
-    viewModel: GameViewModel
+    gameViewModel: GameViewModel = viewModel { GameViewModel() },
+    uiViewModel: UIViewModel = viewModel { UIViewModel() },
+    navController: NavHostController = rememberNavController()
 ) {
-    val gameEvents = viewModel.gameEvents.collectAsState(initial = "Waiting for events...")
+    val gameEvents = gameViewModel.gameEvents.collectAsState(initial = "Waiting for events...")
 
     MaterialTheme {
         Box(
@@ -30,9 +36,10 @@ fun App(
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
-            GameScreen(
+            GameLayer(
                 modifier = Modifier.fillMaxSize(),
-                viewModel = viewModel
+                jsonCollector = gameViewModel.sendJson,
+                onJsonReceived = gameViewModel::onJsonReceived
             )
 
             // UI Layer
@@ -44,49 +51,7 @@ fun App(
             ) {
                 Button(
                     onClick = {
-                        viewModel.sendCommand("""{
-  "type": "INIT_BOARD",
-  "config": {
-    "radius": 2,
-    "tiles": [
-      {
-        "type": "forest",
-        "position": { "q": 0, "r": 0 },
-        "token": 5
-      },
-      {
-        "type": "hills",
-        "position": { "q": 1, "r": 0 },
-        "token": 2
-      },
-      {
-        "type": "pasture",
-        "position": { "q": 0, "r": -1 },
-        "token": 10
-      },
-      {
-        "type": "desert",
-        "position": { "q": -1, "r": 0 },
-        "token": null
-      },
-      {
-        "type": "fields",
-        "position": { "q": -1, "r": 1 },
-        "token": 3
-      },
-      {
-        "type": "mountains",
-        "position": { "q": 1, "r": -1 },
-        "token": 6
-      },
-      {
-        "type": "fields",
-        "position": { "q": 0, "r": 1 },
-        "token": 8
-      }
-    ]
-  }
-}""".trimIndent())
+                        gameViewModel.testCommand()
                     },
                     modifier = Modifier.padding(16.dp)
                 ) {
