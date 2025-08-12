@@ -1,8 +1,8 @@
 package eric.bitria.hexon.ui.screens
 
-enum class Screens {
-    Login,
-    MainMenu,
-    Game,
-    Settings
+enum class Screens(val route: String) {
+    Login("login"),
+    MainMenu("main_menu"),
+    Game("game"),
+    Settings("settings"),
 }

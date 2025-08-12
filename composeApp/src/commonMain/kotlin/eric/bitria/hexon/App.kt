@@ -1,63 +1,38 @@
 package eric.bitria.hexon
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import eric.bitria.hexon.render.GameLayer
-import eric.bitria.hexon.viewmodel.GameViewModel
-import eric.bitria.hexon.viewmodel.UIViewModel
+import eric.bitria.hexon.ui.screens.GameScreen
+import eric.bitria.hexon.ui.screens.LoginScreen
+import eric.bitria.hexon.ui.screens.MainMenuScreen
+import eric.bitria.hexon.ui.screens.Screens
 
 @Composable
 fun App(
-    gameViewModel: GameViewModel = viewModel { GameViewModel() },
-    uiViewModel: UIViewModel = viewModel { UIViewModel() },
     navController: NavHostController = rememberNavController()
 ) {
-    val gameEvents = gameViewModel.gameEvents.collectAsState(initial = "Waiting for events...")
-
     MaterialTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
+        NavHost(
+            navController = navController,
+            startDestination = Screens.Login.route,
+            modifier = Modifier.fillMaxSize()
         ) {
-            GameLayer(
-                modifier = Modifier.fillMaxSize(),
-                jsonCollector = gameViewModel.sendJson,
-                onJsonReceived = gameViewModel::onJsonReceived
-            )
-
-            // UI Layer
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Button(
-                    onClick = {
-                        gameViewModel.testCommand()
-                    },
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text("Start Game", color = Color.White)
-                }
-                Text("Last event: ${gameEvents.value}", color = Color.White)
+            composable(route = Screens.Login.route) {
+                LoginScreen(
+                    onNavigateToGame = { navController.navigate(Screens.Game.route) }
+                )
+            }
+            composable(route = Screens.MainMenu.route) {
+                MainMenuScreen()
+            }
+            composable(route = Screens.Game.route) {
+                GameScreen()
             }
         }
     }
