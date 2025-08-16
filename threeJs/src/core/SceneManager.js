@@ -8,9 +8,10 @@ import Stats from 'stats.js';
  * event handling, input, and performance monitoring (FPS).
  */
 export class SceneManager {
-    constructor(container = document.body) {
+    constructor(container,bridgeService) {
         this.container = container;
         this.scene = new THREE.Scene();
+        this.bridgeService = bridgeService;
 
         this.setupLights();           // Set up ambient and directional lighting
         this.setupCamera();           // Set up orthographic camera

@@ -1,9 +1,7 @@
-import { BridgeService } from './BridgeService.js';
-
 export class MessageHandler {
-    constructor(sceneManager) {
+    constructor(sceneManager, bridgeService) {
         this.sceneManager = sceneManager;
-        this.bridge = new BridgeService();
+        this.bridge = bridgeService;
     }
 
     handleIncoming(json) {

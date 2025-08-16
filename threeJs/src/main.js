@@ -1,11 +1,12 @@
 import { SceneManager } from './core/SceneManager.js';
 import { MessageHandler } from './communication/MessageHandler.js';
+import { BridgeService } from "./communication/BridgeService.js";
 
-// Initialize core systems
-const sceneManager = new SceneManager();
+// Initiate Communication Bridge with Kotlin
+const bridgeService = new BridgeService();
 
-// Set up communication handler
-const messageHandler = new MessageHandler(sceneManager);
+const sceneManager = new SceneManager(document.body,bridgeService);
+const messageHandler = new MessageHandler(sceneManager,bridgeService);
 
 // Expose to Kotlin
 window.receiveFromApp = (json) => messageHandler.handleIncoming(json);
