@@ -25,7 +25,7 @@ fun App(
         ) {
             composable(route = Screens.Login.route) {
                 LoginScreen(
-                    onNavigateToGame = { navController.navigate(Screens.Game.route) }
+                    onLoginSuccess = { navController.navigate(Screens.Game.route) }
                 )
             }
             composable(route = Screens.MainMenu.route) {
