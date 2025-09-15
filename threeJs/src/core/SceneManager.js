@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { BoardManager } from './BoardManager.js';
 import { InputHandler } from './InputHandler.js';
 import Stats from 'stats.js';
+import { GLTFLoader } from "three/addons";
 
 /**
  * SceneManager handles Three.js scene setup, rendering, camera, lights,
@@ -9,9 +10,11 @@ import Stats from 'stats.js';
  */
 export class SceneManager {
     constructor(container,bridgeService) {
+
+        this.loader = new GLTFLoader();
         this.container = container;
         this.scene = new THREE.Scene();
-        this.bridgeService = bridgeService;
+        this.bridge = bridgeService;
 
         this.setupLights();           // Set up ambient and directional lighting
         this.setupCamera();           // Set up orthographic camera
@@ -21,17 +24,8 @@ export class SceneManager {
         this.inputHandler = new InputHandler(this);       // Handle user input
 
         // DEBUG
-        //this.visualizeGrid();         // Optional: add grid and axes helpers for debugging
-        //this.setupStats();            // Add FPS counter
-
-        const geometry = new THREE.BoxGeometry(2, 2, 2); // width, height, depth
-        const material = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // red cube
-        const cube = new THREE.Mesh(geometry, material);
-        cube.position.set(0, 0, 0);
-        cube.castShadow = true;
-        cube.receiveShadow = true;
-        this.scene.add(cube);
-
+        this.visualizeGrid();         // Optional: add grid and axes helpers for debugging
+        this.setupStats();            // Add FPS counter
 
         this.animate();               // Start animation loop
     }
@@ -87,16 +81,12 @@ export class SceneManager {
      * Main render loop using requestAnimationFrame. Also updates FPS stats.
      */
     animate() {
-        //this.statsFPS.begin();
-        //this.statsMS.begin();
-        //this.statsMem.begin();
+        this.stats.begin();
 
         requestAnimationFrame(() => this.animate());
         this.renderer.render(this.scene, this.camera);
 
-        //this.statsFPS.end();
-        //this.statsMS.end();
-        //this.statsMem.end();
+        this.stats.end();
     }
 
     // GAME RENDER
@@ -115,29 +105,13 @@ export class SceneManager {
      * Adds FPS monitor using stats.js.
      */
     setupStats() {
-        this.statsFPS = new Stats();
-        this.statsFPS.showPanel(0); // FPS panel
-        this.statsFPS.dom.style.position = 'fixed';
-        this.statsFPS.dom.style.top = '10px';
-        this.statsFPS.dom.style.left = '10px';
-        this.statsFPS.dom.style.zIndex = '100';
-        document.body.appendChild(this.statsFPS.dom);
-
-        this.statsMS = new Stats();
-        this.statsMS.showPanel(1); // MS/frame panel
-        this.statsMS.dom.style.position = 'fixed';
-        this.statsMS.dom.style.top = '50px';   // move below FPS panel
-        this.statsMS.dom.style.left = '10px';
-        this.statsMS.dom.style.zIndex = '100';
-        document.body.appendChild(this.statsMS.dom);
-
-        this.statsMem = new Stats();
-        this.statsMem.showPanel(2); // Memory panel
-        this.statsMem.dom.style.position = 'fixed';
-        this.statsMem.dom.style.top = '90px'; // move below MS panel
-        this.statsMem.dom.style.left = '10px';
-        this.statsMem.dom.style.zIndex = '100';
-        document.body.appendChild(this.statsMem.dom);
+        this.stats = new Stats();
+        this.stats.showPanel(0); // FPS panel
+        this.stats.dom.style.position = 'fixed';
+        this.stats.dom.style.top = '50px';
+        this.stats.dom.style.left = '10px';
+        this.stats.dom.style.zIndex = '100';
+        document.body.appendChild(this.stats.dom);
     }
 
     /**
