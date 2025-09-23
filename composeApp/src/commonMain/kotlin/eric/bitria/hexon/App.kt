@@ -1,6 +1,8 @@
 package eric.bitria.hexon
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -21,7 +23,9 @@ fun App(
         NavHost(
             navController = navController,
             startDestination = Screens.Login.route,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets(0,0,0,0))
         ) {
             composable(route = Screens.Login.route) {
                 LoginScreen(
