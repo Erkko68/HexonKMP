@@ -13,7 +13,6 @@ class LoginViewModel(
 ) : ViewModel() {
 
     // --- Fields ---
-
     var name by mutableStateOf("")
         private set
 
@@ -29,7 +28,7 @@ class LoginViewModel(
     var loginState by mutableStateOf<LoginState>(LoginState.Idle)
         private set
 
-    // --- Field Changes ---
+    // --- Field Triggers ---
     fun onNameChange(newName: String) {
         name = newName
     }
