@@ -49,6 +49,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.LoginState
@@ -89,7 +90,8 @@ fun LoginScreen(
                     "Hexon",
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 2.sp
                     ),
                     textAlign = TextAlign.Center
                 )

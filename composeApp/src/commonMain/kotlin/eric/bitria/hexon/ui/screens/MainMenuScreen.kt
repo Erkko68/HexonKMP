@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import eric.bitria.hexon.render.GameLayer
 import eric.bitria.hexon.theme.HexonTheme
@@ -43,7 +44,9 @@ fun MainMenuScreen(
     HexonTheme {
 
         Box(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
         ) {
             GameLayer(
                 modifier = Modifier.fillMaxSize(),
@@ -73,7 +76,8 @@ fun MainMenuScreen(
                             text = "Hexon",
                             style = MaterialTheme.typography.headlineLarge.copy(
                                 color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp
                             )
                         )
                         // Profile/Friends Buttons
