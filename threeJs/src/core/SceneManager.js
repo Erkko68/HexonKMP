@@ -24,7 +24,7 @@ export class SceneManager {
         this.inputHandler = new InputHandler(this);       // Handle user input
 
         // DEBUG
-        this.visualizeGrid();         // Optional: add grid and axes helpers for debugging
+        //this.visualizeGrid();         // Optional: add grid and axes helpers for debugging
         this.setupStats();            // Add FPS counter
 
         this.animate();               // Start animation loop
@@ -53,7 +53,7 @@ export class SceneManager {
      * Adds basic ambient and directional lighting to the scene.
      */
     setupLights() {
-        this.scene.background = new THREE.Color('#76e0e8');
+        this.scene.background = new THREE.Color('#131E26');
 
         const ambientLight = new THREE.AmbientLight(0xe0e0ff, 1.4);
         this.scene.add(ambientLight);
