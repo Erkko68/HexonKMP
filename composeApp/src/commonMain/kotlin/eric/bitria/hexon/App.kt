@@ -1,6 +1,8 @@
 package eric.bitria.hexon
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -25,6 +27,7 @@ fun App(
             startDestination = Screens.Login.route,
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // Login
             composable(route = Screens.Login.route) {
@@ -42,7 +45,8 @@ fun App(
 
             composable(route = Screens.Profile.route) {
                 ProfileScreen(
-                    onExitClicked = { navController.navigate(Screens.MainMenu.route) }
+                    onExitClicked = { navController.navigate(Screens.MainMenu.route) },
+                    onSettingsClicked = { navController.navigate(Screens.Settings.route) }
                 )
             }
             composable(route = Screens.Friends.route) {
