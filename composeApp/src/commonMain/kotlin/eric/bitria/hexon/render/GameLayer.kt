@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Composable
 fun GameLayer(
-    modifier: Modifier = Modifier,
+    modifier: Modifier,
     jsonCollector: Flow<String>,
     onJsonReceived: (String) -> Unit
 ) {

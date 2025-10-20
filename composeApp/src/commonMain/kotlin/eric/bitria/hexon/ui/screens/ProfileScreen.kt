@@ -7,6 +7,7 @@ import eric.bitria.hexon.viewmodel.ProfileViewModel
 @Composable
 fun ProfileScreen(
     profileViewModel: ProfileViewModel = viewModel { ProfileViewModel() },
+    onExitClicked: () -> Unit
 ) {
 
 }

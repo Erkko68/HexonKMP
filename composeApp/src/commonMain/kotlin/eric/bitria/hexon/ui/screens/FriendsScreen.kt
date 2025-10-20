@@ -7,6 +7,7 @@ import eric.bitria.hexon.viewmodel.FriendsViewModel
 @Composable
 fun FriendsScreen(
     friendsViewModel: FriendsViewModel = viewModel { FriendsViewModel() },
+    onExitClicked: () -> Unit
 ) {
 
 }

@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import com.multiplatform.webview.jsbridge.IJsMessageHandler
 import com.multiplatform.webview.jsbridge.JsMessage
 import com.multiplatform.webview.jsbridge.rememberWebViewJsBridge
@@ -99,7 +100,10 @@ class WebViewGameRender : GameRender {
             isLoaded = webViewState.loadingState is LoadingState.Finished
         }
 
-        // Render the actual WebView.
+        webViewState.webSettings.apply {
+            iOSWebSettings.scrollEnabled = false
+        }
+
         WebView(
             modifier = modifier,
             state = webViewState,
