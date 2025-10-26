@@ -1,5 +1,9 @@
 package eric.bitria.hexon
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -16,6 +20,7 @@ import eric.bitria.hexon.ui.screens.LoginScreen
 import eric.bitria.hexon.ui.screens.MainMenuScreen
 import eric.bitria.hexon.ui.screens.ProfileScreen
 import eric.bitria.hexon.ui.screens.Screens
+import eric.bitria.hexon.ui.screens.SettingsScreen
 
 @Composable
 fun App(
@@ -29,37 +34,122 @@ fun App(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Login
-            composable(route = Screens.Login.route) {
+
+            composable(
+                route = Screens.Login.route,
+                enterTransition = { fadeIn(animationSpec = tween(500)) },
+                exitTransition = { fadeOut(animationSpec = tween(500)) }
+            ) {
                 LoginScreen(
-                    onLoginSuccess = { navController.navigate(Screens.MainMenu.route) }
+                    onLoginSuccess = {
+                        navController.navigate(Screens.MainMenu.route) {
+                            popUpTo(Screens.Login.route) {
+                                inclusive = true
+                            }
+                        }
+                    }
                 )
             }
-            // MainMenu
-            composable(route = Screens.MainMenu.route) {
+
+            composable(
+                route = Screens.MainMenu.route,
+                enterTransition = { fadeIn(animationSpec = tween(500)) },
+                exitTransition = {
+                    slideOutOfContainer(
+                        AnimatedContentTransitionScope.SlideDirection.Left,
+                        animationSpec = tween(400)
+                    )
+                },
+                popEnterTransition = {
+                    slideIntoContainer(
+                        AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = tween(400)
+                    )
+                }
+            ) {
                 MainMenuScreen(
                     onFriendsClicked = { navController.navigate(Screens.Friends.route) },
                     onProfileClicked = { navController.navigate(Screens.Profile.route) }
                 )
             }
 
-            composable(route = Screens.Profile.route) {
+            composable(
+                route = Screens.Profile.route,
+                enterTransition = {
+                    slideIntoContainer(
+                        AnimatedContentTransitionScope.SlideDirection.Left,
+                        animationSpec = tween(400)
+                    )
+                },
+                exitTransition = {
+                    slideOutOfContainer(
+                        AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = tween(400)
+                    )
+                }
+            ) {
                 ProfileScreen(
-                    onExitClicked = { navController.navigate(Screens.MainMenu.route) },
+                    onExitClicked = { navController.popBackStack() },
                     onSettingsClicked = { navController.navigate(Screens.Settings.route) }
                 )
             }
-            composable(route = Screens.Friends.route) {
+
+            composable(
+                route = Screens.Friends.route,
+                enterTransition = {
+                    slideIntoContainer(
+                        AnimatedContentTransitionScope.SlideDirection.Left,
+                        animationSpec = tween(400)
+                    )
+                },
+                exitTransition = {
+                    slideOutOfContainer(
+                        AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = tween(400)
+                    )
+                }
+            ) {
                 FriendsScreen(
-                    onExitClicked = { navController.navigate(Screens.MainMenu.route) }
+                    onExitClicked = { navController.popBackStack() }
                 )
             }
-            composable(route = Screens.Settings.route) {
 
+            composable(
+                route = Screens.Settings.route,
+                enterTransition = {
+                    slideIntoContainer(
+                        AnimatedContentTransitionScope.SlideDirection.Left,
+                        animationSpec = tween(400)
+                    )
+                },
+                exitTransition = {
+                    slideOutOfContainer(
+                        AnimatedContentTransitionScope.SlideDirection.Right,
+                        animationSpec = tween(400)
+                    )
+                }
+            ) {
+                SettingsScreen(
+                    onExitClicked = { navController.popBackStack() }
+                )
             }
 
             // Game
-            composable(route = Screens.Game.route) {
+            composable(
+                route = Screens.Game.route,
+                enterTransition = {
+                    slideIntoContainer(
+                        AnimatedContentTransitionScope.SlideDirection.Up,
+                        animationSpec = tween(400)
+                    )
+                },
+                exitTransition = {
+                    slideOutOfContainer(
+                        AnimatedContentTransitionScope.SlideDirection.Down,
+                        animationSpec = tween(400)
+                    )
+                }
+            ) {
                 GameScreen()
             }
         }

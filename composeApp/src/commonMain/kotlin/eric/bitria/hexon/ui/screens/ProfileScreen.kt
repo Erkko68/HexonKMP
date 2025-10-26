@@ -30,7 +30,6 @@ fun ProfileScreen(
     onSettingsClicked: () -> Unit,
     onExitClicked: () -> Unit
 ) {
-    // 1. Collect state - no isLoading check needed
     val uiState by profileViewModel.uiState.collectAsState()
 
     HexonTheme {

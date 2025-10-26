@@ -45,6 +45,8 @@ kotlin {
             implementation(libs.androidx.navigation.compose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(projects.shared)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor3)
             api(libs.compose.webview.multiplatform)
         }
         commonTest.dependencies {
