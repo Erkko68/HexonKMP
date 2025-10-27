@@ -1,10 +1,20 @@
 package eric.bitria.hexon.ui.screens
+import kotlinx.serialization.Serializable
 
-enum class Screens(val route: String) {
-    Login("login"),
-    MainMenu("main_menu"),
-    Game("game"),
-    Profile("profile"),
-    Friends("friends"),
-    Settings("settings")
+@Serializable
+sealed class Screens {
+    @Serializable
+    object Login : Screens()
+    @Serializable
+    object MainMenu : Screens()
+    @Serializable
+    object Game : Screens()
+    @Serializable
+    object Profile : Screens()
+    @Serializable
+    object Friends : Screens()
+    @Serializable
+    object Settings : Screens()
+    @Serializable
+    data class FriendProfile(val username: String) : Screens()
 }

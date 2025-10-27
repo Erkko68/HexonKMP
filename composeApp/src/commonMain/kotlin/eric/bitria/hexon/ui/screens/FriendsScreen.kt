@@ -38,7 +38,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 fun FriendsScreen(
     friendsViewModel: FriendsViewModel = viewModel { FriendsViewModel() },
-    onExitClicked: () -> Unit
+    onExitClicked: () -> Unit,
+    onViewProfileClicked: (String) -> Unit
 ) {
     val friends by friendsViewModel.friendsList.collectAsState()
 
@@ -116,7 +117,9 @@ fun FriendsScreen(
                             FriendListItem(
                                 friend = friend,
                                 onInvite = { /* TODO: Handle invite click */ },
-                                onViewProfile = { /* TODO: Handle profile click */ }
+                                onViewProfile = {
+                                    onViewProfileClicked(friend.username)
+                                }
                             )
                         }
                     }
@@ -132,7 +135,8 @@ fun FriendsScreenPreview() {
     HexonTheme {
         FriendsScreen(
             friendsViewModel = FriendsViewModel(),
-            onExitClicked = {}
+            onExitClicked = {},
+            onViewProfileClicked = {}
         )
     }
 }
