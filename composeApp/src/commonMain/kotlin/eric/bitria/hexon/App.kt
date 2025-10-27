@@ -69,7 +69,8 @@ fun App(
             ) {
                 MainMenuScreen(
                     onFriendsClicked = { navController.navigate(Screens.Friends) },
-                    onProfileClicked = { navController.navigate(Screens.Profile) }
+                    onProfileClicked = { navController.navigate(Screens.Profile) },
+                    onStartGameClicked = { navController.navigate(Screens.Game) }
                 )
             }
 

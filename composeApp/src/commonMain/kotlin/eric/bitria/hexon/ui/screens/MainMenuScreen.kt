@@ -33,6 +33,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 fun MainMenuScreen(
     onFriendsClicked: () -> Unit,
     onProfileClicked: () -> Unit,
+    onStartGameClicked: () -> Unit,
     viewModel: MainMenuViewModel = viewModel { MainMenuViewModel() },
     gameViewModel: GameViewModel = viewModel { GameViewModel() },
 ) {
@@ -52,9 +53,10 @@ fun MainMenuScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
+                    .padding(16.dp)
+                    .clickable(onClick = onStartGameClicked),
                 verticalArrangement = Arrangement.SpaceBetween,
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -101,8 +103,7 @@ fun MainMenuScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 32.dp)
-                        .clickable { viewModel.onStartGame() },
+                        .padding(bottom = 32.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -122,6 +123,7 @@ fun MainMenuScreenPreview() {
         MainMenuScreen(
             onFriendsClicked = {},
             onProfileClicked = {},
+            onStartGameClicked = {}
         )
     }
 }

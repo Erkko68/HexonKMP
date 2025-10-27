@@ -13,8 +13,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
+/**
+ * Provides reusable circular IconButton components with different predefined styles.
+ */
 object HexonIconButton {
 
+    /**
+     * Transparent circular button with primary-colored icon.
+     *
+     * @param onClick Callback invoked when the button is clicked.
+     * @param icon Icon to display inside the button.
+     * @param contentDescription Accessibility description for the icon.
+     * @param backgroundColor Background color of the button (default: transparent).
+     * @param modifier Modifier to customize size, padding, etc.
+     */
     @Composable
     fun Transparent(
         onClick: () -> Unit,
@@ -33,6 +45,14 @@ object HexonIconButton {
         )
     }
 
+    /**
+     * Primary circular button with primary background and onPrimary icon color.
+     *
+     * @param onClick Callback invoked when the button is clicked.
+     * @param icon Icon to display inside the button.
+     * @param contentDescription Accessibility description for the icon.
+     * @param modifier Modifier to customize size, padding, etc.
+     */
     @Composable
     fun Primary(
         onClick: () -> Unit,
@@ -50,6 +70,14 @@ object HexonIconButton {
         )
     }
 
+    /**
+     * Secondary circular button with secondary background and onSecondary icon color.
+     *
+     * @param onClick Callback invoked when the button is clicked.
+     * @param icon Icon to display inside the button.
+     * @param contentDescription Accessibility description for the icon.
+     * @param modifier Modifier to customize size, padding, etc.
+     */
     @Composable
     fun Secondary(
         onClick: () -> Unit,
@@ -67,6 +95,14 @@ object HexonIconButton {
         )
     }
 
+    /**
+     * Tertiary circular button with tertiary background and onTertiary icon color.
+     *
+     * @param onClick Callback invoked when the button is clicked.
+     * @param icon Icon to display inside the button.
+     * @param contentDescription Accessibility description for the icon.
+     * @param modifier Modifier to customize size, padding, etc.
+     */
     @Composable
     fun Tertiary(
         onClick: () -> Unit,
@@ -84,6 +120,16 @@ object HexonIconButton {
         )
     }
 
+    /**
+     * Base implementation for a circular IconButton.
+     *
+     * @param onClick Callback invoked when the button is clicked.
+     * @param icon Icon to display inside the button.
+     * @param contentDescription Accessibility description for the icon.
+     * @param tint Icon color.
+     * @param backgroundColor Button background color.
+     * @param modifier Modifier to customize size, padding, etc.
+     */
     @Composable
     private fun Base(
         onClick: () -> Unit,
