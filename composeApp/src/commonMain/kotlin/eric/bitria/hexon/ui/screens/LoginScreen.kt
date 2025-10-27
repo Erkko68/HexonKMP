@@ -50,14 +50,14 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.LoginState
 import eric.bitria.hexon.viewmodel.LoginViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun LoginScreen(
-    loginViewModel: LoginViewModel = viewModel { LoginViewModel() },
+    loginViewModel: LoginViewModel = koinViewModel(),
     onLoginSuccess: () -> Unit
 ) {
     HexonTheme {

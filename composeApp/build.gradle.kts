@@ -50,6 +50,12 @@ kotlin {
             implementation(libs.coil.network.ktor3)
             implementation(libs.kotlinx.serialization.json)
             api(libs.compose.webview.multiplatform)
+
+            implementation(project.dependencies.platform(libs.koin.bom))
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+            implementation(libs.koin.compose.viewmodel.navigation)
+            implementation(libs.insert.koin.koin.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

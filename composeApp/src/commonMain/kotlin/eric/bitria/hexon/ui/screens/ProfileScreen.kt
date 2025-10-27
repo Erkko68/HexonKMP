@@ -15,17 +15,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.profile.GameHistoryList
 import eric.bitria.hexon.ui.components.profile.UserInfoSection
 import eric.bitria.hexon.ui.components.shared.HexonHeader
 import eric.bitria.hexon.ui.components.shared.HexonIconButton
 import eric.bitria.hexon.viewmodel.ProfileViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ProfileScreen(
-    profileViewModel: ProfileViewModel = viewModel { ProfileViewModel() },
+    profileViewModel: ProfileViewModel = koinViewModel(),
     onSettingsClicked: () -> Unit,
     onExitClicked: () -> Unit
 ) {

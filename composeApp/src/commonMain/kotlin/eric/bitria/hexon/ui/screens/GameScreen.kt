@@ -14,15 +14,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import eric.bitria.hexon.render.GameLayer
 import eric.bitria.hexon.viewmodel.GameUIViewModel
 import eric.bitria.hexon.viewmodel.GameViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun GameScreen(
-    gameViewModel: GameViewModel = viewModel { GameViewModel() },
-    gameUiViewModel: GameUIViewModel = viewModel { GameUIViewModel() },
+    gameViewModel: GameViewModel = koinViewModel(),
+    gameUiViewModel: GameUIViewModel = koinViewModel(),
 ) {
     val gameEvents = gameViewModel.gameEvents.collectAsState(initial = "Waiting for events...")
 

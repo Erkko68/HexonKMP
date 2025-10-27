@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import eric.bitria.hexon.render.GameLayer
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonHeader
@@ -28,14 +27,15 @@ import eric.bitria.hexon.ui.components.shared.HexonIconButton
 import eric.bitria.hexon.viewmodel.GameViewModel
 import eric.bitria.hexon.viewmodel.MainMenuViewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun MainMenuScreen(
     onFriendsClicked: () -> Unit,
     onProfileClicked: () -> Unit,
     onStartGameClicked: () -> Unit,
-    viewModel: MainMenuViewModel = viewModel { MainMenuViewModel() },
-    gameViewModel: GameViewModel = viewModel { GameViewModel() },
+    viewModel: MainMenuViewModel = koinViewModel(),
+    gameViewModel: GameViewModel = koinViewModel(),
 ) {
     HexonTheme {
 

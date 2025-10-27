@@ -19,7 +19,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.friends.AddFriendInput
 import eric.bitria.hexon.ui.components.friends.FriendListItem
@@ -27,10 +26,11 @@ import eric.bitria.hexon.ui.components.shared.HexonHeader
 import eric.bitria.hexon.ui.components.shared.HexonIconButton
 import eric.bitria.hexon.viewmodel.FriendsViewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun FriendsScreen(
-    friendsViewModel: FriendsViewModel = viewModel { FriendsViewModel() },
+    friendsViewModel: FriendsViewModel = koinViewModel(),
     onExitClicked: () -> Unit,
     onViewProfileClicked: (String) -> Unit
 ) {

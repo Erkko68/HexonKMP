@@ -19,7 +19,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.settings.SettingsButton
 import eric.bitria.hexon.ui.components.settings.SettingsSection
@@ -28,10 +27,11 @@ import eric.bitria.hexon.ui.components.settings.VolumeSlider
 import eric.bitria.hexon.ui.components.shared.HexonHeader
 import eric.bitria.hexon.ui.components.shared.HexonIconButton
 import eric.bitria.hexon.viewmodel.SettingsViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun SettingsScreen(
-    settingsViewModel: SettingsViewModel = viewModel { SettingsViewModel() },
+    settingsViewModel: SettingsViewModel = koinViewModel(),
     onExitClicked: () -> Unit
 ) {
     val uiState by settingsViewModel.uiState.collectAsState()

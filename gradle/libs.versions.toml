@@ -9,7 +9,8 @@ coilCompose = "3.3.0"
 composeMultiplatform = "1.9.1"
 composeWebviewMultiplatform = "2.0.3"
 junit = "4.13.2"
-kotlin = "2.2.20"
+koinCompose = "4.1.1"
+kotlin = "2.2.21"
 kotlinxCoroutinesTest = "1.10.2"
 kotlinxSerializationJson = "1.9.0"
 ktor = "3.3.1"
@@ -42,6 +43,13 @@ ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", 
 ktor-serverCore = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
 ktor-serverNetty = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktor" }
 ktor-serverTestHost = { module = "io.ktor:ktor-server-test-host-jvm", version.ref = "ktor" }
+
+koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koinCompose" }
+insert-koin-koin-core = { module = "io.insert-koin:koin-core" }
+koin-compose = { module = "io.insert-koin:koin-compose" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel" }
+koin-compose-viewmodel-navigation = { module = "io.insert-koin:koin-compose-viewmodel-navigation" }
+
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
