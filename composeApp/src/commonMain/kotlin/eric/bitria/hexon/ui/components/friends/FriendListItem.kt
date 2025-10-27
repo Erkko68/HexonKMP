@@ -12,8 +12,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Gamepad
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import eric.bitria.hexon.ui.components.shared.HexonIconButton
 import eric.bitria.hexon.viewmodel.Friend
 
 @Composable
@@ -40,12 +39,10 @@ fun FriendListItem(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left Side: Avatar and Username
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // User Letter
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -69,39 +66,20 @@ fun FriendListItem(
             )
         }
 
-        // Right Side: Action Buttons
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Invite to Game Button
-            IconButton(
-                onClick = {onInvite(friend)},
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(color = MaterialTheme.colorScheme.primaryContainer),
-                content = {
-                    Icon(
-                        imageVector = Icons.Default.Gamepad,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+
+            HexonIconButton.Primary(
+                onClick = { onInvite(friend) },
+                icon = Icons.Default.Gamepad,
+                contentDescription = "Invite Friend to Play"
             )
 
-            // View Profile Button
-            IconButton(
+            HexonIconButton.Secondary(
                 onClick = { onViewProfile(friend) },
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(color = MaterialTheme.colorScheme.secondaryContainer),
-                content = {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+                icon = Icons.Default.Person,
+                contentDescription = "Invite Friend to Play"
             )
+
         }
     }
 }
