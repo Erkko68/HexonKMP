@@ -24,7 +24,7 @@ import eric.bitria.hexon.render.GameLayer
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonHeader
 import eric.bitria.hexon.ui.components.shared.HexonIconButton
-import eric.bitria.hexon.viewmodel.GameViewModel
+import eric.bitria.hexon.viewmodel.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.MainMenuViewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
@@ -35,7 +35,7 @@ fun MainMenuScreen(
     onProfileClicked: () -> Unit,
     onStartGameClicked: () -> Unit,
     viewModel: MainMenuViewModel = koinViewModel(),
-    gameViewModel: GameViewModel = koinViewModel(),
+    gameSceneViewModel: GameSceneViewModel = koinViewModel (),
 ) {
     HexonTheme {
 
@@ -46,8 +46,8 @@ fun MainMenuScreen(
         ) {
             GameLayer(
                 modifier = Modifier.fillMaxSize(),
-                jsonCollector = gameViewModel.sendJson,
-                onJsonReceived = gameViewModel::onJsonReceived
+                jsonCollector = gameSceneViewModel.sendJson,
+                onJsonReceived = gameSceneViewModel::onJsonReceived
             )
 
             Column(

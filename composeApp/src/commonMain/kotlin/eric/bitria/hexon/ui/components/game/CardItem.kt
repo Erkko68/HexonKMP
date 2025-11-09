@@ -18,9 +18,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+data class ItemCardData(
+    val count: String,
+    val icon: ImageVector,
+    val description: String,
+    val bgColor: Color,
+    val borderColor: Color
+)
 
 @Composable
-fun ResourceCard(
+fun ItemCard(
     count: String,
     icon: ImageVector,
     description: String,
