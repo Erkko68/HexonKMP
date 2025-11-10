@@ -4,7 +4,6 @@ import eric.bitria.hexon.viewmodel.FriendProfileViewModel
 import eric.bitria.hexon.viewmodel.FriendsViewModel
 import eric.bitria.hexon.viewmodel.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.GameUIViewModel
-import eric.bitria.hexon.viewmodel.GameViewModel
 import eric.bitria.hexon.viewmodel.LoginViewModel
 import eric.bitria.hexon.viewmodel.MainMenuViewModel
 import eric.bitria.hexon.viewmodel.ProfileViewModel
@@ -15,7 +14,6 @@ import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
 
 val viewModelsModule = module {
-    viewModelOf(::GameViewModel)
     viewModelOf(::GameUIViewModel)
     viewModelOf(::GameSceneViewModel)
     viewModelOf(::MainMenuViewModel)

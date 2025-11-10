@@ -52,7 +52,7 @@ class LoginViewModel(
             loginState = LoginState.Loading
             loginState = try {
                 val success = true
-                delay(2000)
+                delay(0)
                 if (success) LoginState.Success else LoginState.Error("Invalid email")
             } catch (e: Exception) {
                 LoginState.Error("Login failed: ${e.message}")
@@ -65,7 +65,7 @@ class LoginViewModel(
             loginState = LoginState.Loading
             loginState = try {
                 val success = true
-                delay(2000)
+                delay(0)
                 if (success) LoginState.Success else LoginState.Error("Invalid email")
             } catch (e: Exception) {
                 LoginState.Error("Login failed: ${e.message}")

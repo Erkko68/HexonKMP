@@ -23,6 +23,7 @@ class GameSceneViewModel: ViewModel() {
     fun onJsonReceived(json: String) {
         viewModelScope.launch {
             _gameEvents.emit(json)
+            println(json)
         }
     }
 

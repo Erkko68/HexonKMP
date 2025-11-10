@@ -21,17 +21,16 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
-fun ItemCards(resources: List<ItemCardData>, modifier: Modifier = Modifier) {
+fun ItemCards(items: List<ItemCardData>, modifier: Modifier = Modifier) {
     FlowRow(
         modifier = modifier
-            .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(Color.Black.copy(alpha = .6f))
             .padding(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        resources.forEach { resource ->
+        items.forEach { resource ->
             ItemCard(
                 count = resource.count,
                 icon = resource.icon,
@@ -55,5 +54,5 @@ fun ResourceItemsPreview() {
         ItemCardData("3", Icons.Filled.Agriculture, "Grain", Color(0xFFFFEB3B), Color(0xFFFFEB3B))
     )
 
-    ItemCards(resources = sampleResources)
+    ItemCards(items = sampleResources)
 }

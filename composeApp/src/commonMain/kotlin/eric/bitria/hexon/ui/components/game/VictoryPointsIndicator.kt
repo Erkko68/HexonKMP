@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun VictoryPointsIndicator(){
+fun VictoryPointsIndicator(victoryPoints: Pair<Int, Int>){
     Row(
         modifier = Modifier
             .clip(CircleShape)
@@ -36,7 +36,7 @@ fun VictoryPointsIndicator(){
             modifier = Modifier.size(18.dp)
         )
         Text(
-            text = "8 / 10",
+            text = "${victoryPoints.first} / ${victoryPoints.second}",
             color = Color.White,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp
