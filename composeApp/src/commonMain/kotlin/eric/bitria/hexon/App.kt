@@ -149,7 +149,10 @@ fun App(
                     )
                 }
             ) {
-                GameScreen()
+                GameScreen(
+                    onExitClicked = { navController.popBackStack() },
+                    onAboutClicked = { /*navController.navigate(Screens.About)*/ }
+                )
             }
 
             composable<Screens.FriendProfile>(

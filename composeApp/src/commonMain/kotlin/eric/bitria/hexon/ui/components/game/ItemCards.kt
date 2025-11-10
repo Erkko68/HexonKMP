@@ -3,7 +3,6 @@ package eric.bitria.hexon.ui.components.game
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,7 +31,8 @@ fun ItemCards(items: List<ItemCardData>, modifier: Modifier = Modifier) {
     ) {
         items.forEach { resource ->
             ItemCard(
-                count = resource.count,
+                topLeftText = resource.topLeftText,
+                topRightText = resource.topRightText,
                 icon = resource.icon,
                 description = resource.description,
                 bgColor = resource.bgColor,
@@ -47,11 +47,11 @@ fun ItemCards(items: List<ItemCardData>, modifier: Modifier = Modifier) {
 @Composable
 fun ResourceItemsPreview() {
     val sampleResources = listOf(
-        ItemCardData("4", Icons.Filled.LocalFlorist, "Wool", Color(0xFFBA68C8), Color(0xFFCE93D8)),
-        ItemCardData("2", Icons.Filled.Public, "Ore", Color(0xFFFFF59D), Color(0xFFFFF59D)),
-        ItemCardData("5", Icons.Filled.Park, "Lumber", Color(0xFFFFB74D), Color(0xFFFFCC80)),
-        ItemCardData("1", Icons.Filled.Terrain, "Brick", Color(0xFFB0BEC5), Color(0xFFCFD8DC)),
-        ItemCardData("3", Icons.Filled.Agriculture, "Grain", Color(0xFFFFEB3B), Color(0xFFFFEB3B))
+        ItemCardData("4","", Icons.Filled.LocalFlorist, "Wool", Color(0xFFBA68C8), Color(0xFFCE93D8)),
+        ItemCardData("2","", Icons.Filled.Public, "Ore", Color(0xFFFFF59D), Color(0xFFFFF59D)),
+        ItemCardData("5","", Icons.Filled.Park, "Lumber", Color(0xFFFFB74D), Color(0xFFFFCC80)),
+        ItemCardData("1","", Icons.Filled.Terrain, "Brick", Color(0xFFB0BEC5), Color(0xFFCFD8DC)),
+        ItemCardData("3","", Icons.Filled.Agriculture, "Grain", Color(0xFFFFEB3B), Color(0xFFFFEB3B))
     )
 
     ItemCards(items = sampleResources)

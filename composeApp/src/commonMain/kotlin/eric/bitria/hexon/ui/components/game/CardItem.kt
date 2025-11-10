@@ -19,7 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 data class ItemCardData(
-    val count: String,
+    val topLeftText: String,
+    val topRightText: String,
     val icon: ImageVector,
     val description: String,
     val bgColor: Color,
@@ -28,39 +29,56 @@ data class ItemCardData(
 
 @Composable
 fun ItemCard(
-    count: String,
+    topLeftText: String,
+    topRightText: String,
     icon: ImageVector,
     description: String,
     bgColor: Color,
     borderColor: Color
 ) {
-    val cardShape = RoundedCornerShape(8.dp) // rounded-lg
+    val cardShape = RoundedCornerShape(8.dp)
+
     Box(
         modifier = Modifier
-            .size(48.dp) // w-12 h-12
+            .size(36.dp)
             .clip(cardShape)
-            .background(bgColor.copy(alpha = 0.3f)) // bg-color/30
+            .background(bgColor.copy(alpha = 0.3f))
             .border(
                 1.dp,
-                borderColor.copy(alpha = 0.5f), // border-color/50
+                borderColor.copy(alpha = 0.5f),
                 cardShape
-            ),
-        contentAlignment = Alignment.Center
+            )
     ) {
+        // Icon always centered
         Icon(
             imageVector = icon,
             contentDescription = description,
             tint = Color.White,
-            modifier = Modifier.size(24.dp) // text-2xl
+            modifier = Modifier
+                .size(18.dp)
+                .align(Alignment.Center)
         )
+
+        // Top-left text
         Text(
-            text = count,
+            text = topLeftText,
             color = Color.White,
             fontWeight = FontWeight.Bold,
-            fontSize = 12.sp, // text-xs
+            fontSize = 10.sp,
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(start = 4.dp, top = 2.dp) // top-0.5, left-1
+                .padding(start = 4.dp)
+        )
+
+        // Top-right text
+        Text(
+            text = topRightText,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 10.sp,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(end = 4.dp)
         )
     }
 }

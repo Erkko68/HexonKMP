@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MilitaryTech
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,7 +25,7 @@ fun VictoryPointsIndicator(victoryPoints: Pair<Int, Int>){
     Row(
         modifier = Modifier
             .clip(CircleShape)
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.primaryContainer)
             .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -37,7 +38,7 @@ fun VictoryPointsIndicator(victoryPoints: Pair<Int, Int>){
         )
         Text(
             text = "${victoryPoints.first} / ${victoryPoints.second}",
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp
         )

@@ -22,8 +22,8 @@ fun ControlButton(
 ) {
     Button(
         onClick = { onClick() },
-        modifier = Modifier.size(48.dp), // w-12 h-12
-        shape = RoundedCornerShape(8.dp), // rounded-lg
+        modifier = Modifier.size(48.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(containerColor = color),
         contentPadding = PaddingValues(0.dp)
     ) {
