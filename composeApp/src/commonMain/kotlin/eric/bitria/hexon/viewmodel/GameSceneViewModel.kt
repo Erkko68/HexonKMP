@@ -24,6 +24,9 @@ class GameSceneViewModel: ViewModel() {
         viewModelScope.launch {
             _gameEvents.emit(json)
             println(json)
+            if (json == """{"status":"SUCCESS","message":"READY"}""") {
+                testCommand()
+            }
         }
     }
 

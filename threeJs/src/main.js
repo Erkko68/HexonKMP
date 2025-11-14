@@ -10,3 +10,8 @@ const messageHandler = new MessageHandler(sceneManager,bridgeService);
 
 // Expose to Kotlin
 window.receiveFromApp = (json) => messageHandler.handleIncoming(json);
+
+// Notify Kotlin that the app is ready
+window.addEventListener('load', () => {
+    bridgeService.sendReadyStatus();
+});

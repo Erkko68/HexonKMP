@@ -30,6 +30,8 @@ import eric.bitria.hexon.ui.components.game.PlayerTurn
 import eric.bitria.hexon.ui.components.game.VictoryPointsIndicator
 import eric.bitria.hexon.viewmodel.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.GameUIViewModel
+import eric.bitria.hexon.viewmodel.enums.GameUIState
+import eric.bitria.hexon.viewmodel.enums.next
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -110,9 +112,15 @@ fun GameScreen(
                             .padding(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)
                     ) {
-                        ItemCards( // Player Remaining Buildings and Development Cards
-                            items = assets
-                        )
+                        if (uiState == GameUIState.TRADING){
+                            ItemCards( // Player Resources
+                                items = resources
+                            )
+                        } else {
+                            ItemCards( // Player Remaining Buildings and Development Cards
+                                items = assets
+                            )
+                        }
                         ItemCards( // Player Resources
                             items = resources
                         )
@@ -131,14 +139,14 @@ fun GameScreen(
                     ) {
                         ControlButton(
                             icon = Icons.AutoMirrored.Filled.ArrowForward,
-                            onClick = { gameSceneViewModel.testCommand() },
+                            onClick = { gameUIViewModel.setUIState(uiState.next()) },
                             description = "End Turn",
                             color = Color(0xFF2196F3).copy(alpha = 0.8f),
                             iconSize = 30.dp
                         )
                         ControlButton(
                             icon = Icons.Filled.SwapHoriz,
-                            onClick = {},
+                            onClick = { gameUIViewModel.onTradeActionClick() },
                             description = "Trade",
                             color = Color(0xFF4CAF50).copy(alpha = 0.8f),
                             iconSize = 30.dp

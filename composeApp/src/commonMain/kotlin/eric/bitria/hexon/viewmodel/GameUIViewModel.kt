@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 
 class GameUIViewModel : ViewModel (){
 
-    private val _uiState = MutableStateFlow(GameUIState.WAITING)
+    private val _uiState = MutableStateFlow(GameUIState.PLAYING)
     val uiState: StateFlow<GameUIState> = _uiState.asStateFlow()
 
     // Players Turn
@@ -110,4 +110,11 @@ class GameUIViewModel : ViewModel (){
         }
     }
 
+    fun onTradeActionClick(){
+        _uiState.value = when (_uiState.value) {
+            GameUIState.PLAYING -> GameUIState.TRADING
+            GameUIState.TRADING -> GameUIState.PLAYING
+            else -> _uiState.value
+        }
+    }
 }

@@ -19,4 +19,15 @@ export class BridgeService {
             details
         });
     }
+
+    sendReadyStatus(retryInterval = 100) {
+        const trySend = () => {
+            if (window.kmpJsBridge && window.kmpJsBridge.callNative) {
+                this.sendAck("READY");
+            } else {
+                setTimeout(trySend, retryInterval);
+            }
+        };
+        trySend();
+    }
 }
