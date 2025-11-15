@@ -44,11 +44,11 @@ fun MainMenuScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            GameLayer(
-                modifier = Modifier.fillMaxSize(),
-                jsonCollector = gameSceneViewModel.sendJson,
-                onJsonReceived = gameSceneViewModel::onJsonReceived
-            )
+//            GameLayer(
+//                modifier = Modifier.fillMaxSize(),
+//                jsonCollector = gameSceneViewModel.sendJson,
+//                onJsonReceived = gameSceneViewModel::onJsonReceived
+//            )
 
             Column(
                 modifier = Modifier

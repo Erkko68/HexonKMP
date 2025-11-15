@@ -2,14 +2,12 @@ package eric.bitria.hexon.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -28,10 +26,12 @@ import eric.bitria.hexon.ui.components.game.ItemCards
 import eric.bitria.hexon.ui.components.game.OptionsButton
 import eric.bitria.hexon.ui.components.game.PlayerTurn
 import eric.bitria.hexon.ui.components.game.VictoryPointsIndicator
+import eric.bitria.hexon.ui.components.game.trade.TradePanel
 import eric.bitria.hexon.viewmodel.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.GameUIViewModel
 import eric.bitria.hexon.viewmodel.enums.GameUIState
 import eric.bitria.hexon.viewmodel.enums.next
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -49,11 +49,14 @@ fun GameScreen(
     val uiState by gameUIViewModel.uiState.collectAsState()
 
     HexonTheme {
-        Box(
+        BoxWithConstraints (
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
+
+            val paddingScale = minOf(maxWidth, maxHeight)
+
             GameLayer(
                 modifier = Modifier.fillMaxSize(),
                 jsonCollector = gameSceneViewModel.sendJson,
@@ -68,11 +71,17 @@ fun GameScreen(
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 // Top Section
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.08f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                )
                 {
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .weight(1f),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -88,7 +97,8 @@ fun GameScreen(
                     }
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .weight(0.6f),
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -97,70 +107,110 @@ fun GameScreen(
                 }
 
                 // Below section
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
+                        .fillMaxHeight(0.2f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
                 )
                 {
-                    // Left Column (Build actions & resources)
-                    Column(
+                    Row(
                         modifier = Modifier
-                            .fillMaxHeight()
-                            .padding(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)
+                            .fillMaxWidth()
+                            .weight(0.33f),
+                        horizontalArrangement = Arrangement.Center,
                     ) {
-                        if (uiState == GameUIState.TRADING){
-                            ItemCards( // Player Resources
-                                items = resources
-                            )
-                        } else {
-                            ItemCards( // Player Remaining Buildings and Development Cards
-                                items = assets
+                        if (uiState == GameUIState.TRADING) {
+                            TradePanel(
+                                players = players,
+                                onPlayerClicked = {}
                             )
                         }
-                        ItemCards( // Player Resources
-                            items = resources
-                        )
                     }
 
-                    // Right Column (Turn controls)
-                    Column(
+                    Row(
                         modifier = Modifier
-                            .fillMaxHeight()
-                            .padding(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(
-                            8.dp,
-                            Alignment.Bottom
-                        ),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .fillMaxWidth()
+                            .weight(0.66f),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom
                     ) {
-                        ControlButton(
-                            icon = Icons.AutoMirrored.Filled.ArrowForward,
-                            onClick = { gameUIViewModel.setUIState(uiState.next()) },
-                            description = "End Turn",
-                            color = Color(0xFF2196F3).copy(alpha = 0.8f),
-                            iconSize = 30.dp
-                        )
-                        ControlButton(
-                            icon = Icons.Filled.SwapHoriz,
-                            onClick = { gameUIViewModel.onTradeActionClick() },
-                            description = "Trade",
-                            color = Color(0xFF4CAF50).copy(alpha = 0.8f),
-                            iconSize = 30.dp
-                        )
-                        ControlButton(
-                            icon = Icons.Filled.SwapHoriz,
-                            onClick = {},
-                            description = "Trade",
-                            color = Color(0xFF4CAF50).copy(alpha = 0.8f),
-                            iconSize = 30.dp
-                        )
+                        // Left Column (Build actions & resources)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(paddingScale * 0.02f),
+                            verticalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Bottom)
+                        ) {
+                            if (uiState == GameUIState.TRADING) {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalArrangement = Arrangement.Start
+                                ){
+                                    ItemCards(
+                                        items = resources
+                                    )
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalArrangement = Arrangement.Start,
+                                ){
+                                    ItemCards(
+                                        items = assets
+                                    )
+                                }
+                            }
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                horizontalArrangement = Arrangement.Start,
+                            ){
+                                ItemCards( // Player Resources
+                                    items = resources
+                                )
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(paddingScale * 0.02f),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Bottom)
+                        ){
+                            ControlButton(
+                                icon = Icons.AutoMirrored.Filled.ArrowForward,
+                                color = Color(0xFF2196F3),
+                                description = "Play",
+                                onClick = { gameUIViewModel.setUIState(uiState.next()) },
+                                modifier = Modifier
+                                    .weight(1f)
+                            )
+                            ControlButton(
+                                icon = Icons.Filled.SwapHoriz,
+                                color = Color(0xFF4CAF50),
+                                description = "Trade",
+                                onClick = { gameUIViewModel.onTradeActionClick() },
+                                modifier = Modifier
+                                    .weight(1f)
+                            )
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun GameScreenPreview(){
+    // to preview comment GameLayer
+    GameScreen(
+        onExitClicked = {},
+        onAboutClicked = {},
+        gameSceneViewModel = GameSceneViewModel(),
+        gameUIViewModel = GameUIViewModel(),
+    )
 }

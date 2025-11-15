@@ -13,8 +13,8 @@ import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.ui.components.game.ItemCardData
-import eric.bitria.hexon.ui.components.game.Player
+import eric.bitria.hexon.viewmodel.data.ItemCardData
+import eric.bitria.hexon.viewmodel.data.Player
 import eric.bitria.hexon.viewmodel.enums.GameUIState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -86,9 +86,9 @@ class GameUIViewModel : ViewModel (){
         viewModelScope.launch {
             try {
                 val playerAssets = listOf(
-                    ItemCardData("1","", Icons.Filled.Straighten, "Wood", Color(0xFF8D6E63), Color(0xFFA1887F)),
-                    ItemCardData("2","", Icons.Filled.Home, "Brick", Color(0xFFE57373), Color(0xFFEF9A9A)),
-                    ItemCardData("3","", Icons.Filled.Castle, "Stone", Color(0xFF757575), Color(0xFFBDBDBD)),
+                    ItemCardData("10","10", Icons.Filled.Straighten, "Wood", Color(0xFF8D6E63), Color(0xFFA1887F)),
+                    ItemCardData("10","10", Icons.Filled.Home, "Brick", Color(0xFFE57373), Color(0xFFEF9A9A)),
+                    ItemCardData("3","1", Icons.Filled.Castle, "Stone", Color(0xFF757575), Color(0xFFBDBDBD)),
                     ItemCardData("4","", Icons.Filled.AutoAwesome, "Wool", Color(0xFFBA68C8), Color(0xFFCE93D8))
                 )
 

@@ -2,13 +2,16 @@ package eric.bitria.hexon.ui.components.game
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,7 +20,6 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -35,42 +37,35 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
+import eric.bitria.hexon.viewmodel.data.Player
 import org.jetbrains.compose.ui.tooling.preview.Preview
-
-data class Player(
-    val name: String,
-    val tradesEnabled: Boolean,
-    val color: Color
-)
 
 @Composable
 fun PlayerIcon(
     player: Player,
     isActive: Boolean = false,
+    modifier: Modifier = Modifier,
     onToggleTrades: (Boolean) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    Box(contentAlignment = Alignment.Center) {
-        IconButton(
-            onClick = { expanded = !expanded },
+    BoxWithConstraints(
+        modifier = modifier
+            .clickable { expanded = !expanded },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Filled.AccountCircle,
+            contentDescription = "${player.name} Avatar",
+            tint = player.color.copy(alpha = if (isActive) 1f else 0.6f),
             modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.Filled.AccountCircle,
-                contentDescription = "${player.name} Avatar",
-                tint = player.color.copy(alpha = if (isActive) 1f else 0.6f),
-                modifier = Modifier
-                    .size(36.dp)
-                    .border(
-                        width = if (isActive) 3.dp else 0.dp,
-                        shape = CircleShape,
-                        color = if (isActive) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
-                    )
-            )
-        }
+                .fillMaxSize()
+                .border(
+                    width = if (isActive) maxHeight * 0.02f else 0.dp,
+                    shape = CircleShape,
+                    color = if (isActive) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+                )
+        )
 
         PlayerDropdownMenu(
             player = player,
@@ -107,7 +102,6 @@ private fun PlayerDropdownMenu(
                 )
             },
             onClick = onDismiss,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
         )
 
         // Trade toggle
@@ -135,35 +129,44 @@ private fun PlayerDropdownMenu(
                 }
             },
             onClick = {}, // handled by Switch
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
         )
     }
 }
 
 @Composable
 fun PlayerTurn(players: List<Player>, modifier: Modifier = Modifier) {
-    Row(
+    BoxWithConstraints(
         modifier = modifier
-            .horizontalScroll(rememberScrollState())
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
-            .padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // First player: black background (active)
-        PlayerIcon(
-            player = players.first(),
-            isActive = true,
-            onToggleTrades = { /* Handle trade toggle */ },
-        )
-
-        // Other players
-        players.drop(1).forEach { player ->
+    ){
+        Row(
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
+                .padding(horizontal = maxWidth * 0.02f),
+            horizontalArrangement = Arrangement.spacedBy(maxWidth * 0.02f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // First player: black background (active)
             PlayerIcon(
-                player = player,
-                onToggleTrades = { /* Handle trade toggle */ }
+                player = players.first(),
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .aspectRatio(1f),
+                isActive = true,
+                onToggleTrades = { /* Handle trade toggle */ },
             )
+
+            // Other players
+            players.drop(1).forEach { player ->
+                PlayerIcon(
+                    player = player,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1f),
+                    onToggleTrades = { /* Handle trade toggle */ }
+                )
+            }
         }
     }
 }
