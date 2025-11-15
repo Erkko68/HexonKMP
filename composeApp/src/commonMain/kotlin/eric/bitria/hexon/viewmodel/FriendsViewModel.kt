@@ -1,18 +1,10 @@
 package eric.bitria.hexon.viewmodel
 
 import androidx.lifecycle.ViewModel
+import eric.bitria.hexon.viewmodel.data.Friend
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-
-// 1. Data Class for a Friend
-data class Friend(
-    val id: Int,
-    val username: String,
-    val isOnline: Boolean,
-    val avatarUrl: String? = null
-)
 
 class FriendsViewModel : ViewModel() {
     private val _friendsList = MutableStateFlow<List<Friend>>(emptyList())
@@ -29,5 +21,13 @@ class FriendsViewModel : ViewModel() {
         )
 
         _friendsList.value = sampleData
+    }
+
+    fun onInviteClicked(username: String){
+
+    }
+
+    fun onAddFriendClicked(username: String){
+
     }
 }

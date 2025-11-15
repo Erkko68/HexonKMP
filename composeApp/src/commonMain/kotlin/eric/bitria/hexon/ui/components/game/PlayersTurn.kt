@@ -1,7 +1,6 @@
 package eric.bitria.hexon.ui.components.game
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -57,14 +56,8 @@ fun PlayerIcon(
         Icon(
             imageVector = Icons.Filled.AccountCircle,
             contentDescription = "${player.name} Avatar",
-            tint = player.color.copy(alpha = if (isActive) 1f else 0.6f),
-            modifier = Modifier
-                .fillMaxSize()
-                .border(
-                    width = if (isActive) maxHeight * 0.02f else 0.dp,
-                    shape = CircleShape,
-                    color = if (isActive) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
-                )
+            tint = player.color.copy(alpha = if (isActive) 1f else 0.5f),
+            modifier = Modifier.fillMaxSize()
         )
 
         PlayerDropdownMenu(

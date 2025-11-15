@@ -1,6 +1,8 @@
 package eric.bitria.hexon.ui.components.shared
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
@@ -13,9 +15,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
-/**
- * Provides reusable circular IconButton components with different predefined styles.
- */
 object HexonIconButton {
 
     /**
@@ -142,8 +141,8 @@ object HexonIconButton {
         IconButton(
             onClick = onClick,
             modifier = modifier
-                .size(48.dp)
                 .clip(CircleShape)
+                .size(48.dp)
                 .background(backgroundColor)
         ) {
             Icon(

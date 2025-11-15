@@ -1,17 +1,23 @@
 package eric.bitria.hexon.ui.components.friends
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Gamepad
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,66 +26,83 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import eric.bitria.hexon.ui.components.shared.HexonIconButton
-import eric.bitria.hexon.viewmodel.Friend
+import coil3.compose.AsyncImage
+import eric.bitria.hexon.theme.HexonTheme
+import eric.bitria.hexon.viewmodel.data.Friend
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun FriendListItem(
     friend: Friend,
-    onInvite: (Friend) -> Unit,
-    onViewProfile: (Friend) -> Unit
+    onInvite: (String) -> Unit,
+    onViewProfile: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    BoxWithConstraints {
+
+        val paddingScale = minOf(maxWidth, maxHeight)
+
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Box(
+            modifier = modifier
+        ){
+            Row(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.onPrimaryContainer),
-                contentAlignment = Alignment.Center
+                    .weight(1f)
+                    .clickable { onViewProfile(friend.username) }
+                    .fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.05f)
             ) {
+
+                AsyncImage(
+                    model = friend.avatarUrl,
+                    contentDescription = "${friend.username} Avatar",
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .fillMaxHeight()
+                        .aspectRatio(1f)
+                )
+
                 Text(
-                    text = friend.username.firstOrNull()?.toString() ?: "",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 20.sp,
+                    text = friend.username,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    autoSize = null,
                     fontWeight = FontWeight.Bold
                 )
             }
 
-            Text(
-                text = friend.username,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+            IconButton(
+                onClick = { onInvite(friend.username) },
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .fillMaxHeight()
+                    .aspectRatio(1f)
+                    .background(MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Gamepad,
+                    contentDescription = "Invite Friend to Play",
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+            }
         }
+    }
+}
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-
-            HexonIconButton.Primary(
-                onClick = { onInvite(friend) },
-                icon = Icons.Default.Gamepad,
-                contentDescription = "Invite Friend to Play"
-            )
-
-            HexonIconButton.Secondary(
-                onClick = { onViewProfile(friend) },
-                icon = Icons.Default.Person,
-                contentDescription = "Invite Friend to Play"
-            )
-
-        }
+@Preview
+@Composable
+fun FriendListItemPreview(){
+    HexonTheme {
+        FriendListItem(
+            friend = Friend(1,"Pato",true,),
+            onInvite = {  },
+            onViewProfile = {  },
+            modifier = Modifier
+                .width(300.dp)
+                .height(50.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                .padding(4.dp)
+        )
     }
 }

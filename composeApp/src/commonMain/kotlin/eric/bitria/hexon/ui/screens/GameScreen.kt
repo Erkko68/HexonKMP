@@ -60,7 +60,7 @@ fun GameScreen(
                 .background(Color.Black)
         ) {
             val paddingScale = minOf(maxWidth, maxHeight)
-            val orientation = if (maxWidth < maxHeight) "Portrait" else "Landscape"
+            val isPortrait = maxWidth < maxHeight
 
             GameLayer(
                 modifier = Modifier.fillMaxSize(),
@@ -80,7 +80,7 @@ fun GameScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(
-                            if (orientation == "Portrait") 0.1f else 0.2f
+                            if (isPortrait) 0.1f else 0.2f
                         ),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 )
@@ -118,7 +118,7 @@ fun GameScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(
-                            if (orientation == "Portrait") 0.27f else 0.6f
+                            if (isPortrait) 0.27f else 0.6f
                         ),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Bottom
@@ -130,7 +130,7 @@ fun GameScreen(
                             .weight(0.4f)
                             .padding(paddingScale * 0.02f),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = if (orientation == "Portrait") Arrangement.Center else Arrangement.Start,
+                        horizontalArrangement = if (isPortrait) Arrangement.Center else Arrangement.Start,
                     ) {
                         if (uiState == GameUIState.TRADING) {
                             TradePanel(

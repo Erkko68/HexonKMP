@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -30,7 +31,7 @@ fun FriendProfileScreen(
 ) {
     val uiState by profileViewModel.uiState.collectAsState()
 
-    androidx.compose.runtime.LaunchedEffect(username) {
+    LaunchedEffect(username) {
         profileViewModel.loadFriendProfile(username)
     }
 

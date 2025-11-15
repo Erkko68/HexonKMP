@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun HexonHeader(
     title: String = "",
+    isPortrait: Boolean = true,
     content: @Composable () -> Unit
 ){
     Column(
@@ -42,12 +43,23 @@ fun HexonHeader(
                     letterSpacing = 2.sp
                 )
             )
+            if (!isPortrait && title.isNotEmpty()){
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 3.sp
+                    ),
+                    modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
+                )
+            }
             Row {
                 content()
             }
         }
 
-        if(title.isNotEmpty()){
+        if(title.isNotEmpty() && isPortrait){
             Text(
                 text = title,
                 style = MaterialTheme.typography.headlineMedium.copy(
