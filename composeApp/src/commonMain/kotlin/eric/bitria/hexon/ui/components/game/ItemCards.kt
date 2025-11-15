@@ -1,8 +1,14 @@
 package eric.bitria.hexon.ui.components.game
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Agriculture
 import androidx.compose.material.icons.filled.LocalFlorist
@@ -18,18 +24,11 @@ import eric.bitria.hexon.viewmodel.data.ItemCardData
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
-fun ItemCards(items: List<ItemCardData>, modifier: Modifier = Modifier) {
-    FlowRow(
-        modifier = modifier
-            .fillMaxHeight(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items.forEach { resource ->
-            ItemCard(
-                itemCardData = resource,
-            )
-        }
+fun ItemCards(items: List<ItemCardData>) {
+    items.forEach { resource ->
+        ItemCard(
+            itemCardData = resource
+        )
     }
 }
 
@@ -44,6 +43,13 @@ fun ResourceItemsPreview() {
         ItemCardData("1","", Icons.Filled.Terrain, "Brick", Color(0xFFB0BEC5), Color(0xFFCFD8DC)),
         ItemCardData("3","", Icons.Filled.Agriculture, "Grain", Color(0xFFFFEB3B), Color(0xFFFFEB3B))
     )
-
-    ItemCards(items = sampleResources)
+    Row(
+        modifier = Modifier
+            .width(500.dp)
+            .height(50.dp)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ){
+        ItemCards(items = sampleResources)
+    }
 }

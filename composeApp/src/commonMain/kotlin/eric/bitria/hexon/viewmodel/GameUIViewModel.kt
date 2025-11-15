@@ -36,6 +36,9 @@ class GameUIViewModel : ViewModel (){
     private val _assets = MutableStateFlow<List<ItemCardData>>(emptyList())
     val assets: StateFlow<List<ItemCardData>> = _assets.asStateFlow()
 
+    private val _progressCards = MutableStateFlow<List<ItemCardData>>(emptyList())
+    val progressCards: StateFlow<List<ItemCardData>> = _progressCards.asStateFlow()
+
     private val _victoryPoints = MutableStateFlow(Pair(0,0))
     val victoryPoints: StateFlow<Pair<Int,Int>> = _victoryPoints.asStateFlow()
 
@@ -43,6 +46,7 @@ class GameUIViewModel : ViewModel (){
         fetchPlayers()
         fetchResources()
         fetchAssets()
+        fetchProgressCards()
         fetchVictoryPoints()
     }
 
@@ -73,7 +77,7 @@ class GameUIViewModel : ViewModel (){
                     ItemCardData("2","", Icons.Filled.Public, "Ore", Color(0xFFFFF59D), Color(0xFFFFF59D)),
                     ItemCardData("5","", Icons.Filled.Park, "Lumber", Color(0xFFFFB74D), Color(0xFFFFCC80)),
                     ItemCardData("1","", Icons.Filled.Terrain, "Brick", Color(0xFFB0BEC5), Color(0xFFCFD8DC)),
-                    ItemCardData("3","", Icons.Filled.Agriculture, "Grain", Color(0xFFFFEB3B), Color(0xFFFFEB3B))
+                    ItemCardData("3","", Icons.Filled.Agriculture, "Grain", Color(0xFFFFEB3B), Color(0xFFFFEB3B)),
                 )
                 _resources.value = playerResources
             } catch (e: Exception) {
@@ -93,6 +97,20 @@ class GameUIViewModel : ViewModel (){
                 )
 
                 _assets.value = playerAssets
+            } catch (e: Exception) {
+                // ERROR
+            }
+        }
+    }
+
+    fun fetchProgressCards(){
+        viewModelScope.launch {
+            try {
+                val playerAssets = listOf(
+                    ItemCardData("2","", Icons.Filled.AutoAwesome, "Wool", Color(0xFFBA68C8), Color(0xFFCE93D8))
+                )
+
+                _progressCards.value = playerAssets
             } catch (e: Exception) {
                 // ERROR
             }

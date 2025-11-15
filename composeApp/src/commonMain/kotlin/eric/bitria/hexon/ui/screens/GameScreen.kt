@@ -1,6 +1,7 @@
 package eric.bitria.hexon.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -9,9 +10,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,8 +48,10 @@ fun GameScreen(
     val players by gameUIViewModel.players.collectAsState()
     val resources by gameUIViewModel.resources.collectAsState()
     val assets by gameUIViewModel.assets.collectAsState()
+    val progressCards by gameUIViewModel.progressCards.collectAsState()
     val victoryPoints by gameUIViewModel.victoryPoints.collectAsState()
     val uiState by gameUIViewModel.uiState.collectAsState()
+
 
     HexonTheme {
         BoxWithConstraints (
@@ -54,8 +59,8 @@ fun GameScreen(
                 .fillMaxSize()
                 .background(Color.Black)
         ) {
-
             val paddingScale = minOf(maxWidth, maxHeight)
+            val orientation = if (maxWidth < maxHeight) "Portrait" else "Landscape"
 
             GameLayer(
                 modifier = Modifier.fillMaxSize(),
@@ -66,7 +71,7 @@ fun GameScreen(
             // UI Layer
             Column(
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(paddingScale * 0.04f)
                     .fillMaxSize(),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
@@ -74,7 +79,9 @@ fun GameScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.08f),
+                        .fillMaxHeight(
+                            if (orientation == "Portrait") 0.1f else 0.2f
+                        ),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 )
                 {
@@ -110,7 +117,9 @@ fun GameScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.2f),
+                        .fillMaxHeight(
+                            if (orientation == "Portrait") 0.27f else 0.6f
+                        ),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Bottom
                 )
@@ -118,8 +127,10 @@ fun GameScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(0.33f),
-                        horizontalArrangement = Arrangement.Center,
+                            .weight(0.4f)
+                            .padding(paddingScale * 0.02f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = if (orientation == "Portrait") Arrangement.Center else Arrangement.Start,
                     ) {
                         if (uiState == GameUIState.TRADING) {
                             TradePanel(
@@ -132,7 +143,7 @@ fun GameScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(0.66f),
+                            .weight(0.6f),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Bottom
                     ) {
@@ -140,13 +151,15 @@ fun GameScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .padding(paddingScale * 0.02f),
-                            verticalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Bottom)
-                        ) {
+                                .padding(paddingScale * 0.02f)
+                                .weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(paddingScale * 0.04f, Alignment.Bottom)
+                        )
+                        {
                             if (uiState == GameUIState.TRADING) {
                                 Row(
                                     modifier = Modifier.weight(1f),
-                                    horizontalArrangement = Arrangement.Start
+                                    horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Start)
                                 ){
                                     ItemCards(
                                         items = resources
@@ -155,20 +168,39 @@ fun GameScreen(
                             } else {
                                 Row(
                                     modifier = Modifier.weight(1f),
-                                    horizontalArrangement = Arrangement.Start,
+                                    horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Start)
                                 ){
                                     ItemCards(
                                         items = assets
                                     )
                                 }
                             }
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.Start,
-                            ){
-                                ItemCards( // Player Resources
-                                    items = resources
+                            val scrollState = rememberScrollState()
+                            Row (
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .horizontalScroll(scrollState),
+                                horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Start)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxHeight(),
+                                    horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Start)
+                                ){
+                                    ItemCards( // Player Resources
+                                        items = resources
+                                    )
+                                }
+                                VerticalDivider(
+                                    modifier = Modifier.fillMaxHeight()
                                 )
+                                Row(
+                                    modifier = Modifier.fillMaxHeight(),
+                                    horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Start)
+                                ){
+                                    ItemCards( // ProgressCards
+                                        items = progressCards
+                                    )
+                                }
                             }
                         }
 
@@ -178,7 +210,8 @@ fun GameScreen(
                                 .padding(paddingScale * 0.02f),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Bottom)
-                        ){
+                        )
+                        {
                             ControlButton(
                                 icon = Icons.AutoMirrored.Filled.ArrowForward,
                                 color = Color(0xFF2196F3),
