@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import eric.bitria.hexon.render.GameLayer
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.game.ControlButton
-import eric.bitria.hexon.ui.components.game.ItemCards
+import eric.bitria.hexon.ui.components.game.ItemCard
 import eric.bitria.hexon.ui.components.game.OptionsButton
 import eric.bitria.hexon.ui.components.game.PlayerTurn
 import eric.bitria.hexon.ui.components.game.VictoryPointsIndicator
@@ -161,18 +161,22 @@ fun GameScreen(
                                     modifier = Modifier.weight(1f),
                                     horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Start)
                                 ){
-                                    ItemCards(
-                                        items = resources
-                                    )
+                                    resources.forEach { resource ->
+                                        ItemCard(
+                                            itemCardData = resource
+                                        )
+                                    }
                                 }
                             } else {
                                 Row(
                                     modifier = Modifier.weight(1f),
                                     horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Start)
                                 ){
-                                    ItemCards(
-                                        items = assets
-                                    )
+                                    assets.forEach { asset ->
+                                        ItemCard(
+                                            itemCardData = asset
+                                        )
+                                    }
                                 }
                             }
                             val scrollState = rememberScrollState()
@@ -186,9 +190,11 @@ fun GameScreen(
                                     modifier = Modifier.fillMaxHeight(),
                                     horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Start)
                                 ){
-                                    ItemCards( // Player Resources
-                                        items = resources
-                                    )
+                                    resources.forEach { resource ->
+                                        ItemCard(
+                                            itemCardData = resource
+                                        )
+                                    }
                                 }
                                 VerticalDivider(
                                     modifier = Modifier.fillMaxHeight()
@@ -197,9 +203,11 @@ fun GameScreen(
                                     modifier = Modifier.fillMaxHeight(),
                                     horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Start)
                                 ){
-                                    ItemCards( // ProgressCards
-                                        items = progressCards
-                                    )
+                                    progressCards.forEach { progressCard ->
+                                        ItemCard(
+                                            itemCardData = progressCard
+                                        )
+                                    }
                                 }
                             }
                         }

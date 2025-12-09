@@ -79,7 +79,7 @@ fun FriendsScreen(
                         modifier = Modifier
                             .clip(RoundedCornerShape(paddingScale * 0.04f))
                             .fillMaxWidth()
-                            .height(listItemSize)
+                            .height(listItemSize * 0.8f)
                             .background(MaterialTheme.colorScheme.primaryContainer)
                             .padding(
                                 top = paddingScale * 0.02f,

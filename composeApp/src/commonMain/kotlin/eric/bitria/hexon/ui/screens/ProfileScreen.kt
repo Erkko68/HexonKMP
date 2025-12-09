@@ -1,22 +1,30 @@
 package eric.bitria.hexon.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
-import eric.bitria.hexon.ui.components.profile.GameHistoryList
+import eric.bitria.hexon.ui.components.profile.GameHistoryCard
 import eric.bitria.hexon.ui.components.profile.UserInfoSection
 import eric.bitria.hexon.ui.components.shared.HexonHeader
 import eric.bitria.hexon.ui.components.shared.HexonIconButton
@@ -32,36 +40,73 @@ fun ProfileScreen(
     val uiState by profileViewModel.uiState.collectAsState()
 
     HexonTheme {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            HexonHeader{
-                HexonIconButton.Transparent(
-                    onClick = onSettingsClicked,
-                    icon = Icons.Default.Settings,
-                    contentDescription = "Settings"
-                )
-                HexonIconButton.Transparent(
-                    onClick = onExitClicked,
-                    icon = Icons.Default.Close,
-                    contentDescription = "Close"
-                )
+        BoxWithConstraints {
+            val paddingScale = minOf(maxWidth, maxHeight)
+            val isPortrait = maxWidth < maxHeight
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(paddingScale * 0.04f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                HexonHeader {
+                    HexonIconButton.Transparent(
+                        onClick = onSettingsClicked,
+                        icon = Icons.Default.Settings,
+                        contentDescription = "Settings"
+                    )
+                    HexonIconButton.Transparent(
+                        onClick = onExitClicked,
+                        icon = Icons.Default.Close,
+                        contentDescription = "Close"
+                    )
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth(if (isPortrait) 1f else 0.5f)
+                        .padding(horizontal = paddingScale * 0.02f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ){
+                    item {
+                        if (isPortrait){
+                            Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+                        }
+
+                        UserInfoSection(
+                            username = uiState.username,
+                            avatarUrl = uiState.avatarUrl,
+                            stats = uiState.stats
+                        )
+
+                        Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+
+                        Text(
+                            text = "Game History",
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+                    }
+                    items(uiState.gameHistory, key = { it.id }) { item ->
+                        GameHistoryCard(
+                            item = item,
+                            modifier = Modifier
+                                .height(paddingScale * 0.2f)
+                                .fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+                    }
+                }
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            UserInfoSection(
-                username = uiState.username,
-                avatarUrl = uiState.avatarUrl,
-                stats = uiState.stats
-            )
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            GameHistoryList(history = uiState.gameHistory)
         }
     }
 }
