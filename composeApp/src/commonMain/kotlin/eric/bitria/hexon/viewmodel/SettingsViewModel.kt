@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.update
 data class SettingsUiState(
     val masterVolume: Float = 1.0f,
     val musicVolume: Float = 0.8f,
+    val mirrorUI: Boolean = false,
     val muteAll: Boolean = false,
     val disableFriendRequests: Boolean = false,
     val disableGameInvites: Boolean = false
@@ -42,6 +43,11 @@ class SettingsViewModel : ViewModel() {
 
     fun onDisableGameInvitesToggled(isDisabled: Boolean) {
         _uiState.update { it.copy(disableGameInvites = isDisabled) }
+        // TODO: Add logic to update user's privacy settings
+    }
+
+    fun onMirrorUIToggled(isDisabled: Boolean) {
+        _uiState.update { it.copy(mirrorUI = isDisabled) }
         // TODO: Add logic to update user's privacy settings
     }
 

@@ -4,14 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.MaterialTheme
@@ -19,7 +17,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import eric.bitria.hexon.render.GameLayer
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonHeader
@@ -35,15 +32,18 @@ fun MainMenuScreen(
     onProfileClicked: () -> Unit,
     onStartGameClicked: () -> Unit,
     viewModel: MainMenuViewModel = koinViewModel(),
-    gameSceneViewModel: GameSceneViewModel = koinViewModel (),
+    gameSceneViewModel: GameSceneViewModel = koinViewModel(),
 ) {
     HexonTheme {
 
-        Box(
+        BoxWithConstraints (
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
+            val paddingScale = minOf(maxWidth, maxHeight)
+            val isPortrait = maxWidth < maxHeight
+
             GameLayer(
                 modifier = Modifier.fillMaxSize(),
                 jsonCollector = gameSceneViewModel.sendJson,
@@ -53,7 +53,7 @@ fun MainMenuScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
+                    .padding(horizontal = paddingScale * 0.04f, vertical = paddingScale * 0.02f)
                     .clickable(onClick = onStartGameClicked),
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -63,6 +63,7 @@ fun MainMenuScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ){
                     HexonHeader{
+
                         HexonIconButton.Transparent(
                             onClick = onFriendsClicked,
                             icon = Icons.Default.Group,
@@ -75,35 +76,12 @@ fun MainMenuScreen(
                             contentDescription = "Profile"
                         )
                     }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.padding(top = 16.dp)
-                    ) {
-                        HexonIconButton.Transparent(
-                            onClick = {},
-                            icon = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Previous"
-                        )
-
-                        Text(
-                            text = "Map Name",
-                            style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.primary)
-                        )
-
-                        HexonIconButton.Transparent(
-                            onClick = {},
-                            icon = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Next"
-                        )
-                    }
                 }
 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 32.dp),
+                        .padding(bottom = paddingScale * 0.08f),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

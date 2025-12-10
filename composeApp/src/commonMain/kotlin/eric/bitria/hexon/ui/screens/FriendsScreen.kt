@@ -51,7 +51,7 @@ fun FriendsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
-                    .padding(paddingScale * 0.04f),
+                    .padding(horizontal = paddingScale * 0.04f, vertical = paddingScale * 0.02f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 HexonHeader(
