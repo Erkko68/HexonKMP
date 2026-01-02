@@ -26,8 +26,10 @@ dependencies {
 
     testImplementation(libs.ktor.serverTestHost)
 
-    // JWT
+    // SMTP
+    implementation(libs.jakarta.mail)
 
+    // JWT
     implementation(libs.ktor.server.auth.jwt)
     implementation(libs.java.jwt)
 

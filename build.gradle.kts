@@ -8,3 +8,9 @@ plugins {
     alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
 }
+
+tasks.register("runAllServers") {
+    group = "application"
+    description = "Runs both Auth and Game servers"
+    dependsOn(":server-auth:run", ":server-game:run")
+}

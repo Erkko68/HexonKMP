@@ -7,7 +7,7 @@ plugins {
 group = "eric.bitria.hexon"
 version = "1.0.0"
 application {
-    mainClass.set("eric.bitria.hexon.ApplicationKt")
+    mainClass.set("eric.bitria.game.ApplicationKt")
     
     val isDevelopment: Boolean = project.ext.has("development")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")

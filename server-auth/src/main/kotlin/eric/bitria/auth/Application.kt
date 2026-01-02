@@ -2,62 +2,55 @@ package eric.bitria.auth
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import eric.bitria.auth.email.SmtpConfig
+import eric.bitria.auth.email.SmtpEmailService
 import eric.bitria.auth.register.RegisterRepositoryDB
-import eric.bitria.auth.register.RegisterService
+import eric.bitria.auth.register.RegisterServiceImp
 import eric.bitria.auth.routes.registerRoutes
 import eric.bitria.auth.token.JwtConfig
 import eric.bitria.auth.token.JwtTokenService
-import eric.bitria.hexon.SERVER_PORT
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
+import io.ktor.server.netty.EngineMain
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
 
-fun main() {
-    embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = Application::module)
-        .start(wait = true)
-}
+fun main(args: Array<String>): Unit = EngineMain.main(args)
 
 fun Application.module() {
-    // 1. Install plugins
+    // 1. Load Configuration
+    val jwtConfig = JwtConfig.fromConfig(environment.config)
+    val smtpConfig = SmtpConfig.fromConfig(environment.config)
+
+    // 2. Install plugins
     install(ContentNegotiation) { json() }
 
-    // 2. Configure security
-    val jwtConfig = JwtConfig(
-        issuer = "hexon",
-        audience = "hexon-users",
-        secret = System.getenv("JWT_SECRET"),
-        accessTokenTtlMillis = 15 * 60 * 1000,
-        refreshTokenTtlMillis = 30L * 24 * 60 * 60 * 1000
-    )
+    // 3. Configure security
     configureSecurity(jwtConfig)
 
-    // 3. Initialize services
+    // 4. Initialize services
     val jwtService = JwtTokenService(jwtConfig)
 
-    val registerService = RegisterService(
+    val registerService = RegisterServiceImp(
         repository = RegisterRepositoryDB(),
-        tokenService = jwtService
+        tokenService = jwtService,
+        emailService = SmtpEmailService(smtpConfig)
     )
-    // val loginService = LoginService(...)
 
     // Routes
     routing {
         registerRoutes(registerService)
-        // loginRoutes(loginService)
     }
 }
 
 fun Application.configureSecurity(jwtConfig: JwtConfig) {
     authentication {
         jwt("auth-jwt") {
-            realm = "hexon"
+            realm = jwtConfig.realm
 
             verifier(
                 JWT

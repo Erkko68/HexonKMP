@@ -1,8 +1,10 @@
 package eric.bitria.auth
 
+import eric.bitria.auth.mock.MockEmailService
 import eric.bitria.auth.mock.MockRegisterRepository
+import eric.bitria.auth.mock.MockRegisterService
 import eric.bitria.auth.mock.MockTokenService
-import eric.bitria.auth.register.RegisterService
+import eric.bitria.auth.register.RegisterServiceImp
 import eric.bitria.auth.routes.registerRoutes
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
@@ -34,10 +36,13 @@ fun withTestAuthClient(block: suspend (HttpClient) -> Unit) {
         application {
             install(ContentNegotiation) { json() }
             routing {
-                registerRoutes(registerService = RegisterService(
-                    repository = MockRegisterRepository(),
-                    tokenService = MockTokenService()
-                ))
+                registerRoutes(
+                    registerService = MockRegisterService(
+                        repository = MockRegisterRepository(),
+                        tokenService = MockTokenService(),
+                        emailService = MockEmailService()
+                    )
+                )
                 // loginRoutes(loginService)
             }
         }
