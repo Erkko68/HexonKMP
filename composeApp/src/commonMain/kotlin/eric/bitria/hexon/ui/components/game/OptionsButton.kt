@@ -37,8 +37,6 @@ fun OptionsButton(
         modifier = modifier
             .fillMaxHeight()
             .aspectRatio(1f)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer)
             .clickable { expanded = !expanded }
     ){
         Icon(

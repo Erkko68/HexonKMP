@@ -134,8 +134,6 @@ fun PlayerTurn(players: List<Player>, modifier: Modifier = Modifier) {
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
                 .padding(horizontal = maxWidth * 0.02f),
             horizontalArrangement = Arrangement.spacedBy(maxWidth * 0.02f),
             verticalAlignment = Alignment.CenterVertically

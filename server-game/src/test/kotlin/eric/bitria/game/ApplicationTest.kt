@@ -1,5 +1,7 @@
-package eric.bitria.hexon
+package eric.bitria.game
 
+import eric.bitria.game.module
+import eric.bitria.hexon.Greeting
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*

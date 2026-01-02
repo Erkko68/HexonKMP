@@ -1,5 +1,7 @@
-package eric.bitria.hexon
+package eric.bitria.game
 
+import eric.bitria.hexon.Greeting
+import eric.bitria.hexon.SERVER_PORT
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*

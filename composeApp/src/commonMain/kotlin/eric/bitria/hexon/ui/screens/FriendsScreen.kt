@@ -16,12 +16,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.friends.AddFriendInput
 import eric.bitria.hexon.ui.components.friends.FriendListItem
@@ -97,6 +101,32 @@ fun FriendsScreen(
                         verticalArrangement = Arrangement.spacedBy(paddingScale * 0.02f)
                     ) {
                         items(friends, key = { it.id }) { friend ->
+                            FriendListItem(
+                                friend = friend,
+                                onInvite = { friendsViewModel.onInviteClicked(it) },
+                                onViewProfile = { onViewProfileClicked(it) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(listItemSize)
+                                    .clip(RoundedCornerShape(paddingScale * 0.04f))
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                                    .padding(paddingScale * 0.02f)
+                            )
+                        }
+
+                        item {
+                            Text(
+                                "Friend Requests",
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontWeight = FontWeight.Normal,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    letterSpacing = 2.sp
+                                ),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+
+                        items(friends, key = { it.username }) { friend ->
                             FriendListItem(
                                 friend = friend,
                                 onInvite = { friendsViewModel.onInviteClicked(it) },

@@ -80,7 +80,7 @@ fun GameScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(
-                            if (isPortrait) 0.1f else 0.2f
+                            if (isPortrait) 0.08f else 0.18f
                         ),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 )
