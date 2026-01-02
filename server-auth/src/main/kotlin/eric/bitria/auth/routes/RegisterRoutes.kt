@@ -31,4 +31,5 @@ fun Route.registerRoutes(registerService: RegisterService) {
         val response = registerService.resendVerificationCode(request)
         call.respond(response.result.toHttpStatus(),response)
     }
+
 }

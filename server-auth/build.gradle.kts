@@ -26,6 +26,11 @@ dependencies {
 
     testImplementation(libs.ktor.serverTestHost)
 
+    // JWT
+
+    implementation(libs.ktor.server.auth.jwt)
+    implementation(libs.java.jwt)
+
     // --- JUnit 6 ---
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)

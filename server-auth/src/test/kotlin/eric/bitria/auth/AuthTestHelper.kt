@@ -1,7 +1,11 @@
 package eric.bitria.auth
 
 import eric.bitria.auth.mock.MockRegisterRepository
+import eric.bitria.auth.mock.MockTokenService
 import eric.bitria.auth.register.RegisterService
+import eric.bitria.auth.routes.registerRoutes
+import eric.bitria.hexon.dtos.auth.RefreshRequest
+import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResponse
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
@@ -10,13 +14,16 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.install
 import io.ktor.server.testing.testApplication
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.routing.routing
 
 /**
  * Launch a test server with all auth routes and JSON configured,
@@ -25,14 +32,18 @@ import io.ktor.server.testing.testApplication
 fun withTestAuthClient(block: suspend (HttpClient) -> Unit) {
     testApplication {
         application {
-            configureSerialization()
-            configureAuthRoutes(
-                registerService = RegisterService(MockRegisterRepository())
-            )
+            install(ContentNegotiation) { json() }
+            routing {
+                registerRoutes(registerService = RegisterService(
+                    repository = MockRegisterRepository(),
+                    tokenService = MockTokenService()
+                ))
+                // loginRoutes(loginService)
+            }
         }
 
         val client = createClient {
-            install(ContentNegotiation) {
+            install(ClientContentNegotiation) {
                 json()
             }
         }
@@ -72,4 +83,14 @@ suspend fun HttpClient.resendVerification(
 ): ResendVerificationCodeResponse = post("/auth/resend-verification") {
     contentType(ContentType.Application.Json)
     setBody(ResendVerificationCodeRequest(email))
+}.body()
+
+/**
+ * Abbreviation of the refresh endpoint.
+ */
+suspend fun HttpClient.refresh(
+    refreshToken: String
+): RefreshResponse = post("/auth/refresh") {
+    contentType(ContentType.Application.Json)
+    setBody(RefreshRequest(refreshToken))
 }.body()

@@ -18,6 +18,14 @@ class MockRegisterRepository : RegisterRepository {
         users[email] = Triple(username, false, verificationCode)
     }
 
+    override fun getUsernameByEmail(email: String): String {
+        return users[email]?.first ?: ""
+    }
+
+    override fun getUserIdByEmail(email: String): String {
+        return email
+    }
+
     override fun verifyEmail(email: String, code: String): VerifyEmailResult {
         val user = users[email] ?: return VerifyEmailResult.INVALID_EMAIL
         val (username, verified, verificationCode) = user

@@ -4,6 +4,7 @@ import eric.bitria.auth.Validators.isValidCode
 import eric.bitria.auth.Validators.isValidEmail
 import eric.bitria.auth.Validators.isValidPassword
 import eric.bitria.auth.Validators.isValidUsername
+import eric.bitria.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResponse
 import eric.bitria.hexon.dtos.auth.RegisterResult
@@ -16,7 +17,10 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 /**
  * Handles the business logic for user registration and email verification.
  */
-class RegisterService(private val repository: RegisterRepository) {
+class RegisterService(
+    private val repository: RegisterRepository,
+    private val tokenService: TokenService
+) {
 
     /**
      * Registers a new user.
@@ -116,8 +120,12 @@ class RegisterService(private val repository: RegisterRepository) {
                 VerifyEmailResponse(
                     result = VerifyEmailResult.SUCCESS,
                     message = email,
-                    accessToken = "access_token",
-                    refreshToken = "refresh_token"
+                    accessToken = tokenService.generateAccessToken(
+                        userId = repository.getUserIdByEmail(email)
+                    ),
+                    refreshToken = tokenService.generateRefreshToken(
+                        userId = email
+                    )
                 )
             VerifyEmailResult.ACCOUNT_ALREADY_VERIFIED ->
                 VerifyEmailResponse(
