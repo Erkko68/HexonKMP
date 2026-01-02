@@ -1,5 +1,7 @@
 package eric.bitria.auth
 
+import eric.bitria.auth.mock.MockRegisterRepository
+import eric.bitria.auth.register.RegisterService
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResponse
 import io.ktor.client.HttpClient
@@ -20,7 +22,9 @@ fun withTestAuthClient(block: suspend (HttpClient) -> Unit) {
     testApplication {
         application {
             configureSerialization()
-            configureAuthRoutes()
+            configureAuthRoutes(
+                registerService = RegisterService(MockRegisterRepository())
+            )
         }
 
         val client = createClient {

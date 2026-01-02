@@ -9,6 +9,24 @@ import kotlin.test.assertEquals
 class RegisterRoutesUsernameTest {
 
     @Test
+    fun `register returns INVALID_USERNAME if username is empty`() = withTestAuthClient { client ->
+        val body = client.register("", "alice@test.com", "Secret123!")
+        assertEquals(RegisterResult.INVALID_USERNAME, body.result)
+    }
+
+    @Test
+    fun `register returns INVALID_USERNAME for malformed username`() = withTestAuthClient { client ->
+        val body = client.register("@∞%ji?+--", "alice@test.com", "Secret123!")
+        assertEquals(RegisterResult.INVALID_USERNAME, body.result)
+    }
+
+    @Test
+    fun `register returns INVALID_USERNAME if username is too long`() = withTestAuthClient { client ->
+        val body = client.register("AnUserNameShouldntBeThisLong", "alice@test.com", "Secret123!")
+        assertEquals(RegisterResult.INVALID_USERNAME, body.result)
+    }
+
+    @Test
     fun `register returns USERNAME_EXISTS if username already used`() = withTestAuthClient { client ->
         // first registration should succeed
         val _ = client.register("alice", "alice@test.com", "Secret123!")

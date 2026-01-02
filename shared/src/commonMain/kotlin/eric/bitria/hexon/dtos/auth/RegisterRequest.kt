@@ -19,7 +19,6 @@ data class RegisterRequest(
 data class RegisterResponse(
     val result: RegisterResult,
     val message: String,
-    val email: String
 )
 
 /**
@@ -37,9 +36,20 @@ data class VerifyEmailRequest(
 @Serializable
 data class VerifyEmailResponse(
     val result: VerifyEmailResult,
-    val email: String,
+    val message: String,
     val accessToken: String,
     val refreshToken: String
+)
+
+@Serializable
+data class ResendVerificationCodeRequest(
+    val email: String
+)
+
+@Serializable
+data class ResendVerificationCodeResponse(
+    val result: ResendVerificationCodeResult,
+    val message: String
 )
 
 @Serializable
@@ -59,5 +69,15 @@ enum class VerifyEmailResult {
     SUCCESS,
     INVALID_EMAIL,
     INVALID_VERIFICATION_CODE,
+    ACCOUNT_ALREADY_VERIFIED,
+    UNKNOWN_ERROR
+}
+
+@Serializable
+enum class ResendVerificationCodeResult {
+    SUCCESS,
+    INVALID_EMAIL,
+    EMAIL_NOT_REGISTERED,
+    EMAIL_ALREADY_VERIFIED,
     UNKNOWN_ERROR
 }

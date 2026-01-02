@@ -15,14 +15,14 @@ class RegisterRoutesEmailTest {
     }
 
     @Test
-    fun `register returns INVALID_EMAIL for too long email`() = withTestAuthClient { client ->
-        val body = client.register("alice", "anEmailShouldNotBeThisLong@AndNeitherShouldTheDomain.com", "Secret123!")
+    fun `register returns INVALID_EMAIL if email is too long`() = withTestAuthClient { client ->
+        val body = client.register("alice", "anEmailShouldNotBeThisLongSpeciallyForAStandardUser@AndNeitherShouldTheDomainBeThatLong.com", "Secret123!")
         assertEquals(RegisterResult.INVALID_EMAIL, body.result)
     }
 
     @Test
-    fun `register returns INVALID_EMAIL for an empty email`() = withTestAuthClient { client ->
-        val body = client.register("alice", "@", "Secret123!")
+    fun `register returns INVALID_EMAIL if email is empty`() = withTestAuthClient { client ->
+        val body = client.register("alice", "", "Secret123!")
         assertEquals(RegisterResult.INVALID_EMAIL, body.result)
     }
 
