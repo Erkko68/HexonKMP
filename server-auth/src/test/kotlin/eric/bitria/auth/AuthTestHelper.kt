@@ -7,6 +7,7 @@ import eric.bitria.hexon.dtos.auth.RegisterResponse
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
+import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -58,7 +59,7 @@ suspend fun HttpClient.register(
 suspend fun HttpClient.verify(
     email: String,
     code: String
-): RegisterResponse = post("/auth/verify") {
+): VerifyEmailResponse = post("/auth/verify") {
     contentType(ContentType.Application.Json)
     setBody(VerifyEmailRequest(email, code))
 }.body()
@@ -68,7 +69,7 @@ suspend fun HttpClient.verify(
  */
 suspend fun HttpClient.resendVerification(
     email: String
-): RegisterResponse = post("/auth/resend-verification") {
+): ResendVerificationCodeResponse = post("/auth/resend-verification") {
     contentType(ContentType.Application.Json)
     setBody(ResendVerificationCodeRequest(email))
 }.body()
