@@ -22,12 +22,6 @@ fun main() {
 fun Application.module() {
     configureSerialization()
     //configureAuthRoutes(RegisterService())
-
-    routing {
-        get("/") {
-            call.respondText("Ktor: ${Greeting().greet()}")
-        }
-    }
 }
 
 fun Application.configureSerialization() {

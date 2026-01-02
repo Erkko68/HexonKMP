@@ -32,4 +32,3 @@ fun Route.registerRoutes(registerService: RegisterService) {
         call.respond(response.result.toHttpStatus(),response)
     }
 }
-
