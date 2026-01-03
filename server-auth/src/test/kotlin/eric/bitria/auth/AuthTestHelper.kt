@@ -2,9 +2,11 @@ package eric.bitria.auth
 
 import eric.bitria.auth.mock.Inbox
 import eric.bitria.auth.mock.MockEmailService
+import eric.bitria.auth.mock.MockRefreshService
 import eric.bitria.auth.mock.MockRegisterRepository
 import eric.bitria.auth.mock.MockRegisterService
 import eric.bitria.auth.mock.MockTokenService
+import eric.bitria.auth.routes.refreshRoute
 import eric.bitria.auth.routes.registerRoutes
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
@@ -35,6 +37,7 @@ fun withTestAuthClient(
     block: suspend (HttpClient, Inbox) -> Unit
 ) {
     val inbox = Inbox("")
+    val tokenService = MockTokenService()
 
     testApplication {
         application {
@@ -44,8 +47,13 @@ fun withTestAuthClient(
                 registerRoutes(
                     registerService = MockRegisterService(
                         repository = MockRegisterRepository(),
-                        tokenService = MockTokenService(),
+                        tokenService = tokenService,
                         emailService = MockEmailService(inbox)
+                    )
+                )
+                refreshRoute(
+                    refreshService = MockRefreshService(
+                        tokenService = tokenService
                     )
                 )
             }

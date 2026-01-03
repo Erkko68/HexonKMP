@@ -19,6 +19,5 @@ data class RefreshResponse(
 enum class RefreshResult {
     SUCCESS,
     INVALID_TOKEN,
-    EXPIRED_TOKEN,
     UNKNOWN_ERROR
 }

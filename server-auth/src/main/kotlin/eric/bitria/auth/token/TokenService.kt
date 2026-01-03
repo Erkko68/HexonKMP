@@ -9,4 +9,6 @@ interface TokenService {
     fun generateRefreshToken(
         userId: String
     ): String
+
+    fun verifyToken(token: String): String?
 }

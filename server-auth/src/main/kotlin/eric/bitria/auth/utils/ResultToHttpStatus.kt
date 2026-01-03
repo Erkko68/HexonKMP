@@ -1,5 +1,6 @@
-package eric.bitria.auth.routes
+package eric.bitria.auth.utils
 
+import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResult
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
@@ -34,4 +35,10 @@ fun ResendVerificationCodeResult.toHttpStatus() = when (this) {
     ResendVerificationCodeResult.EMAIL_NOT_REGISTERED,
     ResendVerificationCodeResult.EMAIL_ALREADY_VERIFIED -> HTTPStatusCode.Conflict
     else -> HTTPStatusCode.InternalServerError
+}
+
+fun RefreshResult.toHttpStatus() = when (this) {
+    RefreshResult.SUCCESS -> HTTPStatusCode.OK
+    RefreshResult.INVALID_TOKEN -> HTTPStatusCode.Unauthorized
+    RefreshResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }

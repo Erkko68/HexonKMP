@@ -1,9 +1,9 @@
 package eric.bitria.auth.register
 
-import eric.bitria.auth.Validators.isValidCode
-import eric.bitria.auth.Validators.isValidEmail
-import eric.bitria.auth.Validators.isValidPassword
-import eric.bitria.auth.Validators.isValidUsername
+import eric.bitria.auth.utils.Validators.isValidCode
+import eric.bitria.auth.utils.Validators.isValidEmail
+import eric.bitria.auth.utils.Validators.isValidPassword
+import eric.bitria.auth.utils.Validators.isValidUsername
 import eric.bitria.auth.email.EmailService
 import eric.bitria.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.RegisterRequest

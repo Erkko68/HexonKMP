@@ -1,6 +1,7 @@
 package eric.bitria.auth.routes
 
 import eric.bitria.auth.register.RegisterService
+import eric.bitria.auth.utils.toHttpStatus
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest

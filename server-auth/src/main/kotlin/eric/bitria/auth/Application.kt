@@ -4,8 +4,10 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import eric.bitria.auth.email.SmtpConfig
 import eric.bitria.auth.email.SmtpEmailService
+import eric.bitria.auth.refresh.RefreshServiceImp
 import eric.bitria.auth.register.RegisterRepositoryDB
 import eric.bitria.auth.register.RegisterServiceImp
+import eric.bitria.auth.routes.refreshRoute
 import eric.bitria.auth.routes.registerRoutes
 import eric.bitria.auth.token.JwtConfig
 import eric.bitria.auth.token.JwtTokenService
@@ -41,9 +43,12 @@ fun Application.module() {
         emailService = SmtpEmailService(smtpConfig)
     )
 
+    val refreshService = RefreshServiceImp(jwtService)
+
     // Routes
     routing {
         registerRoutes(registerService)
+        refreshRoute(refreshService)
     }
 }
 
