@@ -11,36 +11,36 @@ interface RegisterRepository {
     /**
      * Checks if a username is already taken.
      */
-    fun usernameExists(username: String): Boolean
+    suspend fun usernameExists(username: String): Boolean
 
     /**
      * Checks if an email is already registered.
      */
-    fun emailExists(email: String): Boolean
+    suspend fun emailExists(email: String): Boolean
 
     /**
      * Checks if an email is verified.
      */
-    fun isAccountVerified(email: String): Boolean
+    suspend fun isAccountVerified(email: String): Boolean
 
     /**
      * Saves a new user along with the verification code.
      */
-    fun saveUser(email: String, username: String, password: String, verificationCode: String)
+    suspend fun saveUser(email: String, username: String, password: String, verificationCode: String)
 
     /**
      * Retrieves the user ID associated with the given email.
      */
-    fun getUserIdByEmail(email: String): String
+    suspend fun getUserIdByEmail(email: String): String
 
     /**
      * Marks the email as verified if the code matches.
      * Returns true if verification succeeded, false otherwise.
      */
-    fun verifyEmail(email: String, code: String): VerifyEmailResult
+    suspend fun verifyEmail(email: String, code: String): VerifyEmailResult
 
     /**
      * Updates the verification code for a given email.
      */
-    fun updateVerificationCode(email: String, verificationCode: String)
+    suspend fun updateVerificationCode(email: String, verificationCode: String)
 }

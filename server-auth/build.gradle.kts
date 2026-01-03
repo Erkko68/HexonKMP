@@ -33,6 +33,16 @@ dependencies {
     implementation(libs.ktor.server.auth.jwt)
     implementation(libs.java.jwt)
 
+    // Database
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.dao)
+    implementation(libs.exposed.jdbc)
+    implementation(libs.postgresql)
+    implementation(libs.hikaricp)
+
+    // Security
+    implementation(libs.bcrypt)
+
     // --- JUnit 6 ---
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)

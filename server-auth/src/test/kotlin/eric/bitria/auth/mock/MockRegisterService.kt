@@ -27,7 +27,7 @@ class MockRegisterService(
      * Registers a new user.
      * Performs validation, checks for duplicates, and stores verification code.
      */
-    override fun register(request: RegisterRequest): RegisterResponse {
+    override suspend fun register(request: RegisterRequest): RegisterResponse {
 
         // Validate input
         if (!isValidUsername(request.username)) {
@@ -89,7 +89,7 @@ class MockRegisterService(
     /**
      * Verifies a user's email with the provided code.
      */
-    override fun verifyEmail(email: String, code: String): VerifyEmailResponse {
+    override suspend fun verifyEmail(email: String, code: String): VerifyEmailResponse {
         // Validate input
         if (!isValidEmail(email)){
             return VerifyEmailResponse(
@@ -153,7 +153,7 @@ class MockRegisterService(
         }
     }
 
-    override fun resendVerificationCode(request: ResendVerificationCodeRequest): ResendVerificationCodeResponse {
+    override suspend fun resendVerificationCode(request: ResendVerificationCodeRequest): ResendVerificationCodeResponse {
         if (!isValidEmail(request.email)) {
             return ResendVerificationCodeResponse(
                 result = ResendVerificationCodeResult.INVALID_EMAIL,

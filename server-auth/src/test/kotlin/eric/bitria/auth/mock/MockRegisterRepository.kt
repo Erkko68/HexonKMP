@@ -8,21 +8,21 @@ class MockRegisterRepository : RegisterRepository {
     // email -> (username, verified, verificationCode)
     private val users = mutableMapOf<String, Triple<String, Boolean, String>>()
 
-    override fun usernameExists(username: String) = users.values.any { it.first == username }
+    override suspend fun usernameExists(username: String) = users.values.any { it.first == username }
 
-    override fun emailExists(email: String) = users.containsKey(email)
+    override suspend fun emailExists(email: String) = users.containsKey(email)
 
-    override fun isAccountVerified(email: String) = users[email]?.second ?: false
+    override suspend fun isAccountVerified(email: String) = users[email]?.second ?: false
 
-    override fun saveUser(email: String, username: String, password: String, verificationCode: String) {
+    override suspend fun saveUser(email: String, username: String, password: String, verificationCode: String) {
         users[email] = Triple(username, false, verificationCode)
     }
 
-    override fun getUserIdByEmail(email: String): String {
+    override suspend fun getUserIdByEmail(email: String): String {
         return email
     }
 
-    override fun verifyEmail(email: String, code: String): VerifyEmailResult {
+    override suspend fun verifyEmail(email: String, code: String): VerifyEmailResult {
         val user = users[email] ?: return VerifyEmailResult.INVALID_EMAIL
         val (username, verified, verificationCode) = user
 
@@ -36,7 +36,7 @@ class MockRegisterRepository : RegisterRepository {
         }
     }
 
-    override fun updateVerificationCode(email: String, verificationCode: String) {
+    override suspend fun updateVerificationCode(email: String, verificationCode: String) {
         val user = users[email] ?: return
         users[email] = Triple(user.first, false, verificationCode)
     }

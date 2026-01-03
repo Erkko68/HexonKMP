@@ -2,6 +2,7 @@ package eric.bitria.auth
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import eric.bitria.auth.database.DatabaseFactory
 import eric.bitria.auth.email.SmtpConfig
 import eric.bitria.auth.email.SmtpEmailService
 import eric.bitria.auth.refresh.RefreshServiceImp
@@ -28,13 +29,16 @@ fun Application.module() {
     val jwtConfig = JwtConfig.fromConfig(environment.config)
     val smtpConfig = SmtpConfig.fromConfig(environment.config)
 
-    // 2. Install plugins
+    // 2. Initialize Database
+    DatabaseFactory.init(environment.config)
+
+    // 3. Install plugins
     install(ContentNegotiation) { json() }
 
-    // 3. Configure security (JWT)
+    // 4. Configure security (JWT)
     configureSecurity(jwtConfig)
 
-    // 4. Initialize services
+    // 5. Initialize services
     val jwtService = JwtTokenService(jwtConfig)
 
     val registerService = RegisterServiceImp(
