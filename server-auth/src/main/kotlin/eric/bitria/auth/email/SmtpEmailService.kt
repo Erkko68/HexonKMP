@@ -16,9 +16,16 @@ class SmtpEmailService(
     init {
         val props = Properties().apply {
             put("mail.smtp.auth", "true")
-            put("mail.smtp.starttls.enable", "true")
             put("mail.smtp.host", smtpConfig.smtpHost)
             put("mail.smtp.port", smtpConfig.smtpPort)
+            
+            if (smtpConfig.smtpPort == "465") {
+                put("mail.smtp.ssl.enable", "true")
+                put("mail.smtp.socketFactory.port", "465")
+                put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory")
+            } else {
+                put("mail.smtp.starttls.enable", "true")
+            }
         }
 
         session = Session.getInstance(props, object : jakarta.mail.Authenticator() {
