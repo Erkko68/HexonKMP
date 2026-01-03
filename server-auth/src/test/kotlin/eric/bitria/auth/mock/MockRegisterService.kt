@@ -1,13 +1,13 @@
 package eric.bitria.auth.mock
 
+import eric.bitria.auth.database.AuthRepository
+import eric.bitria.auth.email.EmailService
+import eric.bitria.auth.register.RegisterService
+import eric.bitria.auth.token.TokenService
 import eric.bitria.auth.utils.Validators.isValidCode
 import eric.bitria.auth.utils.Validators.isValidEmail
 import eric.bitria.auth.utils.Validators.isValidPassword
 import eric.bitria.auth.utils.Validators.isValidUsername
-import eric.bitria.auth.email.EmailService
-import eric.bitria.auth.register.RegisterRepository
-import eric.bitria.auth.register.RegisterService
-import eric.bitria.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResponse
 import eric.bitria.hexon.dtos.auth.RegisterResult
@@ -18,7 +18,7 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 
 class MockRegisterService(
-    private val repository: RegisterRepository,
+    private val repository: AuthRepository,
     private val tokenService: TokenService,
     private val emailService: EmailService
 ) : RegisterService {

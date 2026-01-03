@@ -1,15 +1,14 @@
-package eric.bitria.auth.register
+package eric.bitria.auth.database
 
 import at.favre.lib.crypto.bcrypt.BCrypt
 import com.github.f4b6a3.uuid.UuidCreator
 import eric.bitria.auth.database.DatabaseFactory.dbQuery
-import eric.bitria.auth.database.Users
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 
-class RegisterRepositoryDB : RegisterRepository {
+class AuthRepositoryDB : AuthRepository {
     override suspend fun usernameExists(username: String): Boolean = dbQuery {
         Users
             .selectAll()
@@ -89,5 +88,13 @@ class RegisterRepositoryDB : RegisterRepository {
                 it[Users.verificationCode] = verificationCode
             }
         }
+    }
+
+    override suspend fun getPasswordByEmail(email: String): String? = dbQuery {
+        Users
+            .selectAll()
+            .where { Users.email eq email }
+            .map { it[Users.password] }
+            .singleOrNull()
     }
 }

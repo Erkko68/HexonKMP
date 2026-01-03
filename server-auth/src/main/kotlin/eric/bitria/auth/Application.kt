@@ -2,12 +2,14 @@ package eric.bitria.auth
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import eric.bitria.auth.database.AuthRepositoryDB
 import eric.bitria.auth.database.DatabaseFactory
 import eric.bitria.auth.email.SmtpConfig
 import eric.bitria.auth.email.SmtpEmailService
+import eric.bitria.auth.login.LoginServiceImp
 import eric.bitria.auth.refresh.RefreshServiceImp
-import eric.bitria.auth.register.RegisterRepositoryDB
 import eric.bitria.auth.register.RegisterServiceImp
+import eric.bitria.auth.routes.loginRoute
 import eric.bitria.auth.routes.refreshRoute
 import eric.bitria.auth.routes.registerRoutes
 import eric.bitria.auth.token.JwtConfig
@@ -31,6 +33,7 @@ fun Application.module() {
 
     // 2. Initialize Database
     DatabaseFactory.init(environment.config)
+    val authRepository = AuthRepositoryDB()
 
     // 3. Install plugins
     install(ContentNegotiation) { json() }
@@ -42,9 +45,14 @@ fun Application.module() {
     val jwtService = JwtTokenService(jwtConfig)
 
     val registerService = RegisterServiceImp(
-        repository = RegisterRepositoryDB(),
+        repository = authRepository,
         tokenService = jwtService,
         emailService = SmtpEmailService(smtpConfig)
+    )
+
+    val loginService = LoginServiceImp(
+        repository = authRepository,
+        tokenService = jwtService
     )
 
     val refreshService = RefreshServiceImp(jwtService)
@@ -52,6 +60,7 @@ fun Application.module() {
     // Routes
     routing {
         registerRoutes(registerService)
+        loginRoute(loginService)
         refreshRoute(refreshService)
     }
 }

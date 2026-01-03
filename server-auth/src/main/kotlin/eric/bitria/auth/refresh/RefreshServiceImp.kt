@@ -5,7 +5,9 @@ import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RefreshResult
 
-class RefreshServiceImp(private val tokenService: TokenService) : RefreshService {
+class RefreshServiceImp(
+    private val tokenService: TokenService
+) : RefreshService {
     override suspend fun refresh(request: RefreshRequest): RefreshResponse {
         val userId = tokenService.verifyToken(request.refreshToken)
             ?: return RefreshResponse(

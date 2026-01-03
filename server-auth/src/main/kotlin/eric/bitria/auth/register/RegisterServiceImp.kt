@@ -1,5 +1,6 @@
 package eric.bitria.auth.register
 
+import eric.bitria.auth.database.AuthRepository
 import eric.bitria.auth.utils.Validators.isValidCode
 import eric.bitria.auth.utils.Validators.isValidEmail
 import eric.bitria.auth.utils.Validators.isValidPassword
@@ -19,7 +20,7 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailResult
  * Handles the business logic for user registration and email verification.
  */
 class RegisterServiceImp(
-    private val repository: RegisterRepository,
+    private val repository: AuthRepository,
     private val tokenService: TokenService,
     private val emailService: EmailService
 ) : RegisterService {

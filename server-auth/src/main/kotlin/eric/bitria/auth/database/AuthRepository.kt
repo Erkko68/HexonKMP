@@ -1,13 +1,8 @@
-package eric.bitria.auth.register
+package eric.bitria.auth.database
 
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 
-/**
- * Repository interface for managing user registration and email verification.
- * Abstracts persistence layer (in-memory, database, etc.).
- */
-interface RegisterRepository {
-
+interface AuthRepository {
     /**
      * Checks if a username is already taken.
      */
@@ -43,4 +38,9 @@ interface RegisterRepository {
      * Updates the verification code for a given email.
      */
     suspend fun updateVerificationCode(email: String, verificationCode: String)
+
+    /**
+     * Retrieves the hashed password for the given email.
+     */
+    suspend fun getPasswordByEmail(email: String): String?
 }

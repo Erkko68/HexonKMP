@@ -1,21 +1,10 @@
 package eric.bitria.auth
 
-import eric.bitria.auth.mock.Inbox
-import eric.bitria.auth.mock.MockEmailService
-import eric.bitria.auth.mock.MockRefreshService
-import eric.bitria.auth.mock.MockRegisterRepository
-import eric.bitria.auth.mock.MockRegisterService
-import eric.bitria.auth.mock.MockTokenService
+import eric.bitria.auth.mock.*
+import eric.bitria.auth.routes.loginRoute
 import eric.bitria.auth.routes.refreshRoute
 import eric.bitria.auth.routes.registerRoutes
-import eric.bitria.hexon.dtos.auth.RefreshRequest
-import eric.bitria.hexon.dtos.auth.RefreshResponse
-import eric.bitria.hexon.dtos.auth.RegisterRequest
-import eric.bitria.hexon.dtos.auth.RegisterResponse
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResponse
-import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
-import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
+import eric.bitria.hexon.dtos.auth.*
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
@@ -38,6 +27,7 @@ fun withTestAuthClient(
 ) {
     val inbox = Inbox("")
     val tokenService = MockTokenService()
+    val repository = MockAuthRepository()
 
     testApplication {
         application {
@@ -46,13 +36,19 @@ fun withTestAuthClient(
             routing {
                 registerRoutes(
                     registerService = MockRegisterService(
-                        repository = MockRegisterRepository(),
+                        repository = repository,
                         tokenService = tokenService,
                         emailService = MockEmailService(inbox)
                     )
                 )
                 refreshRoute(
                     refreshService = MockRefreshService(
+                        tokenService = tokenService
+                    )
+                )
+                loginRoute(
+                    loginService = MockLoginService(
+                        repository = repository,
                         tokenService = tokenService
                     )
                 )
@@ -108,4 +104,15 @@ suspend fun HttpClient.refresh(
 ): RefreshResponse = post("/auth/refresh") {
     contentType(ContentType.Application.Json)
     setBody(RefreshRequest(refreshToken))
+}.body()
+
+/**
+ * Abbreviation of the login endpoint.
+ */
+suspend fun HttpClient.login(
+    email: String,
+    password: String
+): LoginResponse = post("/auth/login") {
+    contentType(ContentType.Application.Json)
+    setBody(LoginRequest(email, password))
 }.body()

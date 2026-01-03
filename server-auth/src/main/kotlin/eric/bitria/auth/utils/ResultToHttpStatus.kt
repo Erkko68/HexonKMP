@@ -1,5 +1,6 @@
 package eric.bitria.auth.utils
 
+import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResult
@@ -41,4 +42,10 @@ fun RefreshResult.toHttpStatus() = when (this) {
     RefreshResult.SUCCESS -> HTTPStatusCode.OK
     RefreshResult.INVALID_TOKEN -> HTTPStatusCode.Unauthorized
     RefreshResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
+}
+
+fun LoginResult.toHttpStatus() = when (this) {
+    LoginResult.SUCCESS -> HTTPStatusCode.OK
+    LoginResult.INVALID_EMAIL_OR_PASSWORD -> HTTPStatusCode.Unauthorized
+    LoginResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }
