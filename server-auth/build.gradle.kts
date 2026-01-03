@@ -42,6 +42,7 @@ dependencies {
 
     // Security
     implementation(libs.bcrypt)
+    implementation(libs.uuid.creator)
 
     // --- JUnit 6 ---
     testImplementation(libs.junit.jupiter)

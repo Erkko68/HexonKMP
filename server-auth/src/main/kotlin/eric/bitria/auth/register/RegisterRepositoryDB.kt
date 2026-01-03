@@ -1,13 +1,13 @@
 package eric.bitria.auth.register
 
 import at.favre.lib.crypto.bcrypt.BCrypt
+import com.github.f4b6a3.uuid.UuidCreator
 import eric.bitria.auth.database.DatabaseFactory.dbQuery
 import eric.bitria.auth.database.Users
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
-import java.util.UUID
 
 class RegisterRepositoryDB : RegisterRepository {
     override suspend fun usernameExists(username: String): Boolean = dbQuery {
@@ -41,7 +41,7 @@ class RegisterRepositoryDB : RegisterRepository {
         val hashedPassword = BCrypt.withDefaults().hashToString(12, password.toCharArray())
         dbQuery {
             Users.insert {
-                it[id] = UUID.randomUUID().toString()
+                it[id] = UuidCreator.getTimeBasedWithRandom().toString()
                 it[Users.email] = email
                 it[Users.username] = username
                 it[Users.password] = hashedPassword

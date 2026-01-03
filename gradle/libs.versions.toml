@@ -28,6 +28,7 @@ exposed = "0.61.0"
 postgresql = "42.7.8"
 hikaricp = "7.0.2"
 bcrypt = "0.10.2"
+uuidCreator = "6.1.1"
 
 [libraries]
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
@@ -74,6 +75,7 @@ exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "e
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 bcrypt = { module = "at.favre.lib:bcrypt", version.ref = "bcrypt" }
+uuid-creator = { module = "com.github.f4b6a3:uuid-creator", version.ref = "uuidCreator" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

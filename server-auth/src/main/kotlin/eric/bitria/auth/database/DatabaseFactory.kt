@@ -60,9 +60,9 @@ object DatabaseFactory {
 }
 
 object Users : Table("users") {
-    val id = varchar("id", 50)
-    val email = varchar("email", 255).uniqueIndex()
-    val username = varchar("username", 50).uniqueIndex()
+    val id = varchar("id", 36)
+    val email = varchar("email", 64).uniqueIndex()
+    val username = varchar("username", 20).uniqueIndex()
     val password = varchar("password", 255)
     val verificationCode = varchar("verification_code", 6).nullable()
     val isVerified = bool("is_verified").default(false)
