@@ -1,10 +1,10 @@
 package eric.bitria.auth
 
+import eric.bitria.auth.mock.Inbox
 import eric.bitria.auth.mock.MockEmailService
 import eric.bitria.auth.mock.MockRegisterRepository
 import eric.bitria.auth.mock.MockRegisterService
 import eric.bitria.auth.mock.MockTokenService
-import eric.bitria.auth.register.RegisterServiceImp
 import eric.bitria.auth.routes.registerRoutes
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
@@ -16,44 +16,46 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.install
-import io.ktor.server.testing.testApplication
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
+import io.ktor.server.testing.testApplication
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 
 /**
  * Launch a test server with all auth routes and JSON configured,
  * and provides a ready-to-use Ktor client.
  */
-fun withTestAuthClient(block: suspend (HttpClient) -> Unit) {
+fun withTestAuthClient(
+    block: suspend (HttpClient, Inbox) -> Unit
+) {
+    val inbox = Inbox("")
+
     testApplication {
         application {
             install(ContentNegotiation) { json() }
+
             routing {
                 registerRoutes(
                     registerService = MockRegisterService(
                         repository = MockRegisterRepository(),
                         tokenService = MockTokenService(),
-                        emailService = MockEmailService()
+                        emailService = MockEmailService(inbox)
                     )
                 )
-                // loginRoutes(loginService)
             }
         }
 
         val client = createClient {
-            install(ClientContentNegotiation) {
-                json()
-            }
+            install(ClientContentNegotiation) { json() }
         }
 
-        block(client)
+        block(client, inbox)
     }
 }
 

@@ -11,7 +11,7 @@ class VerifyRoutesCodeTest {
 
     @Test
     fun `verify returns INVALID_VERIFICATION_CODE if code is empty`() =
-        withTestAuthClient { client ->
+        withTestAuthClient { client , inBox ->
             val body = client.verify(
                 email = "alice@test.com",
                 code = ""
@@ -25,7 +25,7 @@ class VerifyRoutesCodeTest {
 
     @Test
     fun `verify returns INVALID_VERIFICATION_CODE if code is not 6 digits`() =
-        withTestAuthClient { client ->
+        withTestAuthClient { client, inBox ->
             val body = client.verify(
                 email = "alice@test.com",
                 code = "12345"
@@ -39,7 +39,7 @@ class VerifyRoutesCodeTest {
 
     @Test
     fun `verify returns INVALID_VERIFICATION_CODE if code contains letters`() =
-        withTestAuthClient { client ->
+        withTestAuthClient { client , inBox ->
             val body = client.verify(
                 email = "alice@test.com",
                 code = "12a456"
@@ -53,7 +53,7 @@ class VerifyRoutesCodeTest {
 
     @Test
     fun `verify returns INVALID_VERIFICATION_CODE if code contains special chars`() =
-        withTestAuthClient { client ->
+        withTestAuthClient { client, inBox ->
             val body = client.verify(
                 email = "alice@test.com",
                 code = "12#456"
@@ -67,7 +67,7 @@ class VerifyRoutesCodeTest {
 
     @Test
     fun `verify returns INVALID_VERIFICATION_CODE if code contains emoji`() =
-        withTestAuthClient { client ->
+        withTestAuthClient { client, inBox ->
             val body = client.verify(
                 email = "alice@test.com",
                 code = "12😀456"
@@ -81,7 +81,7 @@ class VerifyRoutesCodeTest {
 
     @Test
     fun `verify returns INVALID_VERIFICATION_CODE if code is well formed but wrong`() =
-        withTestAuthClient { client ->
+        withTestAuthClient { client, inBox ->
             // first register so a code exists
             client.register(
                 username = "alice",

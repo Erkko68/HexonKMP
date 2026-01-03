@@ -24,10 +24,6 @@ class RegisterRepositoryDB : RegisterRepository {
         TODO("Not yet implemented")
     }
 
-    override fun getUsernameByEmail(email: String): String {
-        TODO("Not yet implemented")
-    }
-
     override fun getUserIdByEmail(email: String): String {
         TODO("Not yet implemented")
     }

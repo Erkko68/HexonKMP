@@ -29,11 +29,6 @@ interface RegisterRepository {
     fun saveUser(email: String, username: String, password: String, verificationCode: String)
 
     /**
-     * Retrieves the username associated with the given email.
-     */
-    fun getUsernameByEmail(email: String): String
-
-    /**
      * Retrieves the user ID associated with the given email.
      */
     fun getUserIdByEmail(email: String): String

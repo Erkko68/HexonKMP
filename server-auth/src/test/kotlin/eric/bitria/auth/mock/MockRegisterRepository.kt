@@ -18,10 +18,6 @@ class MockRegisterRepository : RegisterRepository {
         users[email] = Triple(username, false, verificationCode)
     }
 
-    override fun getUsernameByEmail(email: String): String {
-        return users[email]?.first ?: ""
-    }
-
     override fun getUserIdByEmail(email: String): String {
         return email
     }

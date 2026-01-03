@@ -29,7 +29,7 @@ fun Application.module() {
     // 2. Install plugins
     install(ContentNegotiation) { json() }
 
-    // 3. Configure security
+    // 3. Configure security (JWT)
     configureSecurity(jwtConfig)
 
     // 4. Initialize services

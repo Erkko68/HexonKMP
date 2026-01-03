@@ -12,16 +12,15 @@ class VerifyRoutesFlowTest {
 
     private val email = "alice@test.com"
     private val password = "Secret123"
-    private val correctCode = "123456"
 
     @Test
     fun `verify returns SUCCESS for correct code`() =
-        withTestAuthClient { client ->
+        withTestAuthClient { client, inBox ->
             client.register("alice", email, password)
 
             val body = client.verify(
                 email = email,
-                code = correctCode
+                code = inBox.value
             )
 
             assertEquals(
@@ -32,19 +31,19 @@ class VerifyRoutesFlowTest {
 
     @Test
     fun `verify returns ACCOUNT_ALREADY_VERIFIED when verifying twice`() =
-        withTestAuthClient { client ->
+        withTestAuthClient { client, inBox ->
             client.register("alice", email, password)
 
             // first verification
             client.verify(
                 email = email,
-                code = correctCode
+                code = inBox.value
             )
 
             // second verification attempt
             val body = client.verify(
                 email = email,
-                code = correctCode
+                code = inBox.value
             )
 
             assertEquals(
@@ -55,17 +54,17 @@ class VerifyRoutesFlowTest {
 
     @Test
     fun `verify returns ACCOUNT_ALREADY_VERIFIED even with wrong code after verification`() =
-        withTestAuthClient { client ->
+        withTestAuthClient { client, inBox ->
             client.register("alice", email, password)
 
             client.verify(
                 email = email,
-                code = correctCode
+                code = inBox.value
             )
 
             val body = client.verify(
                 email = email,
-                code = "999999"
+                code = inBox.value
             )
 
             assertEquals(
@@ -76,7 +75,7 @@ class VerifyRoutesFlowTest {
 
     @Test
     fun `verify succeeds after resending verification code`() =
-        withTestAuthClient { client ->
+        withTestAuthClient { client, inBox ->
             client.register("alice", email, password)
 
             // resend code
@@ -84,11 +83,33 @@ class VerifyRoutesFlowTest {
 
             val body = client.verify(
                 email = email,
-                code = correctCode
+                code = inBox.value
             )
 
             assertEquals(
                 VerifyEmailResult.SUCCESS,
+                body.result
+            )
+        }
+
+    @Test
+    fun `verify returns INVALID_VERIFICATION_CODE when using old code after resending verification code`() =
+        withTestAuthClient { client, inBox ->
+            client.register("alice", email, password)
+
+            val oldCode = inBox.value
+
+            // resend code
+            client.resendVerification(email)
+
+
+            val body = client.verify(
+                email = email,
+                code = oldCode
+            )
+
+            assertEquals(
+                VerifyEmailResult.INVALID_VERIFICATION_CODE,
                 body.result
             )
         }

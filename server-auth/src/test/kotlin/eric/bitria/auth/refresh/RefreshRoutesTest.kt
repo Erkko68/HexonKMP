@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 class RefreshRoutesTest {
 
     @Test
-    fun `refresh returns new tokens for valid refresh token`() = withTestAuthClient { client ->
+    fun `refresh returns new tokens for valid refresh token`() = withTestAuthClient { client, inBox ->
         val request = "valid-refresh-token"
         val response: RefreshResponse = client.refresh(request)
 
@@ -21,7 +21,7 @@ class RefreshRoutesTest {
     }
 
     @Test
-    fun `refresh returns INVALID_REFRESH_TOKEN for unknown token`() = withTestAuthClient { client ->
+    fun `refresh returns INVALID_REFRESH_TOKEN for unknown token`() = withTestAuthClient { client, inBox ->
         val request = "unknown-token"
         val response: RefreshResponse = client.refresh(request)
 
@@ -31,7 +31,7 @@ class RefreshRoutesTest {
     }
 
     @Test
-    fun `refresh returns EXPIRED_REFRESH_TOKEN for expired token`() = withTestAuthClient { client ->
+    fun `refresh returns EXPIRED_REFRESH_TOKEN for expired token`() = withTestAuthClient { client, inBox ->
         val request = "expired-token"
         val response: RefreshResponse = client.refresh(request)
 
@@ -41,7 +41,7 @@ class RefreshRoutesTest {
     }
 
     @Test
-    fun `refresh returns UNKNOWN_ERROR for malformed request`() = withTestAuthClient { client ->
+    fun `refresh returns UNKNOWN_ERROR for malformed request`() = withTestAuthClient { client, inBox ->
         val request = ""
         val response: RefreshResponse = client.refresh(request)
 

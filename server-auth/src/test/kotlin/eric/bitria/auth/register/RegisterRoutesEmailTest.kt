@@ -9,25 +9,25 @@ import kotlin.test.assertEquals
 class RegisterRoutesEmailTest {
 
     @Test
-    fun `register returns INVALID_EMAIL for malformed email`() = withTestAuthClient { client ->
+    fun `register returns INVALID_EMAIL for malformed email`() = withTestAuthClient { client, inBox ->
         val body = client.register("alice", "not-an-email", "Secret123!")
         assertEquals(RegisterResult.INVALID_EMAIL, body.result)
     }
 
     @Test
-    fun `register returns INVALID_EMAIL if email is too long`() = withTestAuthClient { client ->
+    fun `register returns INVALID_EMAIL if email is too long`() = withTestAuthClient { client, inBox ->
         val body = client.register("alice", "anEmailShouldNotBeThisLongSpeciallyForAStandardUser@AndNeitherShouldTheDomainBeThatLong.com", "Secret123!")
         assertEquals(RegisterResult.INVALID_EMAIL, body.result)
     }
 
     @Test
-    fun `register returns INVALID_EMAIL if email is empty`() = withTestAuthClient { client ->
+    fun `register returns INVALID_EMAIL if email is empty`() = withTestAuthClient { client, inBox ->
         val body = client.register("alice", "", "Secret123!")
         assertEquals(RegisterResult.INVALID_EMAIL, body.result)
     }
 
     @Test
-    fun `register returns EMAIL_EXISTS if email already used`() = withTestAuthClient { client ->
+    fun `register returns EMAIL_EXISTS if email already used`() = withTestAuthClient { client, inBox ->
         // first registration should succeed
         val _ = client.register("alice", "alice@test.com", "Secret123!")
 
