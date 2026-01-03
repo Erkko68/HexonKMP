@@ -3,6 +3,8 @@ package eric.bitria.auth.login
 import at.favre.lib.crypto.bcrypt.BCrypt
 import eric.bitria.auth.database.AuthRepository
 import eric.bitria.auth.token.TokenService
+import eric.bitria.auth.utils.Validators.isValidEmail
+import eric.bitria.auth.utils.Validators.isValidPassword
 import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResponse
 import eric.bitria.hexon.dtos.auth.LoginResult
@@ -12,6 +14,25 @@ class LoginServiceImp(
     private val tokenService: TokenService,
 ) : LoginService {
     override suspend fun login(request: LoginRequest): LoginResponse {
+        
+        if (!isValidEmail(request.email)) {
+            return LoginResponse(
+                result = LoginResult.INVALID_EMAIL_OR_PASSWORD,
+                message = "Invalid email format",
+                accessToken = "",
+                refreshToken = ""
+            )
+        }
+
+        if (!isValidPassword(request.password)) {
+            return LoginResponse(
+                result = LoginResult.INVALID_EMAIL_OR_PASSWORD,
+                message = "Invalid password format",
+                accessToken = "",
+                refreshToken = ""
+            )
+        }
+
         val hashedPassword = repository.getPasswordByEmail(request.email)
             ?: return LoginResponse(
                 result = LoginResult.INVALID_EMAIL_OR_PASSWORD,

@@ -3,6 +3,9 @@ package eric.bitria.auth.database
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 
 interface AuthRepository {
+
+    // --- Existence Checks ---
+
     /**
      * Checks if a username is already taken.
      */
@@ -13,10 +16,25 @@ interface AuthRepository {
      */
     suspend fun emailExists(email: String): Boolean
 
+    // --- Account Verification ---
+
     /**
      * Checks if an email is verified.
      */
     suspend fun isAccountVerified(email: String): Boolean
+
+    /**
+     * Marks the email as verified if the code matches.
+     * Returns a result indicating success or failure.
+     */
+    suspend fun verifyEmail(email: String, code: String): VerifyEmailResult
+
+    /**
+     * Updates the verification code for a given email.
+     */
+    suspend fun updateVerificationCode(email: String, verificationCode: String)
+
+    // --- User Management ---
 
     /**
      * Saves a new user along with the verification code.
@@ -28,16 +46,7 @@ interface AuthRepository {
      */
     suspend fun getUserIdByEmail(email: String): String
 
-    /**
-     * Marks the email as verified if the code matches.
-     * Returns true if verification succeeded, false otherwise.
-     */
-    suspend fun verifyEmail(email: String, code: String): VerifyEmailResult
-
-    /**
-     * Updates the verification code for a given email.
-     */
-    suspend fun updateVerificationCode(email: String, verificationCode: String)
+    // --- Authentication ---
 
     /**
      * Retrieves the hashed password for the given email.
