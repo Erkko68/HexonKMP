@@ -51,7 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
-import eric.bitria.hexon.viewmodel.LoginState
+import eric.bitria.hexon.viewmodel.LoginStatus
 import eric.bitria.hexon.viewmodel.LoginViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -70,7 +70,7 @@ fun LoginScreen(
         var selectedTab by remember { mutableStateOf("Login") }
 
         LaunchedEffect(loginState) {
-            if (loginState is LoginState.Success) onLoginSuccess()
+            if (loginState == LoginStatus.SUCCESS) onLoginSuccess()
         }
 
         Column(
@@ -159,6 +159,12 @@ fun LoginScreen(
                         singleLine = true,
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onPrimaryContainer),
                         shape = RoundedCornerShape(12.dp),
+                        isError = loginViewModel.nameError != null,
+                        supportingText = {
+                            loginViewModel.nameError?.let {
+                                Text(it, color = MaterialTheme.colorScheme.error)
+                            }
+                        },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.secondaryContainer,
                             unfocusedBorderColor = Color.Transparent
@@ -188,6 +194,12 @@ fun LoginScreen(
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onPrimaryContainer),
                 shape = RoundedCornerShape(12.dp),
+                isError = loginViewModel.emailError != null,
+                supportingText = {
+                    loginViewModel.emailError?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error)
+                    }
+                },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.secondaryContainer,
                     unfocusedBorderColor = Color.Transparent
@@ -217,6 +229,12 @@ fun LoginScreen(
                 shape = RoundedCornerShape(12.dp),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                isError = loginViewModel.passwordError != null,
+                supportingText = {
+                    loginViewModel.passwordError?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error)
+                    }
+                },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.secondaryContainer,
                     unfocusedBorderColor = Color.Transparent
@@ -248,6 +266,12 @@ fun LoginScreen(
                         shape = RoundedCornerShape(12.dp),
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        isError = loginViewModel.confirmPasswordError != null,
+                        supportingText = {
+                            loginViewModel.confirmPasswordError?.let {
+                                Text(it, color = MaterialTheme.colorScheme.error)
+                            }
+                        },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.secondaryContainer,
                             unfocusedBorderColor = Color.Transparent
@@ -281,7 +305,7 @@ fun LoginScreen(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (loginState == LoginState.Loading || loginState == LoginState.Success) {
+                    if (loginState == LoginStatus.LOADING || loginState == LoginStatus.SUCCESS) {
                         CircularProgressIndicator(
                             color = Color.White,
                             modifier = Modifier.size(20.dp),
@@ -350,10 +374,10 @@ fun LoginScreen(
                 }
             }
 
-            if (loginState is LoginState.Error) {
+            if (loginState == LoginStatus.ERROR || loginState == LoginStatus.TIMEOUT) {
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = loginState.message,
+                    text = loginViewModel.errorMessage ?: "Unknown error occurred",
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium
                 )

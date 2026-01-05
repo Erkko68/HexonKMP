@@ -1,4 +1,4 @@
-package eric.bitria.auth.utils
+package eric.bitria.hexon.utils
 
 /**
  * Collection of input validation helpers used by the authentication layer.

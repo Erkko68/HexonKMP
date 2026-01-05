@@ -1,13 +1,7 @@
 package eric.bitria.hexon
 
-import eric.bitria.hexon.viewmodel.FriendProfileViewModel
-import eric.bitria.hexon.viewmodel.FriendsViewModel
-import eric.bitria.hexon.viewmodel.GameSceneViewModel
-import eric.bitria.hexon.viewmodel.GameUIViewModel
-import eric.bitria.hexon.viewmodel.LoginViewModel
-import eric.bitria.hexon.viewmodel.MainMenuViewModel
-import eric.bitria.hexon.viewmodel.ProfileViewModel
-import eric.bitria.hexon.viewmodel.SettingsViewModel
+import eric.bitria.hexon.di.sharedModule
+import eric.bitria.hexon.viewmodel.*
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.KoinAppDeclaration
@@ -27,6 +21,6 @@ val viewModelsModule = module {
 fun initKoin(config: KoinAppDeclaration? = null){
     startKoin {
         config?.invoke(this)
-        modules(viewModelsModule)
+        modules(sharedModule, viewModelsModule)
     }
 }

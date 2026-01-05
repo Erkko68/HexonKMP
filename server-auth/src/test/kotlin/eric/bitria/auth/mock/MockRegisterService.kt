@@ -4,10 +4,10 @@ import eric.bitria.auth.database.AuthRepository
 import eric.bitria.auth.email.EmailService
 import eric.bitria.auth.register.RegisterService
 import eric.bitria.auth.token.TokenService
-import eric.bitria.auth.utils.Validators.isValidCode
-import eric.bitria.auth.utils.Validators.isValidEmail
-import eric.bitria.auth.utils.Validators.isValidPassword
-import eric.bitria.auth.utils.Validators.isValidUsername
+import eric.bitria.hexon.utils.Validators.isValidCode
+import eric.bitria.hexon.utils.Validators.isValidEmail
+import eric.bitria.hexon.utils.Validators.isValidPassword
+import eric.bitria.hexon.utils.Validators.isValidUsername
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResponse
 import eric.bitria.hexon.dtos.auth.RegisterResult

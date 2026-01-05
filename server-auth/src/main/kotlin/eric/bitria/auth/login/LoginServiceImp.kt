@@ -3,8 +3,8 @@ package eric.bitria.auth.login
 import at.favre.lib.crypto.bcrypt.BCrypt
 import eric.bitria.auth.database.AuthRepository
 import eric.bitria.auth.token.TokenService
-import eric.bitria.auth.utils.Validators.isValidEmail
-import eric.bitria.auth.utils.Validators.isValidPassword
+import eric.bitria.hexon.utils.Validators.isValidEmail
+import eric.bitria.hexon.utils.Validators.isValidPassword
 import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResponse
 import eric.bitria.hexon.dtos.auth.LoginResult
