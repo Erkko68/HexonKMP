@@ -46,40 +46,40 @@ class RegisterServiceImp(
             )
         }
 
-        // Check for duplicates
-        if (repository.emailExists(request.email)) {
+        if(!isValidPassword(request.password)){
+            return RegisterResponse(
+                result = RegisterResult.INVALID_PASSWORD,
+                message = "Invalid password"
+            )
+        }
+
+        // Check if verified email exists
+        if (repository.emailExists(request.email) && repository.isAccountVerified(request.email)) {
             return RegisterResponse(
                 result = RegisterResult.EMAIL_EXISTS,
                 message = "Email is already registered: ${request.email}",
             )
         }
 
-        if (repository.usernameExists(request.username)) {
+        val ownerEmail = repository.getEmailByUsername(request.username)
+        if (ownerEmail != null && ownerEmail != request.email) {
             return RegisterResponse(
                 result = RegisterResult.USERNAME_EXISTS,
                 message = "Username is already taken: ${request.username}",
             )
         }
 
-        // Password validation
-        if (!isValidPassword(request.password)) {
-            return RegisterResponse(
-                result = RegisterResult.INVALID_PASSWORD,
-                message = "Invalid password",
-            )
-        }
-
         // Generate verification code
         val verificationCode = generateVerificationCode()
 
-        // Save user with code
-        repository.saveUser(request.email, request.username, request.password, verificationCode)
-        
+        // Save or update user with code
+        repository.saveOrUpdateUnverifiedUser(request.email, request.username, request.password, verificationCode)
+
         // Send email to user
         emailService.sendEmail(
             to = request.email,
             subject = "Email Verification",
-            body = "Your verification code is: $verificationCode"
+            body = verificationCode
         )
 
         return RegisterResponse(
@@ -122,14 +122,14 @@ class RegisterServiceImp(
             VerifyEmailResult.INVALID_VERIFICATION_CODE ->
                 VerifyEmailResponse(
                     result = VerifyEmailResult.INVALID_VERIFICATION_CODE,
-                    message = email,
+                    message = "Invalid verification code",
                     accessToken = "",
                     refreshToken = ""
                 )
             VerifyEmailResult.SUCCESS ->
                 VerifyEmailResponse(
                     result = VerifyEmailResult.SUCCESS,
-                    message = email,
+                    message = "",
                     accessToken = tokenService.generateAccessToken(
                         userId = repository.getUserIdByEmail(email)
                     ),
@@ -140,7 +140,7 @@ class RegisterServiceImp(
             VerifyEmailResult.ACCOUNT_ALREADY_VERIFIED ->
                 VerifyEmailResponse(
                     result = VerifyEmailResult.ACCOUNT_ALREADY_VERIFIED,
-                    message = email,
+                    message = "Account already verified",
                     accessToken = "",
                     refreshToken = ""
                 )

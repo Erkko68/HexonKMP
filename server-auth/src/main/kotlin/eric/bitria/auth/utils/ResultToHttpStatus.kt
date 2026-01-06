@@ -13,7 +13,6 @@ import io.ktor.http.HttpStatusCode as HTTPStatusCode
 
 fun RegisterResult.toHttpStatus() = when (this) {
     RegisterResult.VERIFICATION_SENT -> HTTPStatusCode.OK
-    RegisterResult.SUCCESS -> HTTPStatusCode.Created
     RegisterResult.USERNAME_EXISTS,
     RegisterResult.EMAIL_EXISTS -> HTTPStatusCode.Conflict
     RegisterResult.INVALID_USERNAME,
@@ -46,6 +45,7 @@ fun RefreshResult.toHttpStatus() = when (this) {
 
 fun LoginResult.toHttpStatus() = when (this) {
     LoginResult.SUCCESS -> HTTPStatusCode.OK
+    LoginResult.PENDING_VERIFICATION -> HTTPStatusCode.Conflict
     LoginResult.INVALID_EMAIL_OR_PASSWORD -> HTTPStatusCode.Unauthorized
     LoginResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }

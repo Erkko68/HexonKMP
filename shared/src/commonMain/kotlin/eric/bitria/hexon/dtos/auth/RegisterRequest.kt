@@ -55,7 +55,6 @@ data class ResendVerificationCodeResponse(
 @Serializable
 enum class RegisterResult {
     VERIFICATION_SENT,
-    SUCCESS,
     USERNAME_EXISTS,
     EMAIL_EXISTS,
     INVALID_USERNAME,

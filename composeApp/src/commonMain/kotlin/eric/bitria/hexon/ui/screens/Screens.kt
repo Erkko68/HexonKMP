@@ -8,6 +8,9 @@ sealed class Screens {
     object Login : Screens()
 
     @Serializable
+    data class Verify(val email: String) : Screens()
+
+    @Serializable
     object MainMenu : Screens()
 
     @Serializable

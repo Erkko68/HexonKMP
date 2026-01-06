@@ -23,6 +23,7 @@ import eric.bitria.hexon.ui.screens.MainMenuScreen
 import eric.bitria.hexon.ui.screens.ProfileScreen
 import eric.bitria.hexon.ui.screens.Screens
 import eric.bitria.hexon.ui.screens.SettingsScreen
+import eric.bitria.hexon.ui.screens.VerifyScreen
 
 @Composable
 fun App(
@@ -43,6 +44,26 @@ fun App(
             ) {
                 LoginScreen(
                     onLoginSuccess = {
+                        navController.navigate(Screens.MainMenu) {
+                            popUpTo(Screens.Login) {
+                                inclusive = true
+                            }
+                        }
+                    },
+                    onNavigateToVerify = { email ->
+                        navController.navigate(Screens.Verify(email))
+                    }
+                )
+            }
+
+            composable<Screens.Verify>(
+                enterTransition = { fadeIn(animationSpec = tween(500)) },
+                exitTransition = { fadeOut(animationSpec = tween(500)) }
+            ) { backStackEntry ->
+                val verify: Screens.Verify = backStackEntry.toRoute()
+                VerifyScreen(
+                    email = verify.email,
+                    onVerifySuccess = {
                         navController.navigate(Screens.MainMenu) {
                             popUpTo(Screens.Login) {
                                 inclusive = true

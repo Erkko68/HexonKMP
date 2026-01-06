@@ -27,6 +27,7 @@ fun withTestAuthClient(
 ) {
     val inbox = Inbox("")
     val tokenService = MockTokenService()
+    val emailService = MockEmailService(inbox)
     val repository = MockAuthRepository()
 
     testApplication {
@@ -38,7 +39,7 @@ fun withTestAuthClient(
                     registerService = MockRegisterService(
                         repository = repository,
                         tokenService = tokenService,
-                        emailService = MockEmailService(inbox)
+                        emailService = emailService
                     )
                 )
                 refreshRoute(
@@ -49,7 +50,8 @@ fun withTestAuthClient(
                 loginRoute(
                     loginService = MockLoginService(
                         repository = repository,
-                        tokenService = tokenService
+                        tokenService = tokenService,
+                        emailService = emailService
                     )
                 )
             }

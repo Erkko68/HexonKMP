@@ -109,6 +109,9 @@ class LoginViewModel(
                         LoginResult.SUCCESS -> {
                             loginState = LoginStatus.SUCCESS
                         }
+                        LoginResult.PENDING_VERIFICATION -> {
+                            loginState = LoginStatus.VERIFICATION_SENT
+                        }
                         else -> {
                             loginState = LoginStatus.ERROR
                             errorMessage = response.message
@@ -135,8 +138,8 @@ class LoginViewModel(
                 withTimeout(10000L) { // 10 seconds timeout
                     val response = authRepository.register(RegisterRequest(name, email, password))
                     when (response.result) {
-                        RegisterResult.SUCCESS -> {
-                            loginState = LoginStatus.SUCCESS
+                        RegisterResult.VERIFICATION_SENT -> {
+                            loginState = LoginStatus.VERIFICATION_SENT
                         }
                         else -> {
                             loginState = LoginStatus.ERROR
@@ -158,9 +161,13 @@ class LoginViewModel(
     fun continueWithGoogle() {
         // Trigger Google login flow, then update loginState accordingly
     }
+
+    fun resetState() {
+        loginState = LoginStatus.IDLE
+    }
 }
 
 // Represent the login result states
 enum class LoginStatus {
-    IDLE, LOADING, SUCCESS, ERROR, TIMEOUT
+    IDLE, LOADING, SUCCESS, ERROR, TIMEOUT, VERIFICATION_SENT
 }

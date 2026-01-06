@@ -14,6 +14,7 @@ val viewModelsModule = module {
     viewModelOf(::ProfileViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::LoginViewModel)
+    viewModelOf(::VerifyViewModel)
     viewModelOf(::FriendsViewModel)
     viewModelOf(::FriendProfileViewModel)
 }

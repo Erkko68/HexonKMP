@@ -59,13 +59,21 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun LoginScreen(
     loginViewModel: LoginViewModel = koinViewModel(),
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    onNavigateToVerify: (String) -> Unit
 ) {
     HexonTheme {
         var selectedTab by remember { mutableStateOf("Login") }
 
         LaunchedEffect(loginViewModel.loginState) {
-            if (loginViewModel.loginState == LoginStatus.SUCCESS) onLoginSuccess()
+            when (loginViewModel.loginState) {
+                LoginStatus.SUCCESS -> onLoginSuccess()
+                LoginStatus.VERIFICATION_SENT -> {
+                    onNavigateToVerify(loginViewModel.email)
+                    loginViewModel.resetState()
+                }
+                else -> {}
+            }
         }
 
         Column(

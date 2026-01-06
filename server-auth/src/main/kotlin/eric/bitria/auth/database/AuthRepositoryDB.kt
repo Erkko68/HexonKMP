@@ -31,7 +31,7 @@ class AuthRepositoryDB : AuthRepository {
             .singleOrNull() ?: false
     }
 
-    override suspend fun saveUser(
+    override suspend fun saveOrUpdateUnverifiedUser(
         email: String,
         username: String,
         password: String,
@@ -39,13 +39,26 @@ class AuthRepositoryDB : AuthRepository {
     ) {
         val hashedPassword = BCrypt.withDefaults().hashToString(12, password.toCharArray())
         dbQuery {
-            Users.insert {
-                it[id] = UuidCreator.getTimeBasedWithRandom().toString()
-                it[Users.email] = email
-                it[Users.username] = username
-                it[Users.password] = hashedPassword
-                it[Users.verificationCode] = verificationCode
-                it[isVerified] = false
+            val existingUser = Users
+                .selectAll()
+                .where { Users.email eq email }
+                .singleOrNull()
+
+            if (existingUser == null) {
+                Users.insert {
+                    it[id] = UuidCreator.getTimeBasedWithRandom().toString()
+                    it[Users.email] = email
+                    it[Users.username] = username
+                    it[Users.password] = hashedPassword
+                    it[Users.verificationCode] = verificationCode
+                    it[isVerified] = false
+                }
+            } else if (!existingUser[Users.isVerified]) {
+                Users.update({ Users.email eq email }) {
+                    it[Users.username] = username
+                    it[Users.password] = hashedPassword
+                    it[Users.verificationCode] = verificationCode
+                }
             }
         }
     }
@@ -56,6 +69,14 @@ class AuthRepositoryDB : AuthRepository {
             .where { Users.email eq email }
             .map { it[Users.id] }
             .singleOrNull() ?: ""
+    }
+
+    override suspend fun getEmailByUsername(username: String): String? = dbQuery {
+        Users
+            .selectAll()
+            .where { Users.username eq username }
+            .map { it[Users.email] }
+            .singleOrNull()
     }
 
     override suspend fun verifyEmail(

@@ -27,13 +27,12 @@ class RegisterRoutesUsernameTest {
     }
 
     @Test
-    fun `register returns USERNAME_EXISTS if username already used`() = withTestAuthClient { client, inBox ->
-        // first registration should succeed
-        val _ = client.register("alice", "alice@test.com", "Secret123!")
+    fun `register returns USERNAME_EXISTS if username is taken by another unverified user`() = withTestAuthClient { client, inBox ->
+        // Alice registers but doesn't verify
+        client.register("alice", "alice@test.com", "Secret123!")
 
-        // second registration with same username
-        val body = client.register("alice", "alice2@test.com", "AnotherPass123!")
+        // Bob tries to take 'alice' username
+        val body = client.register("alice", "bob@test.com", "Secret123!")
         assertEquals(RegisterResult.USERNAME_EXISTS, body.result)
     }
-
 }

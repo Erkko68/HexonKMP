@@ -20,5 +20,6 @@ data class LoginResponse(
 enum class LoginResult {
     SUCCESS,
     INVALID_EMAIL_OR_PASSWORD,
+    PENDING_VERIFICATION,
     UNKNOWN_ERROR
 }
