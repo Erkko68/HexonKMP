@@ -17,4 +17,4 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
-server-auth/src/main/resources/application.conf
+server/src/main/resources/application.conf
