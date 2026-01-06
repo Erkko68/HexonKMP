@@ -10,24 +10,26 @@ plugins {
     alias(libs.plugins.kotlinAndroid) apply false
 }
 
-tasks.register("runAllServers") {
+tasks.register("runServer") {
     group = "application"
-    description = "Starts DB and runs both Auth and Game servers"
-    dependsOn("dbUp") // Automatically starts DB
-    dependsOn(":server-auth:run")
-    //dependsOn(":server-auth:run", ":server-game:run")
+    description = "Starts DB, runs the Server, and shuts down DB on exit"
+
+    dependsOn("dbUp")
+    finalizedBy("dbDown")
+
+    dependsOn(":server:run")
 }
 
 tasks.register<Exec>("dbUp") {
     group = "database"
     description = "Starts the PostgreSQL database using Docker Compose"
-    commandLine("docker-compose", "up", "-d")
+    commandLine("/usr/local/bin/docker", "compose", "up", "-d")
 }
 
 tasks.register<Exec>("dbDown") {
     group = "database"
     description = "Stops the PostgreSQL database"
-    commandLine("docker-compose", "down")
+    commandLine("/usr/local/bin/docker", "compose", "down")
 }
 
 tasks.register<Exec>("dbLogs") {

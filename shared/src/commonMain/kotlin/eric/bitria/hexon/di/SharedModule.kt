@@ -1,14 +1,17 @@
 package eric.bitria.hexon.di
 
+import eric.bitria.hexon.Platform
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RefreshResult
+import eric.bitria.hexon.getPlatform
 import eric.bitria.hexon.repository.AuthRepository
 import eric.bitria.hexon.repository.KtorAuthRepository
 import eric.bitria.hexon.utils.TokenManager
 import eric.bitria.hexon.utils.TokenManagerImpl
 import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -19,11 +22,18 @@ import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 
 val sharedModule = module {
+    single { getPlatform() }
     single<TokenManager> { TokenManagerImpl() }
 
     single {
         val tokenManager = get<TokenManager>()
+        val platform = get<Platform>()
+        
         HttpClient {
+            install(DefaultRequest) {
+                url(platform.baseUrl)
+            }
+
             install(ContentNegotiation) {
                 json(Json {
                     ignoreUnknownKeys = true
@@ -47,7 +57,7 @@ val sharedModule = module {
                     refreshTokens {
                         val refreshToken = tokenManager.getRefreshToken() ?: return@refreshTokens null
 
-                        val response = client.post("http://10.0.2.2:8080/auth/refresh") {
+                        val response = client.post("${platform.baseUrl}/auth/refresh") {
                             markAsRefreshTokenRequest()
                             contentType(ContentType.Application.Json)
                             setBody(RefreshRequest(refreshToken))
@@ -64,7 +74,7 @@ val sharedModule = module {
 
                     // Optional: decide which requests need auth
                     sendWithoutRequest { request ->
-                        request.url.pathSegments.none { it == "login" || it == "register" || it == "refresh" }
+                        request.url.pathSegments.none { it == "login" || it == "register" || it == "refresh" || it == "verify" || it == "resend-verification" }
                     }
                 }
             }

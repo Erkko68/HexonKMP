@@ -33,7 +33,6 @@ dependencyResolutionManagement {
 
 include(":androidApp")
 include(":composeApp")
-include(":server-game")
-include(":server-auth")
+include(":server")
 include(":shared")
 include(":threeJs")

@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -76,220 +78,246 @@ fun LoginScreen(
             }
         }
 
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                "Hexon",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 2.sp
-                ),
-                textAlign = TextAlign.Center
-            )
+            val paddingScale = minOf(maxWidth, maxHeight)
+            val isPortrait = maxWidth < maxHeight
+            val contentWidth = if (isPortrait) 0.85f else 0.4f
 
-            Spacer(Modifier.height(24.dp))
-
-            // Toggle Login / Register
-            Row(
+            Column(
                 modifier = Modifier
-                    .height(48.dp)
-                    .fillMaxWidth(0.8f)
-                    .background(
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .padding(4.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .padding(horizontal = paddingScale * 0.04f, vertical = paddingScale * 0.02f)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                listOf("Login", "Register").forEach { tab ->
-                    val selected = tab == selectedTab
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .shadow(
-                                elevation = if (selected) 6.dp else 0.dp,
-                                shape = if (selected) RoundedCornerShape(6.dp) else RoundedCornerShape(
-                                    0.dp
-                                )
-                            )
-                            .background(
-                                color = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                                shape = RoundedCornerShape(6.dp)
-                            )
-                            .clickable { selectedTab = tab },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            tab,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                        )
-                    }
-                }
-            }
+                Text(
+                    "Hexon",
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 2.sp,
+                        fontSize = (paddingScale * 0.08f).value.sp
+                    ),
+                    textAlign = TextAlign.Center
+                )
 
-            Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(paddingScale * 0.04f))
 
-            // --- Name (Register only) ---
-            AnimatedVisibility(visible = selectedTab == "Register") {
-                Column {
-                    LoginInputField(
-                        value = loginViewModel.name,
-                        onValueChange = { loginViewModel.onNameChange(it) },
-                        placeholder = "Name",
-                        error = loginViewModel.nameError
-                    )
-                    Spacer(Modifier.height(12.dp))
-                }
-            }
-
-            // --- Email ---
-            LoginInputField(
-                value = loginViewModel.email,
-                onValueChange = { loginViewModel.onEmailChange(it) },
-                placeholder = "Email",
-                error = loginViewModel.emailError,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            // --- Password ---
-            LoginInputField(
-                value = loginViewModel.password,
-                onValueChange = { loginViewModel.onPasswordChange(it) },
-                placeholder = "Password",
-                error = loginViewModel.passwordError,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            // --- Confirm Password (Register only) ---
-            AnimatedVisibility(visible = selectedTab == "Register") {
-                Column {
-                    LoginInputField(
-                        value = loginViewModel.confirmPassword,
-                        onValueChange = { loginViewModel.onConfirmPasswordChange(it) },
-                        placeholder = "Confirm Password",
-                        error = loginViewModel.confirmPasswordError,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-                    )
-                    Spacer(Modifier.height(16.dp))
-                }
-            }
-
-            // --- Action Button ---
-            Button(
-                onClick = {
-                    if (selectedTab == "Login") loginViewModel.loginWithEmail()
-                    else loginViewModel.registerWithEmail()
-                },
-                modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .height(48.dp)
-                    .shadow(6.dp, RoundedCornerShape(12.dp)),
-                shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(),
-            ) {
-                Box(
+                // Toggle Login / Register
+                Row(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .height(paddingScale * 0.12f)
+                        .fillMaxWidth(contentWidth)
                         .background(
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            RoundedCornerShape(12.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (loginViewModel.loginState == LoginStatus.LOADING || loginViewModel.loginState == LoginStatus.SUCCESS) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            shape = RoundedCornerShape(paddingScale * 0.02f)
                         )
-                    } else {
-                        AnimatedContent(
-                            targetState = selectedTab,
-                            transitionSpec = { fadeIn() togetherWith fadeOut() },
-                            label = "ButtonTextAnimation"
-                        ) { tab ->
+                        .padding(paddingScale * 0.01f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    listOf("Login", "Register").forEach { tab ->
+                        val selected = tab == selectedTab
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .shadow(
+                                    elevation = if (selected) 6.dp else 0.dp,
+                                    shape = RoundedCornerShape(paddingScale * 0.015f)
+                                )
+                                .background(
+                                    color = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                                    shape = RoundedCornerShape(paddingScale * 0.015f)
+                                )
+                                .clickable { selectedTab = tab },
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text(
                                 tab,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onTertiaryContainer,
+                                    fontSize = (paddingScale * 0.04f).value.sp
+                                )
                             )
                         }
                     }
                 }
-            }
 
-            Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(paddingScale * 0.05f))
 
-            // Divider + OAuth buttons
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(0.8f)
-            ) {
-                HorizontalDivider(
-                    modifier = Modifier.weight(1f),
-                    thickness = DividerDefaults.Thickness,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "Or continue with",
-                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground),
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-                HorizontalDivider(
-                    modifier = Modifier.weight(1f),
-                    thickness = DividerDefaults.Thickness,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth(0.8f)
-            ) {
-                OutlinedButton(
-                    onClick = { loginViewModel.continueWithGoogle() },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.onPrimary,
-                        contentColor = MaterialTheme.colorScheme.primary
-                    ),
-                    border = BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                    )
+                Column(
+                    modifier = Modifier.fillMaxWidth(contentWidth),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Google", fontWeight = FontWeight.Bold)
-                }
-            }
+                    // --- Name (Register only) ---
+                    AnimatedVisibility(visible = selectedTab == "Register") {
+                        Column {
+                            LoginInputField(
+                                value = loginViewModel.name,
+                                onValueChange = { loginViewModel.onNameChange(it) },
+                                placeholder = "Name",
+                                error = loginViewModel.nameError,
+                                paddingScale = paddingScale
+                            )
+                            Spacer(Modifier.height(paddingScale * 0.025f))
+                        }
+                    }
 
-            if (loginViewModel.loginState == LoginStatus.ERROR || loginViewModel.loginState == LoginStatus.TIMEOUT) {
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    text = loginViewModel.errorMessage ?: "Unknown error occurred",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                    // --- Email ---
+                    LoginInputField(
+                        value = loginViewModel.email,
+                        onValueChange = { loginViewModel.onEmailChange(it) },
+                        placeholder = "Email",
+                        error = loginViewModel.emailError,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        paddingScale = paddingScale
+                    )
+
+                    Spacer(Modifier.height(paddingScale * 0.025f))
+
+                    // --- Password ---
+                    LoginInputField(
+                        value = loginViewModel.password,
+                        onValueChange = { loginViewModel.onPasswordChange(it) },
+                        placeholder = "Password",
+                        error = loginViewModel.passwordError,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        paddingScale = paddingScale
+                    )
+
+                    Spacer(Modifier.height(paddingScale * 0.025f))
+
+                    // --- Confirm Password (Register only) ---
+                    AnimatedVisibility(visible = selectedTab == "Register") {
+                        Column {
+                            LoginInputField(
+                                value = loginViewModel.confirmPassword,
+                                onValueChange = { loginViewModel.onConfirmPasswordChange(it) },
+                                placeholder = "Confirm Password",
+                                error = loginViewModel.confirmPasswordError,
+                                visualTransformation = PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                paddingScale = paddingScale
+                            )
+                            Spacer(Modifier.height(paddingScale * 0.035f))
+                        }
+                    }
+
+                    // --- Action Button ---
+                    Button(
+                        onClick = {
+                            if (selectedTab == "Login") loginViewModel.loginWithEmail()
+                            else loginViewModel.registerWithEmail()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(paddingScale * 0.12f)
+                            .shadow(6.dp, RoundedCornerShape(paddingScale * 0.03f)),
+                        shape = RoundedCornerShape(paddingScale * 0.03f),
+                        contentPadding = PaddingValues(),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    RoundedCornerShape(paddingScale * 0.03f)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (loginViewModel.loginState == LoginStatus.LOADING || loginViewModel.loginState == LoginStatus.SUCCESS) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    modifier = Modifier.size(paddingScale * 0.05f),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                AnimatedContent(
+                                    targetState = selectedTab,
+                                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                    label = "ButtonTextAnimation"
+                                ) { tab ->
+                                    Text(
+                                        tab,
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontSize = (paddingScale * 0.045f).value.sp
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(paddingScale * 0.07f))
+
+                    // Divider + OAuth buttons
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        HorizontalDivider(
+                            modifier = Modifier.weight(1f),
+                            thickness = DividerDefaults.Thickness,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = "Or continue with",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontSize = (paddingScale * 0.03f).value.sp
+                            ),
+                            modifier = Modifier.padding(horizontal = paddingScale * 0.02f)
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.weight(1f),
+                            thickness = DividerDefaults.Thickness,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+
+                    Spacer(Modifier.height(paddingScale * 0.035f))
+
+                    OutlinedButton(
+                        onClick = { loginViewModel.continueWithGoogle() },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(paddingScale * 0.03f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.onPrimary,
+                            contentColor = MaterialTheme.colorScheme.primary
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        ),
+                        contentPadding = PaddingValues(vertical = paddingScale * 0.02f)
+                    ) {
+                        Text(
+                            "Google", 
+                            fontWeight = FontWeight.Bold,
+                            fontSize = (paddingScale * 0.04f).value.sp
+                        )
+                    }
+
+                    if (loginViewModel.loginState == LoginStatus.ERROR || loginViewModel.loginState == LoginStatus.TIMEOUT) {
+                        Spacer(Modifier.height(paddingScale * 0.035f))
+                        Text(
+                            text = loginViewModel.errorMessage ?: "Unknown error occurred",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = (paddingScale * 0.035f).value.sp
+                            ),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
             }
         }
     }
@@ -301,6 +329,7 @@ fun LoginInputField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     error: String?,
+    paddingScale: androidx.compose.ui.unit.Dp,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     modifier: Modifier = Modifier
@@ -312,22 +341,35 @@ fun LoginInputField(
             Text(
                 text = placeholder,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = (paddingScale * 0.04f).value.sp
+                )
             )
         },
         modifier = modifier
-            .fillMaxWidth(0.8f)
+            .fillMaxWidth()
             .background(
                 color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(paddingScale * 0.03f)
             ),
         singleLine = true,
-        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onPrimaryContainer),
-        shape = RoundedCornerShape(12.dp),
+        textStyle = MaterialTheme.typography.bodyLarge.copy(
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            fontSize = (paddingScale * 0.04f).value.sp
+        ),
+        shape = RoundedCornerShape(paddingScale * 0.03f),
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions,
         isError = error != null,
-        supportingText = error?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
+        supportingText = error?.let { 
+            { 
+                Text(
+                    it, 
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = (paddingScale * 0.03f).value.sp
+                ) 
+            } 
+        },
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.secondaryContainer,
             unfocusedBorderColor = Color.Transparent

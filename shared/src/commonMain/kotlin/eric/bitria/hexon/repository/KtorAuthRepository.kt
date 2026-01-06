@@ -13,10 +13,9 @@ class KtorAuthRepository(
     private val client: HttpClient,
     private val tokenManager: TokenManager
 ) : AuthRepository {
-    private val baseUrl = "http://10.0.2.2:8080"
 
     override suspend fun login(request: LoginRequest): LoginResponse {
-        val response = client.post("$baseUrl/auth/login") {
+        val response = client.post("/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body<LoginResponse>()
@@ -29,14 +28,14 @@ class KtorAuthRepository(
     }
 
     override suspend fun register(request: RegisterRequest): RegisterResponse {
-        return client.post("$baseUrl/auth/register") {
+        return client.post("/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()
     }
 
     override suspend fun refresh(request: RefreshRequest): RefreshResponse {
-        val response = client.post("$baseUrl/auth/refresh") {
+        val response = client.post("/auth/refresh") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body<RefreshResponse>()
@@ -49,7 +48,7 @@ class KtorAuthRepository(
     }
 
     override suspend fun verifyEmail(request: VerifyEmailRequest): VerifyEmailResponse {
-        val response = client.post("$baseUrl/auth/verify") {
+        val response = client.post("/auth/verify") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body<VerifyEmailResponse>()
@@ -62,7 +61,7 @@ class KtorAuthRepository(
     }
 
     override suspend fun resendVerificationCode(request: ResendVerificationCodeRequest): ResendVerificationCodeResponse {
-        return client.post("$baseUrl/auth/resend-verification") {
+        return client.post("/auth/resend-verification") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()
