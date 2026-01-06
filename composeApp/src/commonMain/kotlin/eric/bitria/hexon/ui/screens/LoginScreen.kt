@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,16 +62,10 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit
 ) {
     HexonTheme {
-        val email = loginViewModel.email
-        val name = loginViewModel.name
-        val password = loginViewModel.password
-        val confirmPassword = loginViewModel.confirmPassword
-        val loginState = loginViewModel.loginState
-
         var selectedTab by remember { mutableStateOf("Login") }
 
-        LaunchedEffect(loginState) {
-            if (loginState == LoginStatus.SUCCESS) onLoginSuccess()
+        LaunchedEffect(loginViewModel.loginState) {
+            if (loginViewModel.loginState == LoginStatus.SUCCESS) onLoginSuccess()
         }
 
         Column(
@@ -141,104 +136,35 @@ fun LoginScreen(
             // --- Name (Register only) ---
             AnimatedVisibility(visible = selectedTab == "Register") {
                 Column {
-                    OutlinedTextField(
-                        value = name,
+                    LoginInputField(
+                        value = loginViewModel.name,
                         onValueChange = { loginViewModel.onNameChange(it) },
-                        placeholder = {
-                            Text(
-                                "Name",
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth(0.8f)
-                            .background(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(12.dp)
-                            ),
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onPrimaryContainer),
-                        shape = RoundedCornerShape(12.dp),
-                        isError = loginViewModel.nameError != null,
-                        supportingText = {
-                            loginViewModel.nameError?.let {
-                                Text(it, color = MaterialTheme.colorScheme.error)
-                            }
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.secondaryContainer,
-                            unfocusedBorderColor = Color.Transparent
-                        )
+                        placeholder = "Name",
+                        error = loginViewModel.nameError
                     )
                     Spacer(Modifier.height(12.dp))
                 }
             }
 
             // --- Email ---
-            OutlinedTextField(
-                value = email,
+            LoginInputField(
+                value = loginViewModel.email,
                 onValueChange = { loginViewModel.onEmailChange(it) },
-                placeholder = {
-                    Text(
-                        text = "Email",
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .background(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onPrimaryContainer),
-                shape = RoundedCornerShape(12.dp),
-                isError = loginViewModel.emailError != null,
-                supportingText = {
-                    loginViewModel.emailError?.let {
-                        Text(it, color = MaterialTheme.colorScheme.error)
-                    }
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.secondaryContainer,
-                    unfocusedBorderColor = Color.Transparent
-                )
+                placeholder = "Email",
+                error = loginViewModel.emailError,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
             )
 
             Spacer(Modifier.height(12.dp))
 
             // --- Password ---
-            OutlinedTextField(
-                value = password,
+            LoginInputField(
+                value = loginViewModel.password,
                 onValueChange = { loginViewModel.onPasswordChange(it) },
-                placeholder = {
-                    Text(
-                        "Password",
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .background(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onPrimaryContainer),
-                shape = RoundedCornerShape(12.dp),
+                placeholder = "Password",
+                error = loginViewModel.passwordError,
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                isError = loginViewModel.passwordError != null,
-                supportingText = {
-                    loginViewModel.passwordError?.let {
-                        Text(it, color = MaterialTheme.colorScheme.error)
-                    }
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.secondaryContainer,
-                    unfocusedBorderColor = Color.Transparent
-                )
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
             )
 
             Spacer(Modifier.height(12.dp))
@@ -246,36 +172,13 @@ fun LoginScreen(
             // --- Confirm Password (Register only) ---
             AnimatedVisibility(visible = selectedTab == "Register") {
                 Column {
-                    OutlinedTextField(
-                        value = confirmPassword,
+                    LoginInputField(
+                        value = loginViewModel.confirmPassword,
                         onValueChange = { loginViewModel.onConfirmPasswordChange(it) },
-                        placeholder = {
-                            Text(
-                                "Confirm Password",
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth(0.8f)
-                            .background(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(12.dp)
-                            ),
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onPrimaryContainer),
-                        shape = RoundedCornerShape(12.dp),
+                        placeholder = "Confirm Password",
+                        error = loginViewModel.confirmPasswordError,
                         visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        isError = loginViewModel.confirmPasswordError != null,
-                        supportingText = {
-                            loginViewModel.confirmPasswordError?.let {
-                                Text(it, color = MaterialTheme.colorScheme.error)
-                            }
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.secondaryContainer,
-                            unfocusedBorderColor = Color.Transparent
-                        )
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                     )
                     Spacer(Modifier.height(16.dp))
                 }
@@ -285,9 +188,7 @@ fun LoginScreen(
             Button(
                 onClick = {
                     if (selectedTab == "Login") loginViewModel.loginWithEmail()
-                    else {
-                        loginViewModel.registerWithEmail()
-                    }
+                    else loginViewModel.registerWithEmail()
                 },
                 modifier = Modifier
                     .fillMaxWidth(0.8f)
@@ -305,7 +206,7 @@ fun LoginScreen(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (loginState == LoginStatus.LOADING || loginState == LoginStatus.SUCCESS) {
+                    if (loginViewModel.loginState == LoginStatus.LOADING || loginViewModel.loginState == LoginStatus.SUCCESS) {
                         CircularProgressIndicator(
                             color = Color.White,
                             modifier = Modifier.size(20.dp),
@@ -374,7 +275,7 @@ fun LoginScreen(
                 }
             }
 
-            if (loginState == LoginStatus.ERROR || loginState == LoginStatus.TIMEOUT) {
+            if (loginViewModel.loginState == LoginStatus.ERROR || loginViewModel.loginState == LoginStatus.TIMEOUT) {
                 Spacer(Modifier.height(16.dp))
                 Text(
                     text = loginViewModel.errorMessage ?: "Unknown error occurred",
@@ -384,4 +285,44 @@ fun LoginScreen(
             }
         }
     }
+}
+
+@Composable
+fun LoginInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    error: String?,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = {
+            Text(
+                text = placeholder,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                style = MaterialTheme.typography.bodyLarge
+            )
+        },
+        modifier = modifier
+            .fillMaxWidth(0.8f)
+            .background(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(12.dp)
+            ),
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onPrimaryContainer),
+        shape = RoundedCornerShape(12.dp),
+        visualTransformation = visualTransformation,
+        keyboardOptions = keyboardOptions,
+        isError = error != null,
+        supportingText = error?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.secondaryContainer,
+            unfocusedBorderColor = Color.Transparent
+        )
+    )
 }
