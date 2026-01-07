@@ -14,7 +14,7 @@ sealed class Screens {
     object ForgotPassword : Screens()
 
     @Serializable
-    data class ResetPassword(val email: String) : Screens()
+    data class ResetPassword(val email: String, val isResetMode: Boolean = true) : Screens()
 
     @Serializable
     object MainMenu : Screens()

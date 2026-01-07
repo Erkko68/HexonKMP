@@ -194,41 +194,23 @@ fun LoginScreen(
                         paddingScale = paddingScale
                     )
 
-                    // --- Forgot Password Button ---
-                    AnimatedVisibility(visible = selectedTab == "Login") {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.CenterEnd
-                        ) {
-                            TextButton(onClick = onNavigateToForgotPassword) {
-                                Text(
-                                    "Forgot Password?",
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontSize = (paddingScale * 0.035f).value.sp
-                                    )
-                                )
-                            }
-                        }
-                    }
-
                     Spacer(Modifier.height(paddingScale * 0.025f))
 
                     // --- Confirm Password (Register only) ---
                     AnimatedVisibility(visible = selectedTab == "Register") {
-                        Column {
-                            LoginInputField(
-                                value = loginViewModel.confirmPassword,
-                                onValueChange = { loginViewModel.onConfirmPasswordChange(it) },
-                                placeholder = "Confirm Password",
-                                error = loginViewModel.confirmPasswordError,
-                                visualTransformation = PasswordVisualTransformation(),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                                paddingScale = paddingScale
-                            )
-                            Spacer(Modifier.height(paddingScale * 0.035f))
-                        }
+
+                        LoginInputField(
+                            value = loginViewModel.confirmPassword,
+                            onValueChange = { loginViewModel.onConfirmPasswordChange(it) },
+                            placeholder = "Confirm Password",
+                            error = loginViewModel.confirmPasswordError,
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            paddingScale = paddingScale
+                        )
                     }
+
+                    Spacer(Modifier.height(paddingScale * 0.05f))
 
                     // --- Action Button ---
                     Button(
@@ -324,6 +306,27 @@ fun LoginScreen(
                             fontWeight = FontWeight.Bold,
                             fontSize = (paddingScale * 0.04f).value.sp
                         )
+                    }
+
+                    // --- Forgot Password Button ---
+                    AnimatedVisibility(visible = selectedTab == "Login") {
+
+                        Spacer(Modifier.height(paddingScale * 0.07f))
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            TextButton(onClick = onNavigateToForgotPassword) {
+                                Text(
+                                    "Forgot Password?",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontSize = (paddingScale * 0.035f).value.sp
+                                    )
+                                )
+                            }
+                        }
                     }
 
                     if (loginViewModel.loginState == LoginStatus.ERROR || loginViewModel.loginState == LoginStatus.TIMEOUT) {

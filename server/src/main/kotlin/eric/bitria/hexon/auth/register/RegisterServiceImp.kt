@@ -79,7 +79,7 @@ class RegisterServiceImp(
         emailService.sendEmail(
             to = request.email,
             subject = "Email Verification",
-            body = verificationCode
+            body = "Your verification code is: $verificationCode"
         )
 
         return RegisterResponse(

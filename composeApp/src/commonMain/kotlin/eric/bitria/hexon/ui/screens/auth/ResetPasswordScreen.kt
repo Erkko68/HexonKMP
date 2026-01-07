@@ -1,5 +1,6 @@
-package eric.bitria.hexon.ui.screens.auth
+package eric.bitria.hexon.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
+import eric.bitria.hexon.ui.screens.auth.LoginInputField
 import eric.bitria.hexon.viewmodel.ResetPasswordStatus
 import eric.bitria.hexon.viewmodel.ResetPasswordViewModel
 import org.koin.compose.viewmodel.koinViewModel
@@ -26,13 +28,14 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun ResetPasswordScreen(
     email: String,
+    isResetMode: Boolean = true,
     viewModel: ResetPasswordViewModel = koinViewModel(),
     onResetSuccess: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
     HexonTheme {
-        LaunchedEffect(email) {
-            viewModel.setEmail(email)
+        LaunchedEffect(email, isResetMode) {
+            viewModel.init(email, isResetMode)
         }
 
         LaunchedEffect(viewModel.state) {
@@ -60,7 +63,7 @@ fun ResetPasswordScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    "Reset Password",
+                    if (isResetMode) "Reset Password" else "Change Password",
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -71,8 +74,12 @@ fun ResetPasswordScreen(
 
                 Spacer(Modifier.height(paddingScale * 0.02f))
 
+                val subText = if (isResetMode)
+                    "Enter the code sent to your email and your new password."
+                else "Enter your current password and your new password."
+
                 Text(
-                    "Enter the code sent to your email and your new password.",
+                    subText,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = MaterialTheme.colorScheme.onBackground,
                         fontSize = (paddingScale * 0.035f).value.sp
@@ -87,14 +94,26 @@ fun ResetPasswordScreen(
                     modifier = Modifier.fillMaxWidth(contentWidth),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    LoginInputField(
-                        value = viewModel.resetCode,
-                        onValueChange = { viewModel.onResetCodeChange(it) },
-                        placeholder = "6-digit Code",
-                        error = viewModel.resetCodeError,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        paddingScale = paddingScale
-                    )
+                    if (isResetMode) {
+                        LoginInputField(
+                            value = viewModel.resetCode,
+                            onValueChange = { viewModel.onResetCodeChange(it) },
+                            placeholder = "6-digit Code",
+                            error = viewModel.resetCodeError,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            paddingScale = paddingScale
+                        )
+                    } else {
+                        LoginInputField(
+                            value = viewModel.oldPassword,
+                            onValueChange = { viewModel.onOldPasswordChange(it) },
+                            placeholder = "Current Password",
+                            error = viewModel.oldPasswordError,
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            paddingScale = paddingScale
+                        )
+                    }
 
                     Spacer(Modifier.height(paddingScale * 0.025f))
 
@@ -123,7 +142,7 @@ fun ResetPasswordScreen(
                     Spacer(Modifier.height(paddingScale * 0.05f))
 
                     Button(
-                        onClick = { viewModel.resetPassword() },
+                        onClick = { viewModel.changePassword() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(paddingScale * 0.12f)
@@ -139,7 +158,7 @@ fun ResetPasswordScreen(
                             )
                         } else {
                             Text(
-                                "Reset Password",
+                                if (isResetMode) "Reset Password" else "Update Password",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontSize = (paddingScale * 0.04f).value.sp
                                 )

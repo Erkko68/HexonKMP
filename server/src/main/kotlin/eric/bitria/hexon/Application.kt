@@ -46,9 +46,10 @@ fun Application.module() {
     // 5. Initialize services
     val jwtService = JwtTokenService(jwtConfig)
     val emailService = SmtpEmailService(smtpConfig)
+
     val passwordService = PasswordServiceImp(
-        emailService = emailService,
-        tokenService = jwtService
+        repository = authRepository,
+        emailService = emailService
     )
 
     val registerService = RegisterServiceImp(

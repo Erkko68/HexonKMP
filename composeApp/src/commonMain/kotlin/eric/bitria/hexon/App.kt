@@ -15,17 +15,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import eric.bitria.hexon.theme.HexonTheme
+import eric.bitria.hexon.ui.screens.*
 import eric.bitria.hexon.ui.screens.auth.ForgotPasswordScreen
+import eric.bitria.hexon.ui.screens.auth.LoginScreen
+import eric.bitria.hexon.ui.screens.auth.VerifyScreen
 import eric.bitria.hexon.ui.screens.social.FriendProfileScreen
 import eric.bitria.hexon.ui.screens.social.FriendsScreen
-import eric.bitria.hexon.ui.screens.GameScreen
-import eric.bitria.hexon.ui.screens.auth.LoginScreen
-import eric.bitria.hexon.ui.screens.MainMenuScreen
 import eric.bitria.hexon.ui.screens.social.ProfileScreen
-import eric.bitria.hexon.ui.screens.auth.ResetPasswordScreen
-import eric.bitria.hexon.ui.screens.Screens
-import eric.bitria.hexon.ui.screens.SettingsScreen
-import eric.bitria.hexon.ui.screens.auth.VerifyScreen
 
 @Composable
 fun App(
@@ -67,7 +63,7 @@ fun App(
             ) {
                 ForgotPasswordScreen(
                     onNavigateToReset = { email ->
-                        navController.navigate(Screens.ResetPassword(email))
+                        navController.navigate(Screens.ResetPassword(email, isResetMode = true))
                     },
                     onNavigateBack = {
                         navController.popBackStack()
@@ -82,9 +78,14 @@ fun App(
                 val reset: Screens.ResetPassword = backStackEntry.toRoute()
                 ResetPasswordScreen(
                     email = reset.email,
+                    isResetMode = reset.isResetMode,
                     onResetSuccess = {
-                        navController.navigate(Screens.Login) {
-                            popUpTo(Screens.Login) { inclusive = true }
+                        if (reset.isResetMode) {
+                            navController.navigate(Screens.Login) {
+                                popUpTo(Screens.Login) { inclusive = true }
+                            }
+                        } else {
+                            navController.popBackStack()
                         }
                     },
                     onNavigateBack = {
@@ -189,7 +190,12 @@ fun App(
                 }
             ) {
                 SettingsScreen(
-                    onExitClicked = { navController.popBackStack() }
+                    onExitClicked = { navController.popBackStack() },
+                    onChangePasswordClicked = {
+                        // In a real app, you'd get the current user's email from a session/profile.
+                        // For now, we'll navigate to ResetPassword in non-reset mode.
+                        navController.navigate(Screens.ResetPassword(email = "", isResetMode = false))
+                    }
                 )
             }
 

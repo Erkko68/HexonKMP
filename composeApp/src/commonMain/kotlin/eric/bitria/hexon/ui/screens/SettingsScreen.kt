@@ -38,7 +38,8 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun SettingsScreen(
     settingsViewModel: SettingsViewModel = koinViewModel(),
-    onExitClicked: () -> Unit
+    onExitClicked: () -> Unit,
+    onChangePasswordClicked: () -> Unit
 ) {
     val uiState by settingsViewModel.uiState.collectAsState()
 
@@ -178,6 +179,21 @@ fun SettingsScreen(
                                 )
                                 .padding(paddingScale * 0.04f)
                         ) {
+                            TextButton(
+                                onClick = onChangePasswordClicked,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.textButtonColors()
+                            ) {
+                                Text(
+                                    text = "Change Password",
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(paddingScale * 0.01f))
+
                             TextButton(
                                 onClick = settingsViewModel::onLogOutClicked,
                                 modifier = Modifier.fillMaxWidth(),
