@@ -11,6 +11,12 @@ sealed class Screens {
     data class Verify(val email: String) : Screens()
 
     @Serializable
+    object ForgotPassword : Screens()
+
+    @Serializable
+    data class ResetPassword(val email: String) : Screens()
+
+    @Serializable
     object MainMenu : Screens()
 
     @Serializable

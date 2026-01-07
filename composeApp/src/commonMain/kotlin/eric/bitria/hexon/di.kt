@@ -17,6 +17,8 @@ val viewModelsModule = module {
     viewModelOf(::VerifyViewModel)
     viewModelOf(::FriendsViewModel)
     viewModelOf(::FriendProfileViewModel)
+    viewModelOf(::ForgotPasswordViewModel)
+    viewModelOf(::ResetPasswordViewModel)
 }
 
 fun initKoin(config: KoinAppDeclaration? = null){

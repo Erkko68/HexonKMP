@@ -15,15 +15,17 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import eric.bitria.hexon.theme.HexonTheme
-import eric.bitria.hexon.ui.screens.FriendProfileScreen
-import eric.bitria.hexon.ui.screens.FriendsScreen
+import eric.bitria.hexon.ui.screens.auth.ForgotPasswordScreen
+import eric.bitria.hexon.ui.screens.social.FriendProfileScreen
+import eric.bitria.hexon.ui.screens.social.FriendsScreen
 import eric.bitria.hexon.ui.screens.GameScreen
-import eric.bitria.hexon.ui.screens.LoginScreen
+import eric.bitria.hexon.ui.screens.auth.LoginScreen
 import eric.bitria.hexon.ui.screens.MainMenuScreen
-import eric.bitria.hexon.ui.screens.ProfileScreen
+import eric.bitria.hexon.ui.screens.social.ProfileScreen
+import eric.bitria.hexon.ui.screens.auth.ResetPasswordScreen
 import eric.bitria.hexon.ui.screens.Screens
 import eric.bitria.hexon.ui.screens.SettingsScreen
-import eric.bitria.hexon.ui.screens.VerifyScreen
+import eric.bitria.hexon.ui.screens.auth.VerifyScreen
 
 @Composable
 fun App(
@@ -52,6 +54,41 @@ fun App(
                     },
                     onNavigateToVerify = { email ->
                         navController.navigate(Screens.Verify(email))
+                    },
+                    onNavigateToForgotPassword = {
+                        navController.navigate(Screens.ForgotPassword)
+                    }
+                )
+            }
+
+            composable<Screens.ForgotPassword>(
+                enterTransition = { fadeIn(animationSpec = tween(500)) },
+                exitTransition = { fadeOut(animationSpec = tween(500)) }
+            ) {
+                ForgotPasswordScreen(
+                    onNavigateToReset = { email ->
+                        navController.navigate(Screens.ResetPassword(email))
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable<Screens.ResetPassword>(
+                enterTransition = { fadeIn(animationSpec = tween(500)) },
+                exitTransition = { fadeOut(animationSpec = tween(500)) }
+            ) { backStackEntry ->
+                val reset: Screens.ResetPassword = backStackEntry.toRoute()
+                ResetPasswordScreen(
+                    email = reset.email,
+                    onResetSuccess = {
+                        navController.navigate(Screens.Login) {
+                            popUpTo(Screens.Login) { inclusive = true }
+                        }
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
                     }
                 )
             }

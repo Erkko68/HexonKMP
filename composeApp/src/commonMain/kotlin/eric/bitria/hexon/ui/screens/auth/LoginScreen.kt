@@ -1,4 +1,4 @@
-package eric.bitria.hexon.ui.screens
+package eric.bitria.hexon.ui.screens.auth
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -36,6 +35,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,6 +51,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
@@ -62,7 +63,8 @@ import org.koin.compose.viewmodel.koinViewModel
 fun LoginScreen(
     loginViewModel: LoginViewModel = koinViewModel(),
     onLoginSuccess: () -> Unit,
-    onNavigateToVerify: (String) -> Unit
+    onNavigateToVerify: (String) -> Unit,
+    onNavigateToForgotPassword: () -> Unit
 ) {
     HexonTheme {
         var selectedTab by remember { mutableStateOf("Login") }
@@ -191,6 +193,24 @@ fun LoginScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         paddingScale = paddingScale
                     )
+
+                    // --- Forgot Password Button ---
+                    AnimatedVisibility(visible = selectedTab == "Login") {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            TextButton(onClick = onNavigateToForgotPassword) {
+                                Text(
+                                    "Forgot Password?",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontSize = (paddingScale * 0.035f).value.sp
+                                    )
+                                )
+                            }
+                        }
+                    }
 
                     Spacer(Modifier.height(paddingScale * 0.025f))
 
@@ -329,7 +349,7 @@ fun LoginInputField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     error: String?,
-    paddingScale: androidx.compose.ui.unit.Dp,
+    paddingScale: Dp,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     modifier: Modifier = Modifier

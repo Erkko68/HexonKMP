@@ -1,4 +1,4 @@
-package eric.bitria.hexon.ui.screens
+package eric.bitria.hexon.ui.screens.social
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxWithConstraints

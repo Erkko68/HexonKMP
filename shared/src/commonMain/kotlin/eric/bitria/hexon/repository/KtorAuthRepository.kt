@@ -66,4 +66,18 @@ class KtorAuthRepository(
             setBody(request)
         }.body()
     }
+
+    override suspend fun forgotPassword(request: ForgotPasswordRequest): ForgotPasswordResponse {
+        return client.post("/auth/forgot-password") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+    }
+
+    override suspend fun changePassword(request: ChangePasswordRequest): ChangePasswordResponse {
+        return client.post("/auth/change-password") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+    }
 }
