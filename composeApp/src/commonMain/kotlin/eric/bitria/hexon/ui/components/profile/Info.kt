@@ -21,7 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import eric.bitria.hexon.viewmodel.UserStats
+import eric.bitria.hexon.viewmodel.social.UserStats
 
 @Composable
 fun UserInfoSection(

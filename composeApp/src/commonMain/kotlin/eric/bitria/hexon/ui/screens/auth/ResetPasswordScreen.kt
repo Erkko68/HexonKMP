@@ -1,6 +1,5 @@
 package eric.bitria.hexon.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -21,8 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.screens.auth.LoginInputField
-import eric.bitria.hexon.viewmodel.ResetPasswordStatus
-import eric.bitria.hexon.viewmodel.ResetPasswordViewModel
+import eric.bitria.hexon.viewmodel.auth.ResetPasswordStatus
+import eric.bitria.hexon.viewmodel.auth.ResetPasswordViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable

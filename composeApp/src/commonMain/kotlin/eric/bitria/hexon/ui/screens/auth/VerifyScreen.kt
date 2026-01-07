@@ -33,8 +33,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
-import eric.bitria.hexon.viewmodel.VerifyStatus
-import eric.bitria.hexon.viewmodel.VerifyViewModel
+import eric.bitria.hexon.viewmodel.auth.VerifyStatus
+import eric.bitria.hexon.viewmodel.auth.VerifyViewModel
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 

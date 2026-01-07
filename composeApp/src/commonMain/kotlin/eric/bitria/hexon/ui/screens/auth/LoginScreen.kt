@@ -55,8 +55,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
-import eric.bitria.hexon.viewmodel.LoginStatus
-import eric.bitria.hexon.viewmodel.LoginViewModel
+import eric.bitria.hexon.viewmodel.auth.LoginStatus
+import eric.bitria.hexon.viewmodel.auth.LoginViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable

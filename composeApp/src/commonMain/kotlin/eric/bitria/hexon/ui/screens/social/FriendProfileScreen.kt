@@ -28,7 +28,7 @@ import eric.bitria.hexon.ui.components.profile.GameHistoryCard
 import eric.bitria.hexon.ui.components.profile.UserInfoSection
 import eric.bitria.hexon.ui.components.shared.HexonHeader
 import eric.bitria.hexon.ui.components.shared.HexonIconButton
-import eric.bitria.hexon.viewmodel.FriendProfileViewModel
+import eric.bitria.hexon.viewmodel.social.FriendProfileViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable

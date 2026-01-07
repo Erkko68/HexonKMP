@@ -18,8 +18,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
-import eric.bitria.hexon.viewmodel.ForgotPasswordStatus
-import eric.bitria.hexon.viewmodel.ForgotPasswordViewModel
+import eric.bitria.hexon.viewmodel.auth.ForgotPasswordStatus
+import eric.bitria.hexon.viewmodel.auth.ForgotPasswordViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable

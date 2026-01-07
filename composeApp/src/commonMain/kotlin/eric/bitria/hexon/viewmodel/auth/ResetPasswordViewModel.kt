@@ -1,4 +1,4 @@
-package eric.bitria.hexon.viewmodel
+package eric.bitria.hexon.viewmodel.auth
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

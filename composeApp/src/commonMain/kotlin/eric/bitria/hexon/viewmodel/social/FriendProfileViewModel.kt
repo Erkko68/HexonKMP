@@ -1,4 +1,4 @@
-package eric.bitria.hexon.viewmodel
+package eric.bitria.hexon.viewmodel.social
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
