@@ -1,28 +1,31 @@
 package eric.bitria.hexon.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.settings.SettingsSection
@@ -32,6 +35,36 @@ import eric.bitria.hexon.ui.components.shared.HexonHeader
 import eric.bitria.hexon.ui.components.shared.HexonIconButton
 import eric.bitria.hexon.viewmodel.SettingsViewModel
 import org.koin.compose.viewmodel.koinViewModel
+
+@Composable
+fun SettingsButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isError: Boolean = false,
+    paddingScale: Dp
+) {
+    val height = paddingScale * 0.11f
+    val shape = RoundedCornerShape(paddingScale * 0.025f)
+    
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(height),
+        shape = shape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isError) MaterialTheme.colorScheme.error.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+            contentColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+        ),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp) // Flat look works better with alpha containers
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = FontWeight.Bold
+            )
+        )
+    }
+}
 
 @Composable
 fun SettingsScreen(
@@ -180,60 +213,32 @@ fun SettingsScreen(
                                 )
                                 .padding(spacing.medium)
                         ) {
-                            TextButton(
-                                onClick = onChangePasswordClicked,
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.textButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.primary
-                                )
-                            ) {
-                                Text(
-                                    text = "Change Password",
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(vertical = 4.dp)
-                                )
-                            }
 
-                            Spacer(modifier = Modifier.height(spacing.extraSmall))
-
-                            TextButton(
+                            SettingsButton(
+                                text = "Log Out",
                                 onClick = settingsViewModel::onLogOutClicked,
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.textButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.primary
-                                )
-                            ) {
-                                Text(
-                                    text = "Log Out",
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(vertical = 4.dp)
-                                )
-                            }
+                                paddingScale = dimensions.paddingScale
+                            )
 
-                            Spacer(modifier = Modifier.height(spacing.extraSmall))
+                            Spacer(modifier = Modifier.height(spacing.small))
 
-                            TextButton(
+                            SettingsButton(
+                                text = "Change Password",
+                                onClick = onChangePasswordClicked,
+                                modifier = Modifier.fillMaxWidth(),
+                                paddingScale = dimensions.paddingScale
+                            )
+
+                            Spacer(modifier = Modifier.height(spacing.small))
+
+                            SettingsButton(
+                                text = "Delete Account",
                                 onClick = settingsViewModel::onDeleteAccountClicked,
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.textButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.error
-                                )
-                            ) {
-                                Text(
-                                    text = "Delete Account",
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(vertical = 4.dp)
-                                )
-                            }
+                                isError = true,
+                                paddingScale = dimensions.paddingScale
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(spacing.medium))
