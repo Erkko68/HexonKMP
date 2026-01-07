@@ -54,12 +54,11 @@ fun LoginResult.toHttpStatus() = when (this) {
 
 fun ChangePasswordResult.toHttpStatus() = when (this) {
     ChangePasswordResult.SUCCESS -> HTTPStatusCode.OK
-    ChangePasswordResult.INVALID_PASSWORD -> HTTPStatusCode.BadRequest
+    ChangePasswordResult.INVALID_PASSWORD_OR_CODE -> HTTPStatusCode.Unauthorized
     ChangePasswordResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }
 
 fun ForgotPasswordResult.toHttpStatus() = when (this) {
     ForgotPasswordResult.SUCCESS -> HTTPStatusCode.OK
-    ForgotPasswordResult.INVALID_EMAIL -> HTTPStatusCode.BadRequest
     ForgotPasswordResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }

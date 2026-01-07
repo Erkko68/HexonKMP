@@ -4,7 +4,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ChangePasswordRequest(
-    val oldPassword: String,
+    val email: String,
+
+    // Provided if the user forgot their password (received via email)
+    val resetCode: String? = null,
+
+    // Provided if the user is logged in and knows their current password
+    val oldPassword: String? = null,
+
     val newPassword: String
 )
 
@@ -17,7 +24,7 @@ data class ChangePasswordResponse(
 @Serializable
 enum class ChangePasswordResult {
     SUCCESS,
-    INVALID_PASSWORD,
+    INVALID_PASSWORD_OR_CODE,
     UNKNOWN_ERROR
 }
 
@@ -35,6 +42,5 @@ data class ForgotPasswordResponse(
 @Serializable
 enum class ForgotPasswordResult {
     SUCCESS,
-    INVALID_EMAIL,
     UNKNOWN_ERROR
 }

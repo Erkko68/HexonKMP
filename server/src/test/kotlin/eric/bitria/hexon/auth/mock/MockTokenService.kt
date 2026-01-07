@@ -9,8 +9,7 @@ class MockTokenService : TokenService {
     }
 
     override fun generateAccessToken(
-        userId: String,
-        duration: Long
+        userId: String
     ): String = "access-token-$userId-${counter.getAndIncrement()}"
 
     override fun generateRefreshToken(
@@ -18,9 +17,14 @@ class MockTokenService : TokenService {
     ): String = "refresh-token-$userId-${counter.getAndIncrement()}"
 
     override fun verifyToken(token: String): String? {
-        if (token.startsWith("refresh-token-")) {
-            // Token format: refresh-token-userId-counter
-            val content = token.removePrefix("refresh-token-")
+        if (token.startsWith("refresh-token-") || token.startsWith("access-token-") || token.startsWith("reset-token-")) {
+            val prefix = when {
+                token.startsWith("refresh-token-") -> "refresh-token-"
+                token.startsWith("access-token-") -> "access-token-"
+                token.startsWith("reset-token-") -> "reset-token-"
+                else -> ""
+            }
+            val content = token.removePrefix(prefix)
             return if (content.contains("-")) {
                 content.substringBeforeLast("-")
             } else {

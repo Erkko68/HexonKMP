@@ -111,47 +111,45 @@ class RegisterServiceImp(
             )
         }
 
-        return when (repository.verifyEmail(email, code)) {
-            VerifyEmailResult.INVALID_EMAIL ->
-                VerifyEmailResponse(
-                    result = VerifyEmailResult.INVALID_EMAIL,
-                    message = "Invalid or unknown email",
-                    accessToken = "",
-                    refreshToken = ""
+        if (!repository.emailExists(email)) {
+            return VerifyEmailResponse(
+                result = VerifyEmailResult.INVALID_EMAIL,
+                message = "Invalid or unknown email",
+                accessToken = "",
+                refreshToken = ""
+            )
+        }
+
+        if (repository.isAccountVerified(email)) {
+            return VerifyEmailResponse(
+                result = VerifyEmailResult.ACCOUNT_ALREADY_VERIFIED,
+                message = "Account already verified",
+                accessToken = "",
+                refreshToken = ""
+            )
+        }
+
+        val savedCode = repository.getVerificationCodeByEmail(email)
+
+        return if (savedCode == code) {
+            repository.markAccountAsVerified(email)
+            VerifyEmailResponse(
+                result = VerifyEmailResult.SUCCESS,
+                message = "",
+                accessToken = tokenService.generateAccessToken(
+                    userId = repository.getUserIdByEmail(email)
+                ),
+                refreshToken = tokenService.generateRefreshToken(
+                    userId = repository.getUserIdByEmail(email)
                 )
-            VerifyEmailResult.INVALID_VERIFICATION_CODE ->
-                VerifyEmailResponse(
-                    result = VerifyEmailResult.INVALID_VERIFICATION_CODE,
-                    message = "Invalid verification code",
-                    accessToken = "",
-                    refreshToken = ""
-                )
-            VerifyEmailResult.SUCCESS ->
-                VerifyEmailResponse(
-                    result = VerifyEmailResult.SUCCESS,
-                    message = "",
-                    accessToken = tokenService.generateAccessToken(
-                        userId = repository.getUserIdByEmail(email)
-                    ),
-                    refreshToken = tokenService.generateRefreshToken(
-                        userId = repository.getUserIdByEmail(email)
-                    )
-                )
-            VerifyEmailResult.ACCOUNT_ALREADY_VERIFIED ->
-                VerifyEmailResponse(
-                    result = VerifyEmailResult.ACCOUNT_ALREADY_VERIFIED,
-                    message = "Account already verified",
-                    accessToken = "",
-                    refreshToken = ""
-                )
-            else -> {
-                VerifyEmailResponse(
-                    result = VerifyEmailResult.UNKNOWN_ERROR,
-                    message = "Unexpected Response",
-                    accessToken = "",
-                    refreshToken = ""
-                )
-            }
+            )
+        } else {
+            VerifyEmailResponse(
+                result = VerifyEmailResult.INVALID_VERIFICATION_CODE,
+                message = "Invalid verification code",
+                accessToken = "",
+                refreshToken = ""
+            )
         }
     }
 

@@ -4,7 +4,6 @@ import at.favre.lib.crypto.bcrypt.BCrypt
 import com.github.f4b6a3.uuid.UuidCreator
 import eric.bitria.hexon.database.DatabaseFactory.dbQuery
 import eric.bitria.hexon.database.tables.Users
-import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
@@ -30,6 +29,23 @@ class AuthRepositoryDB : AuthRepository {
             .where { Users.email eq email }
             .map { it[Users.isVerified] }
             .singleOrNull() ?: false
+    }
+
+    override suspend fun getVerificationCodeByEmail(email: String): String? = dbQuery {
+        Users
+            .selectAll()
+            .where { Users.email eq email }
+            .map { it[Users.verificationCode] }
+            .singleOrNull()
+    }
+
+    override suspend fun markAccountAsVerified(email: String) {
+        dbQuery {
+            Users.update({ Users.email eq email }) {
+                it[isVerified] = true
+                it[verificationCode] = null
+            }
+        }
     }
 
     override suspend fun saveOrUpdateUnverifiedUser(
@@ -80,30 +96,6 @@ class AuthRepositoryDB : AuthRepository {
             .singleOrNull()
     }
 
-    override suspend fun verifyEmail(
-        email: String,
-        code: String
-    ): VerifyEmailResult = dbQuery {
-        val user = Users
-            .selectAll()
-            .where { Users.email eq email }
-            .singleOrNull() ?: return@dbQuery VerifyEmailResult.INVALID_EMAIL
-
-        if (user[Users.isVerified]) {
-            return@dbQuery VerifyEmailResult.ACCOUNT_ALREADY_VERIFIED
-        }
-
-        if (user[Users.verificationCode] == code) {
-            Users.update({ Users.email eq email }) {
-                it[isVerified] = true
-                it[verificationCode] = null
-            }
-            VerifyEmailResult.SUCCESS
-        } else {
-            VerifyEmailResult.INVALID_VERIFICATION_CODE
-        }
-    }
-
     override suspend fun updateVerificationCode(email: String, verificationCode: String) {
         dbQuery {
             Users.update({ Users.email eq email }) {
@@ -118,5 +110,37 @@ class AuthRepositoryDB : AuthRepository {
             .where { Users.email eq email }
             .map { it[Users.password] }
             .singleOrNull()
+    }
+
+    override suspend fun updatePassword(email: String, passwordHash: String) {
+        dbQuery {
+            Users.update({ Users.email eq email }) {
+                it[password] = passwordHash
+            }
+        }
+    }
+
+    override suspend fun updateResetCode(email: String, resetCode: String) {
+        dbQuery {
+            Users.update({ Users.email eq email }) {
+                it[Users.resetCode] = resetCode
+            }
+        }
+    }
+
+    override suspend fun getResetCodeByEmail(email: String): String? = dbQuery {
+        Users
+            .selectAll()
+            .where { Users.email eq email }
+            .map { it[Users.resetCode] }
+            .singleOrNull()
+    }
+
+    override suspend fun clearResetCode(email: String) {
+        dbQuery {
+            Users.update({ Users.email eq email }) {
+                it[resetCode] = null
+            }
+        }
     }
 }

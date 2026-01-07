@@ -4,7 +4,6 @@ interface TokenService {
 
     fun generateAccessToken(
         userId: String,
-        duration: Long = -1
     ): String
 
     fun generateRefreshToken(

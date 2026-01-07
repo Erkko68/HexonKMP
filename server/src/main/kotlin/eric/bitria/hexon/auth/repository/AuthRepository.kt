@@ -1,7 +1,5 @@
 package eric.bitria.hexon.auth.repository
 
-import eric.bitria.hexon.dtos.auth.VerifyEmailResult
-
 interface AuthRepository {
 
     // --- Existence Checks ---
@@ -14,7 +12,10 @@ interface AuthRepository {
 
     suspend fun isAccountVerified(email: String): Boolean
 
-    suspend fun verifyEmail(email: String, code: String): VerifyEmailResult
+    suspend fun getVerificationCodeByEmail(email: String): String?
+
+    // Mark as verified once the service confirms the code is correct
+    suspend fun markAccountAsVerified(email: String)
 
     suspend fun updateVerificationCode(email: String, verificationCode: String)
 
@@ -38,4 +39,13 @@ interface AuthRepository {
     // --- Authentication ---
 
     suspend fun getPasswordByEmail(email: String): String?
+
+    // --- Password Reset ---
+    suspend fun updatePassword(email: String, passwordHash: String)
+
+    suspend fun updateResetCode(email: String, resetCode: String)
+
+    suspend fun getResetCodeByEmail(email: String): String?
+
+    suspend fun clearResetCode(email: String)
 }

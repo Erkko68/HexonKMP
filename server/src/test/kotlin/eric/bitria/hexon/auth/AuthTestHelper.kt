@@ -64,7 +64,7 @@ fun withTestAuthClient(
                 )
                 passwordRoutes(
                     passwordService = MockPasswordService(
-                        tokenService = tokenService,
+                        repository = repository,
                         emailService = emailService
                     )
                 )
@@ -141,8 +141,11 @@ suspend fun HttpClient.forgotPassword(
 }.body()
 
 suspend fun HttpClient.changePassword(
-    request: ChangePasswordRequest
+    email: String,
+    resetCode: String? = null,
+    newPassword: String,
+    oldPassword: String? = null
 ): ChangePasswordResponse = post("/auth/change-password"){
     contentType(ContentType.Application.Json)
-    setBody(request)
+    setBody(ChangePasswordRequest(email, resetCode, oldPassword, newPassword))
 }.body()
