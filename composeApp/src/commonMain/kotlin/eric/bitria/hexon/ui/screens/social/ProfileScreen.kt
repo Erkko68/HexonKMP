@@ -1,6 +1,7 @@
 package eric.bitria.hexon.ui.screens.social
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +21,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
@@ -28,6 +31,7 @@ import eric.bitria.hexon.ui.components.profile.GameHistoryCard
 import eric.bitria.hexon.ui.components.profile.UserInfoSection
 import eric.bitria.hexon.ui.components.shared.HexonHeader
 import eric.bitria.hexon.ui.components.shared.HexonIconButton
+import eric.bitria.hexon.ui.utils.toVividColor
 import eric.bitria.hexon.viewmodel.social.ProfileViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -38,72 +42,84 @@ fun ProfileScreen(
     onExitClicked: () -> Unit
 ) {
     val uiState by profileViewModel.uiState.collectAsState()
+    val vividColor = uiState.username.toVividColor()
 
     HexonTheme {
         BoxWithConstraints {
             val paddingScale = minOf(maxWidth, maxHeight)
             val isPortrait = maxWidth < maxHeight
 
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
-                    .padding(horizontal = paddingScale * 0.04f, vertical = paddingScale * 0.02f),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .background(
+                        brush = Brush.verticalGradient(
+                            0.0f to vividColor.copy(alpha = 0.35f),
+                            0.5f to Color.Transparent
+                        )
+                    )
             ) {
-                HexonHeader {
-                    HexonIconButton.Transparent(
-                        onClick = onSettingsClicked,
-                        icon = Icons.Default.Settings,
-                        contentDescription = "Settings"
-                    )
-                    HexonIconButton.Transparent(
-                        onClick = onExitClicked,
-                        icon = Icons.Default.Close,
-                        contentDescription = "Close"
-                    )
-                }
-
-                LazyColumn(
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth(if (isPortrait) 1f else 0.5f)
-                        .padding(horizontal = paddingScale * 0.02f),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ){
-                    item {
-                        if (isPortrait){
+                        .fillMaxSize()
+                        .padding(horizontal = paddingScale * 0.04f, vertical = paddingScale * 0.02f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    HexonHeader {
+                        HexonIconButton.Transparent(
+                            onClick = onSettingsClicked,
+                            icon = Icons.Default.Settings,
+                            contentDescription = "Settings"
+                        )
+                        HexonIconButton.Transparent(
+                            onClick = onExitClicked,
+                            icon = Icons.Default.Close,
+                            contentDescription = "Close"
+                        )
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth(if (isPortrait) 1f else 0.5f)
+                            .padding(horizontal = paddingScale * 0.02f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ){
+                        item {
+                            if (isPortrait){
+                                Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+                            }
+
+                            UserInfoSection(
+                                username = uiState.username,
+                                avatarUrl = uiState.avatarUrl,
+                                stats = uiState.stats
+                            )
+
+                            Spacer(modifier = Modifier.height(paddingScale * 0.06f))
+
+                            Text(
+                                text = "Game History",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
+
                             Spacer(modifier = Modifier.height(paddingScale * 0.04f))
                         }
-
-                        UserInfoSection(
-                            username = uiState.username,
-                            avatarUrl = uiState.avatarUrl,
-                            stats = uiState.stats
-                        )
-
-                        Spacer(modifier = Modifier.height(paddingScale * 0.04f))
-
-                        Text(
-                            text = "Game History",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 2.sp
-                            ),
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center
-                        )
-
-                        Spacer(modifier = Modifier.height(paddingScale * 0.04f))
-                    }
-                    items(uiState.gameHistory, key = { it.id }) { item ->
-                        GameHistoryCard(
-                            item = item,
-                            modifier = Modifier
-                                .height(paddingScale * 0.2f)
-                                .fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+                        items(uiState.gameHistory, key = { it.id }) { item ->
+                            GameHistoryCard(
+                                item = item,
+                                modifier = Modifier
+                                    .height(paddingScale * 0.2f)
+                                    .fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+                        }
                     }
                 }
             }

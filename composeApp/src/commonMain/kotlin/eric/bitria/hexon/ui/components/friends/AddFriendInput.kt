@@ -1,6 +1,7 @@
 package eric.bitria.hexon.ui.components.friends
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -25,8 +27,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -36,29 +40,42 @@ fun AddFriendInput(
     modifier: Modifier = Modifier
 ) {
     var text by remember { mutableStateOf("") }
+    var isFocused by remember { mutableStateOf(false) }
 
     BoxWithConstraints {
-        val height = maxHeight
+        val paddingScale = minOf(maxWidth, maxHeight)
+        val shape = RoundedCornerShape(paddingScale * 0.04f)
+
         Row(
-            modifier = modifier,
+            modifier = modifier
+                .onFocusChanged { isFocused = it.isFocused }
+                .border(
+                    width = 2.dp,
+                    color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    shape = shape
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             BasicTextField(
                 value = text,
                 onValueChange = { text = it },
                 modifier = Modifier
-                    .weight(1f),
-                textStyle = TextStyle(
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    .weight(1f)
+                    .padding(start = paddingScale * 0.06f),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
                 ),
                 singleLine = true,
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.onPrimaryContainer),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 decorationBox = { innerTextField ->
                     if (text.isEmpty()) {
                         Text(
                             text = "Add friend by username",
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                            autoSize = null
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                fontWeight = FontWeight.Bold
+                            )
                         )
                     }
                     innerTextField()
@@ -67,19 +84,22 @@ fun AddFriendInput(
 
             IconButton(
                 onClick = {
-                    onAddFriend(text)
-                    text = ""
+                    if (text.isNotBlank()) {
+                        onAddFriend(text)
+                        text = ""
+                    }
                 },
                 modifier = Modifier
+                    .padding(end = paddingScale * 0.04f)
+                    .size(paddingScale * 0.08f)
                     .clip(CircleShape)
-                    .fillMaxHeight()
-                    .aspectRatio(1f)
                     .background(MaterialTheme.colorScheme.secondary)
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add Friend",
-                    tint = MaterialTheme.colorScheme.onSecondary
+                    tint = MaterialTheme.colorScheme.onSecondary,
+                    modifier = Modifier.size(paddingScale * 0.05f)
                 )
             }
         }
@@ -92,10 +112,9 @@ fun AddFriendInputPreview() {
     AddFriendInput(
         onAddFriend = {},
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(12.dp))
             .fillMaxWidth()
             .height(48.dp)
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .padding(8.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
     )
 }

@@ -55,24 +55,30 @@ fun FriendsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
-                    .padding(horizontal = paddingScale * 0.04f, vertical = paddingScale * 0.02f),
+                    .padding(vertical = paddingScale * 0.02f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                HexonHeader(
-                    title = "FRIENDS",
-                    isPortrait = isPortrait
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = paddingScale * 0.04f)
                 ) {
-                    HexonIconButton.Transparent(
-                        onClick = onExitClicked,
-                        icon = Icons.Default.Close,
-                        contentDescription = "Close"
-                    )
+                    HexonHeader(
+                        title = "FRIENDS",
+                        isPortrait = isPortrait
+                    ) {
+                        HexonIconButton.Transparent(
+                            onClick = onExitClicked,
+                            icon = Icons.Default.Close,
+                            contentDescription = "Close"
+                        )
+                    }
                 }
 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth(if (isPortrait) 1f else 0.5f)
-                        .padding(horizontal = paddingScale * 0.02f),
+                        .padding(horizontal = paddingScale * 0.04f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
@@ -81,16 +87,10 @@ fun FriendsScreen(
                             friendsViewModel.onAddFriendClicked(username)
                         },
                         modifier = Modifier
-                            .clip(RoundedCornerShape(paddingScale * 0.04f))
                             .fillMaxWidth()
                             .height(listItemSize * 0.8f)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .padding(
-                                top = paddingScale * 0.02f,
-                                bottom = paddingScale * 0.02f,
-                                start = paddingScale * 0.04f,
-                                end = paddingScale * 0.02f
-                            )
+                            .clip(RoundedCornerShape(paddingScale * 0.04f))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                     )
 
                     Spacer(modifier = Modifier.height(paddingScale * 0.05f))
@@ -109,21 +109,23 @@ fun FriendsScreen(
                                     .fillMaxWidth()
                                     .height(listItemSize)
                                     .clip(RoundedCornerShape(paddingScale * 0.04f))
-                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-                                    .padding(paddingScale * 0.02f)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                             )
                         }
 
                         item {
+                            Spacer(modifier = Modifier.height(paddingScale * 0.04f))
                             Text(
                                 "Friend Requests",
-                                style = MaterialTheme.typography.headlineMedium.copy(
-                                    fontWeight = FontWeight.Normal,
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
-                                    letterSpacing = 2.sp
+                                    letterSpacing = 1.sp
                                 ),
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
                             )
+                            Spacer(modifier = Modifier.height(paddingScale * 0.02f))
                         }
 
                         items(friends, key = { it.username }) { friend ->
@@ -135,8 +137,7 @@ fun FriendsScreen(
                                     .fillMaxWidth()
                                     .height(listItemSize)
                                     .clip(RoundedCornerShape(paddingScale * 0.04f))
-                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-                                    .padding(paddingScale * 0.02f)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                             )
                         }
                     }

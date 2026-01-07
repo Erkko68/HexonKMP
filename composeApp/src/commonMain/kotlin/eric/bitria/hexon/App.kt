@@ -18,6 +18,7 @@ import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.screens.*
 import eric.bitria.hexon.ui.screens.auth.ForgotPasswordScreen
 import eric.bitria.hexon.ui.screens.auth.LoginScreen
+import eric.bitria.hexon.ui.screens.auth.ResetPasswordScreen
 import eric.bitria.hexon.ui.screens.auth.VerifyScreen
 import eric.bitria.hexon.ui.screens.social.FriendProfileScreen
 import eric.bitria.hexon.ui.screens.social.FriendsScreen

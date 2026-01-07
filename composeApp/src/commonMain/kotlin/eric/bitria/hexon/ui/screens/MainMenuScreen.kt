@@ -17,6 +17,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.render.GameLayer
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonHeader
@@ -42,7 +44,6 @@ fun MainMenuScreen(
                 .background(MaterialTheme.colorScheme.background)
         ) {
             val paddingScale = minOf(maxWidth, maxHeight)
-            val isPortrait = maxWidth < maxHeight
 
             GameLayer(
                 modifier = Modifier.fillMaxSize(),
@@ -86,7 +87,11 @@ fun MainMenuScreen(
                 ) {
                     Text(
                         text = "Tap to Start",
-                        style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.primary)
+                        style = MaterialTheme.typography.displaySmall.copy(
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.sp
+                        )
                     )
                 }
             }

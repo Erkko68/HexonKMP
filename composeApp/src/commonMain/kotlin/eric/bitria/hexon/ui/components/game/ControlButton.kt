@@ -17,13 +17,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import eric.bitria.hexon.ui.components.shared.HexonButtonDefaults
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -37,20 +40,23 @@ fun ControlButton(
     BoxWithConstraints(
         modifier = modifier
     ) {
+        val shape = RoundedCornerShape(maxHeight * 0.15f)
         Box(
             modifier = Modifier
                 .aspectRatio(1f)
                 .fillMaxHeight()
-                .clickable { onClick() }
-                .clip(RoundedCornerShape(maxHeight * 0.08f))
+                .shadow(HexonButtonDefaults.ShadowElevation, shape)
+                .clip(shape)
                 .background(color)
+                .clickable { onClick() },
+            contentAlignment = Alignment.Center
         ){
             Icon(
                 imageVector = icon,
                 contentDescription = description,
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxSize(0.6f)
             )
         }
     }
@@ -69,15 +75,7 @@ fun ControlButtonPreview(){
     ){
         ControlButton(
             icon = Icons.AutoMirrored.Filled.ArrowForward,
-            color = Color(0xFF2196F3),
-            description = "Play",
-            onClick = {},
-            modifier = Modifier
-                .weight(1f)
-        )
-        ControlButton(
-            icon = Icons.Filled.SwapHoriz,
-            color = Color(0xFF4CAF50),
+            color = Color.White,
             description = "Play",
             onClick = {},
             modifier = Modifier

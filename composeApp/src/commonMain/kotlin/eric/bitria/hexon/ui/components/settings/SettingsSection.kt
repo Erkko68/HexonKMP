@@ -23,10 +23,10 @@ fun SettingsSection(
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineSmall.copy(
+            style = MaterialTheme.typography.titleLarge.copy(
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 3.sp,
+                letterSpacing = 1.sp,
             ),
             modifier = titleModifier
         )

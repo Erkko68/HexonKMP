@@ -25,7 +25,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
@@ -55,6 +54,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
+import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
 import eric.bitria.hexon.viewmodel.auth.LoginStatus
 import eric.bitria.hexon.viewmodel.auth.LoginViewModel
 import org.koin.compose.viewmodel.koinViewModel
@@ -99,7 +99,7 @@ fun LoginScreen(
             ) {
                 Text(
                     "Hexon",
-                    style = MaterialTheme.typography.headlineLarge.copy(
+                    style = MaterialTheme.typography.displayMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                         letterSpacing = 2.sp,
@@ -116,7 +116,7 @@ fun LoginScreen(
                         .height(paddingScale * 0.12f)
                         .fillMaxWidth(contentWidth)
                         .background(
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            color = MaterialTheme.colorScheme.surfaceVariant,
                             shape = RoundedCornerShape(paddingScale * 0.02f)
                         )
                         .padding(paddingScale * 0.01f),
@@ -129,11 +129,11 @@ fun LoginScreen(
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .shadow(
-                                    elevation = if (selected) 6.dp else 0.dp,
+                                    elevation = if (selected) 4.dp else 0.dp,
                                     shape = RoundedCornerShape(paddingScale * 0.015f)
                                 )
                                 .background(
-                                    color = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                                    color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
                                     shape = RoundedCornerShape(paddingScale * 0.015f)
                                 )
                                 .clickable { selectedTab = tab },
@@ -141,9 +141,9 @@ fun LoginScreen(
                         ) {
                             Text(
                                 tab,
-                                style = MaterialTheme.typography.bodyLarge.copy(
+                                style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.Bold,
-                                    color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onTertiaryContainer,
+                                    color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = (paddingScale * 0.04f).value.sp
                                 )
                             )
@@ -213,47 +213,34 @@ fun LoginScreen(
                     Spacer(Modifier.height(paddingScale * 0.05f))
 
                     // --- Action Button ---
-                    Button(
+                    HexonPrimaryButton(
+                        text = selectedTab,
                         onClick = {
                             if (selectedTab == "Login") loginViewModel.loginWithEmail()
                             else loginViewModel.registerWithEmail()
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(paddingScale * 0.12f)
-                            .shadow(6.dp, RoundedCornerShape(paddingScale * 0.03f)),
-                        shape = RoundedCornerShape(paddingScale * 0.03f),
-                        contentPadding = PaddingValues(),
+                        modifier = Modifier.fillMaxWidth(),
+                        paddingScale = paddingScale
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    color = MaterialTheme.colorScheme.secondaryContainer,
-                                    RoundedCornerShape(paddingScale * 0.03f)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (loginViewModel.loginState == LoginStatus.LOADING || loginViewModel.loginState == LoginStatus.SUCCESS) {
-                                CircularProgressIndicator(
-                                    color = Color.White,
-                                    modifier = Modifier.size(paddingScale * 0.05f),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                AnimatedContent(
-                                    targetState = selectedTab,
-                                    transitionSpec = { fadeIn() togetherWith fadeOut() },
-                                    label = "ButtonTextAnimation"
-                                ) { tab ->
-                                    Text(
-                                        tab,
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontSize = (paddingScale * 0.045f).value.sp
-                                        ),
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        if (loginViewModel.loginState == LoginStatus.LOADING || loginViewModel.loginState == LoginStatus.SUCCESS) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(paddingScale * 0.05f),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            AnimatedContent(
+                                targetState = selectedTab,
+                                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                label = "ButtonTextAnimation"
+                            ) { tab ->
+                                Text(
+                                    tab,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontSize = (paddingScale * 0.045f).value.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
-                                }
+                                )
                             }
                         }
                     }
@@ -268,12 +255,12 @@ fun LoginScreen(
                         HorizontalDivider(
                             modifier = Modifier.weight(1f),
                             thickness = DividerDefaults.Thickness,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = MaterialTheme.colorScheme.outlineVariant
                         )
                         Text(
                             text = "Or continue with",
                             style = MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.onBackground,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                                 fontSize = (paddingScale * 0.03f).value.sp
                             ),
                             modifier = Modifier.padding(horizontal = paddingScale * 0.02f)
@@ -281,7 +268,7 @@ fun LoginScreen(
                         HorizontalDivider(
                             modifier = Modifier.weight(1f),
                             thickness = DividerDefaults.Thickness,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = MaterialTheme.colorScheme.outlineVariant
                         )
                     }
 
@@ -289,22 +276,23 @@ fun LoginScreen(
 
                     OutlinedButton(
                         onClick = { loginViewModel.continueWithGoogle() },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().height(paddingScale * 0.12f),
                         shape = RoundedCornerShape(paddingScale * 0.03f),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = MaterialTheme.colorScheme.onPrimary,
-                            contentColor = MaterialTheme.colorScheme.primary
+                            contentColor = MaterialTheme.colorScheme.onSurface
                         ),
                         border = BorderStroke(
                             1.dp,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                            MaterialTheme.colorScheme.outline
                         ),
                         contentPadding = PaddingValues(vertical = paddingScale * 0.02f)
                     ) {
                         Text(
                             "Google", 
-                            fontWeight = FontWeight.Bold,
-                            fontSize = (paddingScale * 0.04f).value.sp
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontSize = (paddingScale * 0.04f).value.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         )
                     }
 
@@ -320,9 +308,10 @@ fun LoginScreen(
                             TextButton(onClick = onNavigateToForgotPassword) {
                                 Text(
                                     "Forgot Password?",
-                                    style = MaterialTheme.typography.bodySmall.copy(
+                                    style = MaterialTheme.typography.labelMedium.copy(
                                         color = MaterialTheme.colorScheme.primary,
-                                        fontSize = (paddingScale * 0.035f).value.sp
+                                        fontSize = (paddingScale * 0.035f).value.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 )
                             }
@@ -363,7 +352,7 @@ fun LoginInputField(
         placeholder = {
             Text(
                 text = placeholder,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontSize = (paddingScale * 0.04f).value.sp
                 )
@@ -372,12 +361,12 @@ fun LoginInputField(
         modifier = modifier
             .fillMaxWidth()
             .background(
-                color = MaterialTheme.colorScheme.primaryContainer,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(paddingScale * 0.03f)
             ),
         singleLine = true,
         textStyle = MaterialTheme.typography.bodyLarge.copy(
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = (paddingScale * 0.04f).value.sp
         ),
         shape = RoundedCornerShape(paddingScale * 0.03f),
@@ -394,8 +383,9 @@ fun LoginInputField(
             } 
         },
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.secondaryContainer,
-            unfocusedBorderColor = Color.Transparent
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = Color.Transparent,
+            errorBorderColor = MaterialTheme.colorScheme.error
         )
     )
 }

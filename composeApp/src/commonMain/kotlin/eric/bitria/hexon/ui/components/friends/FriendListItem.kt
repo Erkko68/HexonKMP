@@ -5,12 +5,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,10 +23,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import eric.bitria.hexon.theme.HexonTheme
+import eric.bitria.hexon.ui.utils.toVividColor
 import eric.bitria.hexon.viewmodel.data.Friend
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -39,50 +40,52 @@ fun FriendListItem(
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints {
-
         val paddingScale = minOf(maxWidth, maxHeight)
+        val vividColor = friend.username.toVividColor()
 
         Row(
             modifier = modifier
+                .background(
+                    brush = Brush.horizontalGradient(
+                        0.0f to vividColor.copy(alpha = 0.35f),
+                        0.5f to Color.Transparent, // Smoother transition over 50%
+                        startX = 0f,
+                        endX = constraints.maxWidth.toFloat()
+                    )
+                ),
+            verticalAlignment = Alignment.CenterVertically
         ){
             Row(
                 modifier = Modifier
                     .weight(1f)
                     .clickable { onViewProfile(friend.username) }
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .padding(start = paddingScale * 0.06f),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.05f)
+                horizontalArrangement = Arrangement.Start
             ) {
-
-                AsyncImage(
-                    model = friend.avatarUrl,
-                    contentDescription = "${friend.username} Avatar",
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .fillMaxHeight()
-                        .aspectRatio(1f)
-                )
-
                 Text(
                     text = friend.username,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    autoSize = null,
-                    fontWeight = FontWeight.Bold
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    )
                 )
             }
 
             IconButton(
                 onClick = { onInvite(friend.username) },
                 modifier = Modifier
+                    .padding(end = paddingScale * 0.04f)
+                    .size(paddingScale * 0.08f)
                     .clip(CircleShape)
-                    .fillMaxHeight()
-                    .aspectRatio(1f)
                     .background(MaterialTheme.colorScheme.primary)
             ) {
                 Icon(
                     imageVector = Icons.Default.Gamepad,
                     contentDescription = "Invite Friend to Play",
-                    tint = MaterialTheme.colorScheme.onPrimary
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(paddingScale * 0.05f)
                 )
             }
         }
@@ -99,10 +102,9 @@ fun FriendListItemPreview(){
             onViewProfile = {  },
             modifier = Modifier
                 .width(300.dp)
-                .height(50.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-                .padding(4.dp)
+                .height(60.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
         )
     }
 }

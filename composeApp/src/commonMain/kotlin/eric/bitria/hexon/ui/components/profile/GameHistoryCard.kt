@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.viewmodel.social.GameHistoryItem
 
 @Composable
@@ -27,38 +26,43 @@ fun GameHistoryCard(
         modifier = modifier
     ) {
         val height = maxHeight
+        val width = maxWidth
+        
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                    shape = RoundedCornerShape(height * 0.1f)
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(height * 0.2f)
                 )
-                .padding(height * 0.2f),
+                .padding(horizontal = width * 0.06f),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Left Side: Result and Info
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(height * 0.2f)
+                horizontalArrangement = Arrangement.spacedBy(width * 0.04f)
             ) {
                 Text(
                     text = if (item.isWin) "WIN" else "LOSS",
-                    color = if (item.isWin) Color(0xFF4ADE80) else Color(0xFFF87171),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
+                    color = if (item.isWin) Color(0xFF4ADE80) else MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    )
                 )
                 Column {
                     Text(
                         text = item.opponents,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.SemiBold
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        )
                     )
                     Text(
                         text = item.date,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f),
-                        fontSize = 14.sp
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
@@ -67,8 +71,9 @@ fun GameHistoryCard(
             Text(
                 text = if (item.lpChange > 0) "+${item.lpChange} LP" else "${item.lpChange} LP",
                 color = MaterialTheme.colorScheme.primary,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold
+                )
             )
         }
     }

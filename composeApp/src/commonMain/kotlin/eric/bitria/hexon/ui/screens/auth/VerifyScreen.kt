@@ -2,7 +2,6 @@ package eric.bitria.hexon.ui.screens.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,10 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,14 +22,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
+import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
 import eric.bitria.hexon.viewmodel.auth.VerifyStatus
 import eric.bitria.hexon.viewmodel.auth.VerifyViewModel
 import org.koin.compose.viewmodel.koinViewModel
@@ -68,7 +64,7 @@ fun VerifyScreen(
             ) {
                 Text(
                     "Verify Email",
-                    style = MaterialTheme.typography.headlineLarge.copy(
+                    style = MaterialTheme.typography.displaySmall.copy(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                         letterSpacing = 2.sp,
@@ -82,10 +78,10 @@ fun VerifyScreen(
                 Text(
                     "We sent a 6-digit code to\n$email",
                     style = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                         fontSize = (paddingScale * 0.035f).value.sp
                     ),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    textAlign = TextAlign.Center
                 )
 
                 Spacer(Modifier.height(paddingScale * 0.06f))
@@ -105,39 +101,26 @@ fun VerifyScreen(
 
                     Spacer(Modifier.height(paddingScale * 0.06f))
 
-                    Button(
+                    HexonPrimaryButton(
+                        text = "Verify",
                         onClick = { verifyViewModel.verify() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(paddingScale * 0.12f)
-                            .shadow(6.dp, RoundedCornerShape(paddingScale * 0.03f)),
-                        shape = RoundedCornerShape(paddingScale * 0.03f),
-                        contentPadding = PaddingValues(),
+                        modifier = Modifier.fillMaxWidth(),
+                        paddingScale = paddingScale
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    color = MaterialTheme.colorScheme.secondaryContainer,
-                                    RoundedCornerShape(paddingScale * 0.03f)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (verifyViewModel.verifyStatus == VerifyStatus.LOADING) {
-                                CircularProgressIndicator(
-                                    color = Color.White,
-                                    modifier = Modifier.size(paddingScale * 0.05f),
-                                    strokeWidth = 2.dp
+                        if (verifyViewModel.verifyStatus == VerifyStatus.LOADING) {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(paddingScale * 0.05f),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                "Verify",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontSize = (paddingScale * 0.045f).value.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
-                            } else {
-                                Text(
-                                    "Verify",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontSize = (paddingScale * 0.045f).value.sp
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                            }
+                            )
                         }
                     }
 
@@ -149,8 +132,8 @@ fun VerifyScreen(
                     ) {
                         Text(
                             "Didn't receive a code? Resend",
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.bodyMedium.copy(
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = (paddingScale * 0.035f).value.sp
                             )

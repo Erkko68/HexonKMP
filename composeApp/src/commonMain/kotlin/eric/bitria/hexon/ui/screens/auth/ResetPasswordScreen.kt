@@ -1,17 +1,14 @@
-package eric.bitria.hexon.ui.screens
+package eric.bitria.hexon.ui.screens.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -19,7 +16,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
-import eric.bitria.hexon.ui.screens.auth.LoginInputField
+import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
 import eric.bitria.hexon.viewmodel.auth.ResetPasswordStatus
 import eric.bitria.hexon.viewmodel.auth.ResetPasswordViewModel
 import org.koin.compose.viewmodel.koinViewModel
@@ -63,10 +60,10 @@ fun ResetPasswordScreen(
             ) {
                 Text(
                     if (isResetMode) "Reset Password" else "Change Password",
-                    style = MaterialTheme.typography.headlineMedium.copy(
+                    style = MaterialTheme.typography.displaySmall.copy(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
-                        fontSize = (paddingScale * 0.06f).value.sp
+                        fontSize = (paddingScale * 0.07f).value.sp
                     ),
                     textAlign = TextAlign.Center
                 )
@@ -80,7 +77,7 @@ fun ResetPasswordScreen(
                 Text(
                     subText,
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                         fontSize = (paddingScale * 0.035f).value.sp
                     ),
                     textAlign = TextAlign.Center,
@@ -140,26 +137,25 @@ fun ResetPasswordScreen(
 
                     Spacer(Modifier.height(paddingScale * 0.05f))
 
-                    Button(
+                    HexonPrimaryButton(
+                        text = if (isResetMode) "Reset Password" else "Update Password",
                         onClick = { viewModel.changePassword() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(paddingScale * 0.12f)
-                            .shadow(6.dp, RoundedCornerShape(paddingScale * 0.03f)),
-                        shape = RoundedCornerShape(paddingScale * 0.03f),
-                        enabled = viewModel.state != ResetPasswordStatus.LOADING
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = viewModel.state != ResetPasswordStatus.LOADING,
+                        paddingScale = paddingScale
                     ) {
                         if (viewModel.state == ResetPasswordStatus.LOADING) {
                             CircularProgressIndicator(
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(paddingScale * 0.05f),
                                 strokeWidth = 2.dp
                             )
                         } else {
                             Text(
                                 if (isResetMode) "Reset Password" else "Update Password",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontSize = (paddingScale * 0.04f).value.sp
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontSize = (paddingScale * 0.04f).value.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             )
                         }
@@ -170,8 +166,11 @@ fun ResetPasswordScreen(
                     TextButton(onClick = onNavigateBack) {
                         Text(
                             "Cancel",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = (paddingScale * 0.035f).value.sp
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = (paddingScale * 0.035f).value.sp
+                            )
                         )
                     }
 

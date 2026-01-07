@@ -24,8 +24,8 @@ fun StatBox(
     Column(
         modifier = modifier
             .background(
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(8.dp)
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(12.dp)
             )
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -33,14 +33,17 @@ fun StatBox(
         Text(
             text = value,
             color = color,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.Bold
+            )
         )
         Text(
             text = label,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-            fontSize = 12.sp,
-            letterSpacing = 2.sp
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelSmall.copy(
+                letterSpacing = 1.sp,
+                fontWeight = FontWeight.Medium
+            )
         )
     }
 }

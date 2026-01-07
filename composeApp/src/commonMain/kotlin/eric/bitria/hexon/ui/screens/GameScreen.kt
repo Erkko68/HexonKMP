@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -197,7 +198,8 @@ fun GameScreen(
                                     }
                                 }
                                 VerticalDivider(
-                                    modifier = Modifier.fillMaxHeight()
+                                    modifier = Modifier.fillMaxHeight(),
+                                    color = MaterialTheme.colorScheme.outlineVariant
                                 )
                                 Row(
                                     modifier = Modifier.fillMaxHeight(),
@@ -222,7 +224,7 @@ fun GameScreen(
                         {
                             ControlButton(
                                 icon = Icons.AutoMirrored.Filled.ArrowForward,
-                                color = Color(0xFF2196F3),
+                                color = MaterialTheme.colorScheme.secondary,
                                 description = "Play",
                                 onClick = { gameUIViewModel.setUIState(uiState.next()) },
                                 modifier = Modifier
@@ -230,7 +232,7 @@ fun GameScreen(
                             )
                             ControlButton(
                                 icon = Icons.Filled.SwapHoriz,
-                                color = Color(0xFF4CAF50),
+                                color = MaterialTheme.colorScheme.tertiary,
                                 description = "Trade",
                                 onClick = { gameUIViewModel.onTradeActionClick() },
                                 modifier = Modifier

@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.settings.SettingsSection
 import eric.bitria.hexon.ui.components.settings.SettingsToggle
@@ -51,8 +52,8 @@ fun SettingsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = paddingScale * 0.04f, vertical = paddingScale * 0.02f)
-                    .background(MaterialTheme.colorScheme.background),
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(horizontal = paddingScale * 0.04f, vertical = paddingScale * 0.02f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
@@ -82,7 +83,7 @@ fun SettingsScreen(
                             sectionModifier = Modifier
                                 .fillMaxWidth()
                                 .background(
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                     shape = RoundedCornerShape(paddingScale * 0.02f)
                                 )
                                 .padding(paddingScale * 0.04f)
@@ -105,7 +106,7 @@ fun SettingsScreen(
                             sectionModifier = Modifier
                                 .fillMaxWidth()
                                 .background(
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                     shape = RoundedCornerShape(paddingScale * 0.02f)
                                 )
                                 .padding(paddingScale * 0.04f)
@@ -123,8 +124,8 @@ fun SettingsScreen(
                             )
                             HorizontalDivider(
                                 Modifier.padding(vertical = paddingScale * 0.02f),
-                                DividerDefaults.Thickness,
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant
                             )
                             SettingsToggle(
                                 label = "Mute All",
@@ -144,7 +145,7 @@ fun SettingsScreen(
                             sectionModifier = Modifier
                                 .fillMaxWidth()
                                 .background(
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                     shape = RoundedCornerShape(paddingScale * 0.02f)
                                 )
                                 .padding(paddingScale * 0.04f)
@@ -174,7 +175,7 @@ fun SettingsScreen(
                             sectionModifier = Modifier
                                 .fillMaxWidth()
                                 .background(
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                     shape = RoundedCornerShape(paddingScale * 0.02f)
                                 )
                                 .padding(paddingScale * 0.04f)
@@ -182,11 +183,16 @@ fun SettingsScreen(
                             TextButton(
                                 onClick = onChangePasswordClicked,
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.textButtonColors()
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                )
                             ) {
                                 Text(
                                     text = "Change Password",
-                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(vertical = 4.dp)
                                 )
@@ -197,11 +203,16 @@ fun SettingsScreen(
                             TextButton(
                                 onClick = settingsViewModel::onLogOutClicked,
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.textButtonColors()
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                )
                             ) {
                                 Text(
                                     text = "Log Out",
-                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(vertical = 4.dp)
                                 )
@@ -212,11 +223,16 @@ fun SettingsScreen(
                             TextButton(
                                 onClick = settingsViewModel::onDeleteAccountClicked,
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.textButtonColors()
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
                             ) {
                                 Text(
                                     text = "Delete Account",
-                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(vertical = 4.dp)
                                 )

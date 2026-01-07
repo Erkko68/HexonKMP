@@ -1,8 +1,6 @@
 package eric.bitria.hexon.ui.components.shared
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
@@ -11,27 +9,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
 object HexonIconButton {
 
-    /**
-     * Transparent circular button with primary-colored icon.
-     *
-     * @param onClick Callback invoked when the button is clicked.
-     * @param icon Icon to display inside the button.
-     * @param contentDescription Accessibility description for the icon.
-     * @param backgroundColor Background color of the button (default: transparent).
-     * @param modifier Modifier to customize size, padding, etc.
-     */
     @Composable
     fun Transparent(
         onClick: () -> Unit,
         icon: ImageVector,
         contentDescription: String? = null,
-        backgroundColor: Color = Color.Transparent,
         modifier: Modifier = Modifier
     ) {
         Base(
@@ -39,19 +28,11 @@ object HexonIconButton {
             icon = icon,
             contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.primary,
-            backgroundColor = backgroundColor,
+            backgroundColor = Color.Transparent,
             modifier = modifier
         )
     }
 
-    /**
-     * Primary circular button with primary background and onPrimary icon color.
-     *
-     * @param onClick Callback invoked when the button is clicked.
-     * @param icon Icon to display inside the button.
-     * @param contentDescription Accessibility description for the icon.
-     * @param modifier Modifier to customize size, padding, etc.
-     */
     @Composable
     fun Primary(
         onClick: () -> Unit,
@@ -65,18 +46,10 @@ object HexonIconButton {
             contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.onPrimary,
             backgroundColor = MaterialTheme.colorScheme.primary,
-            modifier = modifier
+            modifier = modifier.shadow(4.dp, CircleShape)
         )
     }
 
-    /**
-     * Secondary circular button with secondary background and onSecondary icon color.
-     *
-     * @param onClick Callback invoked when the button is clicked.
-     * @param icon Icon to display inside the button.
-     * @param contentDescription Accessibility description for the icon.
-     * @param modifier Modifier to customize size, padding, etc.
-     */
     @Composable
     fun Secondary(
         onClick: () -> Unit,
@@ -88,47 +61,12 @@ object HexonIconButton {
             onClick = onClick,
             icon = icon,
             contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSecondary,
-            backgroundColor = MaterialTheme.colorScheme.secondary,
+            tint = MaterialTheme.colorScheme.onSurface,
+            backgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
             modifier = modifier
         )
     }
 
-    /**
-     * Tertiary circular button with tertiary background and onTertiary icon color.
-     *
-     * @param onClick Callback invoked when the button is clicked.
-     * @param icon Icon to display inside the button.
-     * @param contentDescription Accessibility description for the icon.
-     * @param modifier Modifier to customize size, padding, etc.
-     */
-    @Composable
-    fun Tertiary(
-        onClick: () -> Unit,
-        icon: ImageVector,
-        contentDescription: String? = null,
-        modifier: Modifier = Modifier
-    ) {
-        Base(
-            onClick = onClick,
-            icon = icon,
-            contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onTertiary,
-            backgroundColor = MaterialTheme.colorScheme.tertiary,
-            modifier = modifier
-        )
-    }
-
-    /**
-     * Base implementation for a circular IconButton.
-     *
-     * @param onClick Callback invoked when the button is clicked.
-     * @param icon Icon to display inside the button.
-     * @param contentDescription Accessibility description for the icon.
-     * @param tint Icon color.
-     * @param backgroundColor Button background color.
-     * @param modifier Modifier to customize size, padding, etc.
-     */
     @Composable
     private fun Base(
         onClick: () -> Unit,
