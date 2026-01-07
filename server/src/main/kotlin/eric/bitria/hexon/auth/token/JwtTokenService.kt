@@ -16,16 +16,18 @@ class JwtTokenService(
         .build()
 
     override fun generateAccessToken(
-        userId: String
+        userId: String,
+        duration: Long
     ): String {
         val now = System.currentTimeMillis()
+        val expiresAt = if (duration > 0) duration else config.accessTokenTtlMillis
 
         return JWT.create()
             .withIssuer(config.issuer)
             .withAudience(config.audience)
             .withSubject(userId)
             .withIssuedAt(Date(now))
-            .withExpiresAt(Date(now + config.accessTokenTtlMillis))
+            .withExpiresAt(Date(now + expiresAt))
             .sign(algorithm)
     }
 
