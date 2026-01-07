@@ -73,11 +73,11 @@ class GameUIViewModel : ViewModel (){
         viewModelScope.launch {
             try {
                 val playerResources = listOf(
-                    ItemCardData("4","", Icons.Filled.LocalFlorist, "Wool", Color(0xFFBA68C8), Color(0xFFCE93D8)),
-                    ItemCardData("2","", Icons.Filled.Public, "Ore", Color(0xFFFFF59D), Color(0xFFFFF59D)),
-                    ItemCardData("5","", Icons.Filled.Park, "Lumber", Color(0xFFFFB74D), Color(0xFFFFCC80)),
-                    ItemCardData("1","", Icons.Filled.Terrain, "Brick", Color(0xFFB0BEC5), Color(0xFFCFD8DC)),
-                    ItemCardData("3","", Icons.Filled.Agriculture, "Grain", Color(0xFFFFEB3B), Color(0xFFFFEB3B)),
+                    ItemCardData("4","", Icons.Filled.LocalFlorist, "Wool", Color(0xFFBA68C8)),
+                    ItemCardData("2","", Icons.Filled.Public, "Ore", Color(0xFFFFF59D)),
+                    ItemCardData("5","", Icons.Filled.Park, "Lumber", Color(0xFFFFB74D)),
+                    ItemCardData("1","", Icons.Filled.Terrain, "Brick", Color(0xFFB0BEC5)),
+                    ItemCardData("3","", Icons.Filled.Agriculture, "Grain", Color(0xFFFFEB3B)),
                 )
                 _resources.value = playerResources
             } catch (e: Exception) {
@@ -90,10 +90,10 @@ class GameUIViewModel : ViewModel (){
         viewModelScope.launch {
             try {
                 val playerAssets = listOf(
-                    ItemCardData("10","10", Icons.Filled.Straighten, "Wood", Color(0xFF8D6E63), Color(0xFFA1887F)),
-                    ItemCardData("10","10", Icons.Filled.Home, "Brick", Color(0xFFE57373), Color(0xFFEF9A9A)),
-                    ItemCardData("3","1", Icons.Filled.Castle, "Stone", Color(0xFF757575), Color(0xFFBDBDBD)),
-                    ItemCardData("4","", Icons.Filled.AutoAwesome, "Wool", Color(0xFFBA68C8), Color(0xFFCE93D8))
+                    ItemCardData("10","10", Icons.Filled.Straighten, "Wood", Color(0xFF8D6E63)),
+                    ItemCardData("10","10", Icons.Filled.Home, "Brick", Color(0xFFE57373)),
+                    ItemCardData("3","1", Icons.Filled.Castle, "Stone", Color(0xFF757575)),
+                    ItemCardData("4","", Icons.Filled.AutoAwesome, "Wool", Color(0xFFBA68C8))
                 )
 
                 _assets.value = playerAssets
@@ -107,7 +107,7 @@ class GameUIViewModel : ViewModel (){
         viewModelScope.launch {
             try {
                 val playerAssets = listOf(
-                    ItemCardData("2","", Icons.Filled.AutoAwesome, "Wool", Color(0xFFBA68C8), Color(0xFFCE93D8))
+                    ItemCardData("2","", Icons.Filled.AutoAwesome, "Wool", Color(0xFFBA68C8))
                 )
 
                 _progressCards.value = playerAssets

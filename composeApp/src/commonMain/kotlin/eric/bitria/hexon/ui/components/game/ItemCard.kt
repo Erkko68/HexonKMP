@@ -43,12 +43,7 @@ fun ItemCard(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(RoundedCornerShape(height * 0.2f))
-                .border(
-                    width = height * 0.025f,
-                    shape = RoundedCornerShape(height * 0.2f),
-                    color = itemCardData.borderColor
-                )
-                .background(itemCardData.bgColor)
+                .background(itemCardData.color)
         ) {
             // Icon in the center
             Icon(
@@ -104,8 +99,7 @@ fun ItemPreview(){
                 "11",
                 Icons.Filled.LocalFlorist,
                 "Wool",
-                Color(0xFF71417B),
-                Color(0xFFA75BB1)
+                Color(0xFF71417B)
             )
         )
     }

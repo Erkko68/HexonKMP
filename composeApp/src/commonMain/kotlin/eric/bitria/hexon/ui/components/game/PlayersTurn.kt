@@ -1,6 +1,7 @@
 package eric.bitria.hexon.ui.components.game
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -13,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.DropdownMenu
@@ -31,11 +31,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
+import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.data.Player
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -76,12 +75,20 @@ private fun PlayerDropdownMenu(
     onDismiss: () -> Unit,
     onToggleTrades: (Boolean) -> Unit
 ) {
+    val shapes = HexonTheme.dimensions.shapes
+    val spacing = HexonTheme.dimensions.spacing
+    
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .clip(shapes.medium)
+            .background(Color.Black.copy(alpha = 0.6f))
+            .border(
+                width = spacing.extraSmall * 0.5f,
+                color = Color.White.copy(alpha = 0.1f),
+                shape = shapes.medium
+            ),
         properties = PopupProperties(focusable = true, clippingEnabled = false)
     ) {
         // Player name (informative)
@@ -89,9 +96,8 @@ private fun PlayerDropdownMenu(
             text = {
                 Text(
                     text = player.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White
                 )
             },
             onClick = onDismiss,
@@ -102,14 +108,13 @@ private fun PlayerDropdownMenu(
             text = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(HexonTheme.dimensions.spacing.small),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = "Trade",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White
                     )
                     Switch(
                         checked = player.tradesEnabled,
@@ -128,36 +133,23 @@ private fun PlayerDropdownMenu(
 
 @Composable
 fun PlayerTurn(players: List<Player>, modifier: Modifier = Modifier) {
-    BoxWithConstraints(
+    val spacing = HexonTheme.dimensions.spacing
+    
+    Row(
         modifier = modifier
-    ){
-        Row(
-            modifier = Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = maxWidth * 0.02f),
-            horizontalArrangement = Arrangement.spacedBy(maxWidth * 0.02f),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // First player: black background (active)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(spacing.small),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        players.forEachIndexed { index, player ->
             PlayerIcon(
-                player = players.first(),
+                player = player,
                 modifier = Modifier
                     .fillMaxHeight()
                     .aspectRatio(1f),
-                isActive = true,
+                isActive = index == 0, // Assuming first is active for now
                 onToggleTrades = { /* Handle trade toggle */ },
             )
-
-            // Other players
-            players.drop(1).forEach { player ->
-                PlayerIcon(
-                    player = player,
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .aspectRatio(1f),
-                    onToggleTrades = { /* Handle trade toggle */ }
-                )
-            }
         }
     }
 }
@@ -165,12 +157,14 @@ fun PlayerTurn(players: List<Player>, modifier: Modifier = Modifier) {
 @Preview(showBackground = true)
 @Composable
 fun PlayerTurnRowPreview() {
-    val players = listOf(
-        Player("Player 1", true, Color(0xFF81D4FA)), // Active
-        Player("Player 2", true, Color(0xFFE57373)),
-        Player("Player 3", true, Color(0xFF81C784)),
-        Player("Player 4", true, Color(0xFFFFB74D))
-    )
+    HexonTheme {
+        val players = listOf(
+            Player("Player 1", true, Color(0xFF81D4FA)), // Active
+            Player("Player 2", true, Color(0xFFE57373)),
+            Player("Player 3", true, Color(0xFF81C784)),
+            Player("Player 4", true, Color(0xFFFFB74D))
+        )
 
-    PlayerTurn(players = players)
+        PlayerTurn(players = players)
+    }
 }

@@ -8,6 +8,5 @@ data class ItemCardData(
     val topRightText: String,
     val icon: ImageVector,
     val description: String,
-    val bgColor: Color,
-    val borderColor: Color
+    val color: Color,
 )

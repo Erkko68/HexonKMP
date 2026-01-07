@@ -87,6 +87,3 @@ fun createHexonTypography(paddingScale: Dp): Typography {
         )
     )
 }
-
-// Keep the static one for legacy or non-responsive needs
-val HexonTypography = Typography()

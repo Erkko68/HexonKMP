@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AccountCircle
@@ -20,13 +19,14 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
+import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.data.Player
 import eric.bitria.hexon.viewmodel.enums.TradeStatus
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -37,39 +37,45 @@ fun TradePanel(
     modifier: Modifier = Modifier,
     onPlayerClicked: () -> Unit
 ) {
-    BoxWithConstraints(
+    val spacing = HexonTheme.dimensions.spacing
+
+    Row(
         modifier = modifier
-    ) {
-        Row(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(Color.Black.copy(alpha = 0.3f))
-                .padding(horizontal = maxWidth * 0.02f, vertical = maxHeight * 0.08f),
-            horizontalArrangement = Arrangement.spacedBy(maxWidth * 0.02f),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            players.forEach { player ->
-                TradePlayerIcon(
-                    player = player,
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .aspectRatio(1f),
-                    onClick = onPlayerClicked
-                )
-            }
-
-            VerticalDivider(
-                modifier = Modifier.fillMaxHeight()
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.4f))
+            .border(
+                width = spacing.extraSmall * 0.5f,
+                color = Color.White.copy(alpha = 0.1f),
+                shape = CircleShape
             )
-
-            TradeBankIcon(
-                active = true,
+            .padding(horizontal = spacing.small, vertical = spacing.extraSmall),
+        horizontalArrangement = Arrangement.spacedBy(spacing.small),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        players.forEach { player ->
+            TradePlayerIcon(
+                player = player,
                 modifier = Modifier
                     .fillMaxHeight()
                     .aspectRatio(1f),
-                onClick = {}
+                onClick = onPlayerClicked
             )
         }
+
+        VerticalDivider(
+            modifier = Modifier
+                .fillMaxHeight(0.6f)
+                .padding(horizontal = spacing.extraSmall),
+            color = Color.White.copy(alpha = 0.2f)
+        )
+
+        TradeBankIcon(
+            active = true,
+            modifier = Modifier
+                .fillMaxHeight()
+                .aspectRatio(1f),
+            onClick = {}
+        )
     }
 }
 
@@ -104,15 +110,15 @@ fun TradePlayerIcon(
             tint = player.color
         )
 
-        // Status Badge
+        // Status Badge - Prettier with ring
         Box (
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .fillMaxSize(0.35f)
+                .fillMaxSize(0.4f)
                 .clip(CircleShape)
-                .border(maxHeight * 0.02f, player.color, CircleShape)
-                .background(color = Color.Black)
-                .padding(maxHeight * 0.04f),
+                .background(color = MaterialTheme.colorScheme.surface)
+                .border(maxHeight * 0.05f, player.color, CircleShape)
+                .padding(maxHeight * 0.05f),
 
             contentAlignment = Alignment.Center
         ) {
@@ -134,33 +140,15 @@ fun TradeBankIcon(
 ) {
     Box(
         modifier = modifier
+            .clip(CircleShape)
             .clickable(enabled = active) { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        val iconTint = if (active) Color.Gray else Color.Gray.copy(alpha = 0.4f)
-
         Icon(
             imageVector = Icons.Default.AccountBalance,
             contentDescription = "Bank",
-            modifier = Modifier.fillMaxSize(),
-            tint = iconTint
+            modifier = Modifier.fillMaxSize(0.85f),
+            tint = if (active) Color.White else Color.Gray.copy(alpha = 0.4f)
         )
     }
-}
-
-@Preview
-@Composable
-fun TradePlayerIconPreview(){
-    TradePlayerIcon(
-        player = Player(
-            name = "Eric",
-            tradesEnabled = true,
-            color = Color.Red,
-            status = TradeStatus.PENDING
-        ),
-        modifier = Modifier
-            .fillMaxHeight()
-            .aspectRatio(1f),
-        onClick = {}
-    )
 }

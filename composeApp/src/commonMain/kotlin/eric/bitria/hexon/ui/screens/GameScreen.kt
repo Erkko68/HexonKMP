@@ -9,8 +9,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -21,8 +24,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
 import eric.bitria.hexon.render.GameLayer
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.game.ControlButton
@@ -45,7 +47,6 @@ fun GameScreen(
     gameSceneViewModel: GameSceneViewModel = koinViewModel(),
     gameUIViewModel: GameUIViewModel = koinViewModel(),
 ) {
-    // Variable States
     val players by gameUIViewModel.players.collectAsState()
     val resources by gameUIViewModel.resources.collectAsState()
     val assets by gameUIViewModel.assets.collectAsState()
@@ -53,16 +54,16 @@ fun GameScreen(
     val victoryPoints by gameUIViewModel.victoryPoints.collectAsState()
     val uiState by gameUIViewModel.uiState.collectAsState()
 
-
     HexonTheme {
+        val dimensions = HexonTheme.dimensions
+        val spacing = dimensions.spacing
+        val rowHeight = dimensions.listItemHeight * 0.7f
+
         BoxWithConstraints (
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            val paddingScale = minOf(maxWidth, maxHeight)
-            val isPortrait = maxWidth < maxHeight
-
             GameLayer(
                 modifier = Modifier.fillMaxSize(),
                 jsonCollector = gameSceneViewModel.sendJson,
@@ -72,171 +73,131 @@ fun GameScreen(
             // UI Layer
             Column(
                 modifier = Modifier
-                    .padding(paddingScale * 0.04f)
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .padding(
+                        horizontal = spacing.screenHorizontal, 
+                        vertical = spacing.screenVertical * 1.5f
+                    ),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Top Section
+                // Top Section: Players, Options and Victory Points
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(
-                            if (isPortrait) 0.08f else 0.18f
-                        ),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                )
-                {
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
+                            .height(rowHeight)
+                            .clip(CircleShape),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         PlayerTurn(
                             players = players,
-                            modifier = Modifier.padding(end = 6.dp)
+                            modifier = Modifier.weight(1f).fillMaxHeight()
+                                .padding(horizontal = spacing.small)
                         )
 
                         OptionsButton(
-                            onExitClicked = { onExitClicked() },
-                            onAboutClicked = { onAboutClicked() }
+                            onExitClicked = onExitClicked,
+                            onAboutClicked = onAboutClicked,
+                            modifier = Modifier.fillMaxHeight()
+                                .padding(end = spacing.small)
                         )
                     }
+                    
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(0.6f),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
                     ) {
-                        VictoryPointsIndicator(victoryPoints)
+                        VictoryPointsIndicator(
+                            victoryPoints = victoryPoints,
+                            modifier = Modifier.height(rowHeight * 0.65f)
+                        )
                     }
                 }
 
-                // Below section
+                // Bottom Group: Trade Panel + Inventory & Actions
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(
-                            if (isPortrait) 0.27f else 0.6f
-                        ),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Bottom
-                )
-                {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(0.4f)
-                            .padding(paddingScale * 0.02f),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = if (isPortrait) Arrangement.Center else Arrangement.Start,
-                    ) {
-                        if (uiState == GameUIState.TRADING) {
-                            TradePanel(
-                                players = players,
-                                onPlayerClicked = {}
-                            )
-                        }
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(spacing.medium),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    if (uiState == GameUIState.TRADING) {
+                        TradePanel(
+                            players = players,
+                            onPlayerClicked = {},
+                            modifier = Modifier.height(rowHeight * 1.1f)
+                        )
                     }
 
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(0.6f),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                            .height(rowHeight * 2.1f),
+                        horizontalArrangement = Arrangement.spacedBy(spacing.medium),
                         verticalAlignment = Alignment.Bottom
                     ) {
-                        // Left Column (Build actions & resources)
                         Column(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .padding(paddingScale * 0.02f)
-                                .weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(paddingScale * 0.04f, Alignment.Bottom)
-                        )
-                        {
-                            if (uiState == GameUIState.TRADING) {
-                                Row(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Start)
-                                ){
-                                    resources.forEach { resource ->
-                                        ItemCard(
-                                            itemCardData = resource
-                                        )
-                                    }
-                                }
-                            } else {
-                                Row(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Start)
-                                ){
-                                    assets.forEach { asset ->
-                                        ItemCard(
-                                            itemCardData = asset
-                                        )
-                                    }
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+                        ) {
+                            Row(
+                                modifier = Modifier.height(rowHeight),
+                                horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+                            ) {
+                                val activeItems = if (uiState == GameUIState.TRADING) resources else assets
+                                activeItems.forEach { item ->
+                                    ItemCard(itemCardData = item)
                                 }
                             }
+
                             val scrollState = rememberScrollState()
-                            Row (
+                            Row(
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .height(rowHeight)
                                     .horizontalScroll(scrollState),
-                                horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Start)
+                                horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxHeight(),
-                                    horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Start)
-                                ){
-                                    resources.forEach { resource ->
-                                        ItemCard(
-                                            itemCardData = resource
-                                        )
-                                    }
+                                resources.forEach { resource ->
+                                    ItemCard(itemCardData = resource)
                                 }
-                                VerticalDivider(
-                                    modifier = Modifier.fillMaxHeight(),
-                                    color = MaterialTheme.colorScheme.outlineVariant
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxHeight(),
-                                    horizontalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Start)
-                                ){
+                                
+                                if (progressCards.isNotEmpty()) {
+                                    VerticalDivider(
+                                        modifier = Modifier
+                                            .fillMaxHeight(0.6f)
+                                            .padding(horizontal = spacing.extraSmall),
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    )
+                                    
                                     progressCards.forEach { progressCard ->
-                                        ItemCard(
-                                            itemCardData = progressCard
-                                        )
+                                        ItemCard(itemCardData = progressCard)
                                     }
                                 }
                             }
                         }
 
                         Column(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .padding(paddingScale * 0.02f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(paddingScale * 0.02f, Alignment.Bottom)
-                        )
-                        {
-                            ControlButton(
-                                icon = Icons.AutoMirrored.Filled.ArrowForward,
-                                color = MaterialTheme.colorScheme.secondary,
-                                description = "Play",
-                                onClick = { gameUIViewModel.setUIState(uiState.next()) },
-                                modifier = Modifier
-                                    .weight(1f)
-                            )
+                            modifier = Modifier.fillMaxHeight(),
+                            verticalArrangement = Arrangement.spacedBy(spacing.small, Alignment.Bottom)
+                        ) {
                             ControlButton(
                                 icon = Icons.Filled.SwapHoriz,
                                 color = MaterialTheme.colorScheme.tertiary,
                                 description = "Trade",
                                 onClick = { gameUIViewModel.onTradeActionClick() },
-                                modifier = Modifier
-                                    .weight(1f)
+                                modifier = Modifier.size(rowHeight)
+                            )
+                            ControlButton(
+                                icon = Icons.AutoMirrored.Filled.ArrowForward,
+                                color = MaterialTheme.colorScheme.primary,
+                                description = "Next Phase",
+                                onClick = { gameUIViewModel.setUIState(uiState.next())},
+                                modifier = Modifier.size(rowHeight)
                             )
                         }
                     }
@@ -249,11 +210,8 @@ fun GameScreen(
 @Preview
 @Composable
 fun GameScreenPreview(){
-    // to preview comment GameLayer
     GameScreen(
         onExitClicked = {},
-        onAboutClicked = {},
-        gameSceneViewModel = GameSceneViewModel(),
-        gameUIViewModel = GameUIViewModel(),
+        onAboutClicked = {}
     )
 }
