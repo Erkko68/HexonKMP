@@ -1,9 +1,9 @@
-package eric.bitria.hexon.verify
+package eric.bitria.hexon.auth.verify
 
-import eric.bitria.hexon.register
-import eric.bitria.hexon.resendVerification
-import eric.bitria.hexon.verify
-import eric.bitria.hexon.withTestAuthClient
+import eric.bitria.hexon.auth.register
+import eric.bitria.hexon.auth.resendVerification
+import eric.bitria.hexon.auth.verify
+import eric.bitria.hexon.auth.withTestAuthClient
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals

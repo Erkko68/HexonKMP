@@ -1,10 +1,11 @@
-package eric.bitria.hexon.login
+package eric.bitria.hexon.auth.login
 
-import eric.bitria.hexon.login
-import eric.bitria.hexon.register
-import eric.bitria.hexon.verify
-import eric.bitria.hexon.withTestAuthClient
+import eric.bitria.hexon.auth.login
+import eric.bitria.hexon.auth.register
+import eric.bitria.hexon.auth.verify
+import eric.bitria.hexon.auth.withTestAuthClient
 import eric.bitria.hexon.dtos.auth.LoginResult
+import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -20,7 +21,7 @@ class LoginRoutesTest {
     fun `login returns SUCCESS for verified user with correct password`() =
         withTestAuthClient { client, inbox ->
             client.register(username, email, password)
-            
+
             val code = inbox.value
             client.verify(email, code)
 
@@ -44,14 +45,14 @@ class LoginRoutesTest {
 
             assertEquals(LoginResult.PENDING_VERIFICATION, response.result)
             assertTrue(response.accessToken.isEmpty())
-            
+
             // Check if a NEW code was sent
             val secondCode = inbox.value
             assertTrue(firstCode != secondCode, "A new verification code should have been sent")
-            
+
             // Verify with the second code should work
             val verifyResponse = client.verify(email, secondCode)
-            assertEquals(eric.bitria.hexon.dtos.auth.VerifyEmailResult.SUCCESS, verifyResponse.result)
+            assertEquals(VerifyEmailResult.SUCCESS, verifyResponse.result)
         }
 
     @Test

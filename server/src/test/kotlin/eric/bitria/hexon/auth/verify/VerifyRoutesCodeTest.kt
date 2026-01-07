@@ -1,8 +1,8 @@
-package eric.bitria.hexon.verify
+package eric.bitria.hexon.auth.verify
 
-import eric.bitria.hexon.register
-import eric.bitria.hexon.verify
-import eric.bitria.hexon.withTestAuthClient
+import eric.bitria.hexon.auth.register
+import eric.bitria.hexon.auth.verify
+import eric.bitria.hexon.auth.withTestAuthClient
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -11,7 +11,7 @@ class VerifyRoutesCodeTest {
 
     @Test
     fun `verify returns INVALID_VERIFICATION_CODE if code is empty`() =
-        withTestAuthClient { client , inBox ->
+        withTestAuthClient { client, inBox ->
             val body = client.verify(
                 email = "alice@test.com",
                 code = ""
@@ -39,7 +39,7 @@ class VerifyRoutesCodeTest {
 
     @Test
     fun `verify returns INVALID_VERIFICATION_CODE if code contains letters`() =
-        withTestAuthClient { client , inBox ->
+        withTestAuthClient { client, inBox ->
             val body = client.verify(
                 email = "alice@test.com",
                 code = "12a456"

@@ -1,9 +1,9 @@
-package eric.bitria.hexon.refresh
+package eric.bitria.hexon.auth.refresh
 
-import eric.bitria.hexon.refresh
-import eric.bitria.hexon.register
-import eric.bitria.hexon.verify
-import eric.bitria.hexon.withTestAuthClient
+import eric.bitria.hexon.auth.refresh
+import eric.bitria.hexon.auth.register
+import eric.bitria.hexon.auth.verify
+import eric.bitria.hexon.auth.withTestAuthClient
 import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.dtos.auth.RegisterResult
@@ -18,29 +18,33 @@ class RefreshRoutesTest {
     @Test
     fun `refresh flow after registration and verification`() = withTestAuthClient { client, inbox ->
         val email = "test@example.com"
-        
+
         // 1. Register
         val regResponse = client.register("testuser", email, "Password123!")
         assertEquals(RegisterResult.VERIFICATION_SENT, regResponse.result)
-        
+
         val code = inbox.value
-        
+
         // 2. Verify Email to get initial tokens
         val verifyResponse = client.verify(email, code)
         assertEquals(VerifyEmailResult.SUCCESS, verifyResponse.result)
         val initialRefreshToken = verifyResponse.refreshToken
-        
+
         // 3. Refresh tokens
         val refreshResponse: RefreshResponse = client.refresh(initialRefreshToken)
-        
+
         assertEquals(RefreshResult.SUCCESS, refreshResponse.result)
         assertTrue(refreshResponse.accessToken.isNotEmpty(), "Access token should not be empty")
         assertTrue(refreshResponse.refreshToken.isNotEmpty(), "Refresh token should not be empty")
-        
+
         // The mock service should now generate a different token because of the counter
         println("initialRefreshToken: $initialRefreshToken")
         println("refreshResponse.refreshToken: ${refreshResponse.refreshToken}")
-        assertNotEquals(initialRefreshToken, refreshResponse.refreshToken, "Should receive a new refresh token")
+        assertNotEquals(
+            initialRefreshToken,
+            refreshResponse.refreshToken,
+            "Should receive a new refresh token"
+        )
     }
 
     @Test

@@ -1,4 +1,4 @@
-package eric.bitria.hexon.mock
+package eric.bitria.hexon.auth.mock
 
 import at.favre.lib.crypto.bcrypt.BCrypt
 import eric.bitria.hexon.auth.repository.AuthRepository

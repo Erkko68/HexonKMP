@@ -1,10 +1,18 @@
-package eric.bitria.hexon
+package eric.bitria.hexon.auth
 
-import eric.bitria.hexon.mock.*
+import eric.bitria.hexon.auth.mock.Inbox
+import eric.bitria.hexon.auth.mock.MockAuthRepository
+import eric.bitria.hexon.auth.mock.MockEmailService
+import eric.bitria.hexon.auth.mock.MockLoginService
+import eric.bitria.hexon.auth.mock.MockPasswordService
+import eric.bitria.hexon.auth.mock.MockRefreshService
+import eric.bitria.hexon.auth.mock.MockRegisterService
+import eric.bitria.hexon.auth.mock.MockTokenService
 import eric.bitria.hexon.routes.loginRoute
 import eric.bitria.hexon.routes.refreshRoute
 import eric.bitria.hexon.routes.registerRoutes
 import eric.bitria.hexon.dtos.auth.*
+import eric.bitria.hexon.routes.passwordRoutes
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
@@ -50,6 +58,12 @@ fun withTestAuthClient(
                 loginRoute(
                     loginService = MockLoginService(
                         repository = repository,
+                        tokenService = tokenService,
+                        emailService = emailService
+                    )
+                )
+                passwordRoutes(
+                    passwordService = MockPasswordService(
                         tokenService = tokenService,
                         emailService = emailService
                     )
@@ -117,4 +131,18 @@ suspend fun HttpClient.login(
 ): LoginResponse = post("/auth/login") {
     contentType(ContentType.Application.Json)
     setBody(LoginRequest(email, password))
+}.body()
+
+suspend fun HttpClient.forgotPassword(
+    email: String
+): ForgotPasswordResponse = post("/auth/forgot-password") {
+    contentType(ContentType.Application.Json)
+    setBody(ForgotPasswordRequest(email))
+}.body()
+
+suspend fun HttpClient.changePassword(
+    request: ChangePasswordRequest
+): ChangePasswordResponse = post("/auth/change-password"){
+    contentType(ContentType.Application.Json)
+    setBody(request)
 }.body()

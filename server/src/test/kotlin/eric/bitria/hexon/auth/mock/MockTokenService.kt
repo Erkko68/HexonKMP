@@ -1,4 +1,4 @@
-package eric.bitria.hexon.mock
+package eric.bitria.hexon.auth.mock
 
 import eric.bitria.hexon.auth.token.TokenService
 import java.util.concurrent.atomic.AtomicInteger
@@ -10,6 +10,7 @@ class MockTokenService : TokenService {
 
     override fun generateAccessToken(
         userId: String,
+        duration: Long
     ): String = "access-token-$userId-${counter.getAndIncrement()}"
 
     override fun generateRefreshToken(

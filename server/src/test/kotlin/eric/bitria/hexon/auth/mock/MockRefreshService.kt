@@ -1,4 +1,4 @@
-package eric.bitria.hexon.mock
+package eric.bitria.hexon.auth.mock
 
 import eric.bitria.hexon.auth.refresh.RefreshService
 import eric.bitria.hexon.auth.token.TokenService
