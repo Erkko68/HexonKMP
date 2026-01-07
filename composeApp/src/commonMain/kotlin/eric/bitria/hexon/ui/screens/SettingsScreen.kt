@@ -1,10 +1,8 @@
 package eric.bitria.hexon.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -55,7 +53,7 @@ fun SettingsButton(
             containerColor = if (isError) MaterialTheme.colorScheme.error.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
             contentColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
         ),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp) // Flat look works better with alpha containers
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
     ) {
         Text(
             text = text,

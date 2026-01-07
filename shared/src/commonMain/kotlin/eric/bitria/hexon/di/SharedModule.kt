@@ -1,14 +1,18 @@
 package eric.bitria.hexon.di
 
+import com.russhwolf.settings.Settings
 import eric.bitria.hexon.Platform
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.getPlatform
+import eric.bitria.hexon.persistence.EncryptedData
+import eric.bitria.hexon.persistence.EncryptedDataImpl
+import eric.bitria.hexon.persistence.SettingsManager
+import eric.bitria.hexon.persistence.SettingsManagerImpl
 import eric.bitria.hexon.repository.AuthRepository
 import eric.bitria.hexon.repository.KtorAuthRepository
-import eric.bitria.hexon.utils.TokenManager
-import eric.bitria.hexon.utils.TokenManagerImpl
+import eric.bitria.hexon.utils.*
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.*
@@ -19,11 +23,22 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
+import org.koin.core.module.Module
 import org.koin.dsl.module
+
+expect val platformStorageModule: Module
 
 val sharedModule = module {
     single { getPlatform() }
-    single<TokenManager> { TokenManagerImpl() }
+    
+    // Multiplatform Settings (Standard)
+    single { Settings() }
+    single<SettingsManager> { SettingsManagerImpl(get()) }
+    
+    // Encrypted Data (KVault) is provided in platformStorageModule
+    single<EncryptedData> { EncryptedDataImpl(get()) }
+    
+    single<TokenManager> { TokenManagerImpl(get(), get()) }
 
     single {
         val tokenManager = get<TokenManager>()
@@ -72,7 +87,6 @@ val sharedModule = module {
                         }
                     }
 
-                    // Optional: decide which requests need auth
                     sendWithoutRequest { request ->
                         request.url.pathSegments.none { it == "login" || it == "register" || it == "refresh" || it == "verify" || it == "resend-verification" }
                     }

@@ -1,20 +1,28 @@
 package eric.bitria.hexon.utils
 
-class TokenManagerImpl : TokenManager {
-    // In a real app, replace these with multiplatform-settings or DataStore
-    private var _accessToken: String? = null
-    private var _refreshToken: String? = null
+import eric.bitria.hexon.persistence.EncryptedData
+import eric.bitria.hexon.persistence.SettingsManager
 
-    override fun saveTokens(accessToken: String, refreshToken: String) {
-        _accessToken = accessToken
-        _refreshToken = refreshToken
+class TokenManagerImpl(
+    private val settingsManager: SettingsManager,
+    private val encryptedData: EncryptedData
+) : TokenManager {
+    
+    companion object {
+        private const val ACCESS_TOKEN_KEY = "access_token"
+        private const val REFRESH_TOKEN_KEY = "refresh_token"
     }
 
-    override fun getAccessToken(): String? = _accessToken
-    override fun getRefreshToken(): String? = _refreshToken
+    override fun saveTokens(accessToken: String, refreshToken: String) {
+        settingsManager.putString(ACCESS_TOKEN_KEY, accessToken)
+        encryptedData.putString(REFRESH_TOKEN_KEY, refreshToken)
+    }
+
+    override fun getAccessToken(): String? = settingsManager.getString(ACCESS_TOKEN_KEY)
+    override fun getRefreshToken(): String? = encryptedData.getString(REFRESH_TOKEN_KEY)
 
     override fun clearTokens() {
-        _accessToken = null
-        _refreshToken = null
+        settingsManager.remove(ACCESS_TOKEN_KEY)
+        encryptedData.remove(REFRESH_TOKEN_KEY)
     }
 }

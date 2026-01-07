@@ -1,6 +1,8 @@
 package eric.bitria.hexon.viewmodel
 
 import androidx.lifecycle.ViewModel
+import eric.bitria.hexon.persistence.SettingsManager
+import eric.bitria.hexon.utils.TokenManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,49 +17,66 @@ data class SettingsUiState(
     val disableGameInvites: Boolean = false
 )
 
-
-class SettingsViewModel : ViewModel() {
+class SettingsViewModel(
+    private val settingsManager: SettingsManager,
+    private val tokenManager: TokenManager
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
+    init {
+        loadSettings()
+    }
+
+    private fun loadSettings() {
+        _uiState.update {
+            it.copy(
+                masterVolume = settingsManager.getInt("master_volume", 100).toFloat() / 100f,
+                musicVolume = settingsManager.getInt("music_volume", 80).toFloat() / 100f,
+                mirrorUI = settingsManager.getBoolean("mirror_ui", false),
+                muteAll = settingsManager.getBoolean("mute_all", false),
+                disableFriendRequests = settingsManager.getBoolean("disable_friend_requests", false),
+                disableGameInvites = settingsManager.getBoolean("disable_game_invites", false)
+            )
+        }
+    }
+
     fun onMasterVolumeChanged(volume: Float) {
         _uiState.update { it.copy(masterVolume = volume) }
-        // TODO: Add logic to update the game's actual master volume
+        settingsManager.putInt("master_volume", (volume * 100).toInt())
     }
 
     fun onMusicVolumeChanged(volume: Float) {
         _uiState.update { it.copy(musicVolume = volume) }
-        // TODO: Add logic to update the game's actual music volume
+        settingsManager.putInt("music_volume", (volume * 100).toInt())
     }
 
     fun onMuteAllToggled(isMuted: Boolean) {
         _uiState.update { it.copy(muteAll = isMuted) }
-        // TODO: Add logic to mute/unmute all game sounds
+        settingsManager.putBoolean("mute_all", isMuted)
     }
 
     fun onDisableFriendRequestsToggled(isDisabled: Boolean) {
         _uiState.update { it.copy(disableFriendRequests = isDisabled) }
-        // TODO: Add logic to update user's privacy settings
+        settingsManager.putBoolean("disable_friend_requests", isDisabled)
     }
 
     fun onDisableGameInvitesToggled(isDisabled: Boolean) {
         _uiState.update { it.copy(disableGameInvites = isDisabled) }
-        // TODO: Add logic to update user's privacy settings
+        settingsManager.putBoolean("disable_game_invites", isDisabled)
     }
 
     fun onMirrorUIToggled(isDisabled: Boolean) {
         _uiState.update { it.copy(mirrorUI = isDisabled) }
-        // TODO: Add logic to update user's privacy settings
+        settingsManager.putBoolean("mirror_ui", isDisabled)
     }
 
     fun onLogOutClicked() {
-        // TODO: Add logic to log the user out and navigate to login screen
-        println("Log Out Clicked")
+        tokenManager.clearTokens()
     }
 
     fun onDeleteAccountClicked() {
-        // TODO: Add logic to show a confirmation dialog, then delete the account
-        println("Delete Account Clicked")
+        // Handle account deletion logic
     }
 }

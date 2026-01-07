@@ -32,6 +32,10 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.koin.compose.viewmodel.navigation)
             implementation(libs.insert.koin.koin.core)
+
+            // Persistent Settings and Persistent Encrypted Data
+            implementation(libs.multiplatform.settings.no.arg)
+            implementation(libs.kvault)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
