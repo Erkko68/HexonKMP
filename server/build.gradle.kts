@@ -39,6 +39,7 @@ dependencies {
     implementation(libs.exposed.jdbc)
     implementation(libs.postgresql)
     implementation(libs.hikaricp)
+    implementation(libs.exposed.java.time)
 
     // Security
     implementation(libs.bcrypt)

@@ -8,6 +8,7 @@ androidx-lifecycle = "2.9.6"
 coilCompose = "3.3.0"
 composeMultiplatform = "1.9.3"
 composeWebviewMultiplatform = "2.0.3"
+exposedJavaTime = "0.61.0"
 jakartaMail = "2.0.2"
 javaJwt = "4.5.0"
 koinCompose = "4.1.1"
@@ -37,6 +38,7 @@ coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.r
 compose-webview-multiplatform = { module = "io.github.kevinnzou:compose-webview-multiplatform", version.ref = "composeWebviewMultiplatform" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+exposed-java-time = { module = "org.jetbrains.exposed:exposed-java-time", version.ref = "exposedJavaTime" }
 jakarta-mail = { module = "com.sun.mail:jakarta.mail", version.ref = "jakartaMail" }
 java-jwt = { module = "com.auth0:java-jwt", version.ref = "javaJwt" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesTest" }

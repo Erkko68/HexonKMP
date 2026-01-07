@@ -2,6 +2,7 @@ package eric.bitria.hexon.database
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import eric.bitria.hexon.database.tables.Friends
 import eric.bitria.hexon.database.tables.Users
 import io.ktor.server.config.*
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +29,7 @@ object DatabaseFactory {
         database = Database.connect(dataSource)
 
         transaction(database) {
-            SchemaUtils.create(Users)
+            SchemaUtils.create(Users, Friends)
         }
     }
 
