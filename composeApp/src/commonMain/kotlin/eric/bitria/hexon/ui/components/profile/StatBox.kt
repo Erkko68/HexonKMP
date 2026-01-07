@@ -3,7 +3,6 @@ package eric.bitria.hexon.ui.components.profile
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -11,8 +10,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import eric.bitria.hexon.theme.HexonTheme
 
 @Composable
 fun StatBox(
@@ -21,13 +20,17 @@ fun StatBox(
     value: String,
     color: Color
 ) {
+    val dimensions = HexonTheme.dimensions
+    val spacing = dimensions.spacing
+    val shapes = dimensions.shapes
+
     Column(
         modifier = modifier
             .background(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(12.dp)
+                shape = shapes.medium
             )
-            .padding(12.dp),
+            .padding(spacing.small),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(

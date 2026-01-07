@@ -26,7 +26,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
 import eric.bitria.hexon.viewmodel.auth.VerifyStatus
@@ -41,6 +40,10 @@ fun VerifyScreen(
     onVerifySuccess: () -> Unit
 ) {
     HexonTheme {
+        val dimensions = HexonTheme.dimensions
+        val spacing = dimensions.spacing
+        val paddingScale = dimensions.paddingScale
+
         LaunchedEffect(verifyViewModel.verifyStatus) {
             if (verifyViewModel.verifyStatus == VerifyStatus.SUCCESS) onVerifySuccess()
         }
@@ -50,14 +53,13 @@ fun VerifyScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            val paddingScale = minOf(maxWidth, maxHeight)
             val isPortrait = maxWidth < maxHeight
             val contentWidth = if (isPortrait) 0.85f else 0.4f
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = paddingScale * 0.04f, vertical = paddingScale * 0.02f)
+                    .padding(horizontal = spacing.screenHorizontal, vertical = spacing.screenVertical)
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -65,26 +67,23 @@ fun VerifyScreen(
                 Text(
                     "Verify Email",
                     style = MaterialTheme.typography.displaySmall.copy(
-                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 2.sp,
-                        fontSize = (paddingScale * 0.08f).value.sp
+                        fontWeight = FontWeight.Bold
                     ),
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(Modifier.height(paddingScale * 0.02f))
+                Spacer(Modifier.height(spacing.small))
 
                 Text(
                     "We sent a 6-digit code to\n$email",
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        fontSize = (paddingScale * 0.035f).value.sp
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                     ),
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(Modifier.height(paddingScale * 0.06f))
+                Spacer(Modifier.height(spacing.large))
 
                 Column(
                     modifier = Modifier.fillMaxWidth(contentWidth),
@@ -95,11 +94,10 @@ fun VerifyScreen(
                         onValueChange = { verifyViewModel.onCodeChange(it) },
                         placeholder = "Verification Code",
                         error = verifyViewModel.errorMessage,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        paddingScale = paddingScale
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
 
-                    Spacer(Modifier.height(paddingScale * 0.06f))
+                    Spacer(Modifier.height(spacing.large))
 
                     HexonPrimaryButton(
                         text = "Verify",
@@ -116,26 +114,22 @@ fun VerifyScreen(
                         } else {
                             Text(
                                 "Verify",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontSize = (paddingScale * 0.045f).value.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                style = MaterialTheme.typography.labelLarge
                             )
                         }
                     }
 
-                    Spacer(Modifier.height(paddingScale * 0.04f))
+                    Spacer(Modifier.height(spacing.medium))
 
                     TextButton(
                         onClick = { verifyViewModel.resendCode() },
-                        contentPadding = PaddingValues(paddingScale * 0.02f)
+                        contentPadding = PaddingValues(spacing.small)
                     ) {
                         Text(
                             "Didn't receive a code? Resend",
                             style = MaterialTheme.typography.labelMedium.copy(
                                 color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = (paddingScale * 0.035f).value.sp
+                                fontWeight = FontWeight.Bold
                             )
                         )
                     }

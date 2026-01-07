@@ -9,11 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.settings.SettingsSection
 import eric.bitria.hexon.ui.components.settings.SettingsToggle
@@ -45,15 +42,18 @@ fun SettingsScreen(
     val uiState by settingsViewModel.uiState.collectAsState()
 
     HexonTheme {
+        val dimensions = HexonTheme.dimensions
+        val spacing = dimensions.spacing
+        val shapes = dimensions.shapes
+
         BoxWithConstraints {
             val isPortrait = maxWidth < maxHeight
-            val paddingScale = minOf(maxWidth, maxHeight)
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
-                    .padding(horizontal = paddingScale * 0.04f, vertical = paddingScale * 0.02f),
+                    .padding(horizontal = spacing.screenHorizontal, vertical = spacing.screenVertical),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
@@ -72,21 +72,21 @@ fun SettingsScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth(if (isPortrait) 1f else 0.5f)
-                        .padding(horizontal = paddingScale * 0.02f),
+                        .padding(horizontal = spacing.small),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ){
                     item {
                         SettingsSection(
                             title = "Game",
                             titleModifier = Modifier
-                                .padding(bottom = paddingScale * 0.02f),
+                                .padding(bottom = spacing.small),
                             sectionModifier = Modifier
                                 .fillMaxWidth()
                                 .background(
                                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(paddingScale * 0.02f)
+                                    shape = shapes.medium
                                 )
-                                .padding(paddingScale * 0.04f)
+                                .padding(spacing.medium)
                         ) {
                             SettingsToggle(
                                 label = "Mirror UI",
@@ -96,34 +96,34 @@ fun SettingsScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+                        Spacer(modifier = Modifier.height(spacing.medium))
 
                         // Audio Section
                         SettingsSection(
                             title = "Audio",
                             titleModifier = Modifier
-                                .padding(bottom = paddingScale * 0.02f),
+                                .padding(bottom = spacing.small),
                             sectionModifier = Modifier
                                 .fillMaxWidth()
                                 .background(
                                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(paddingScale * 0.02f)
+                                    shape = shapes.medium
                                 )
-                                .padding(paddingScale * 0.04f)
+                                .padding(spacing.medium)
                         ) {
                             VolumeSlider(
                                 label = "Master Volume",
                                 value = uiState.masterVolume,
                                 onValueChange = settingsViewModel::onMasterVolumeChanged
                             )
-                            Spacer(modifier = Modifier.height(paddingScale * 0.02f))
+                            Spacer(modifier = Modifier.height(spacing.small))
                             VolumeSlider(
                                 label = "Music Volume",
                                 value = uiState.musicVolume,
                                 onValueChange = settingsViewModel::onMusicVolumeChanged
                             )
                             HorizontalDivider(
-                                Modifier.padding(vertical = paddingScale * 0.02f),
+                                Modifier.padding(vertical = spacing.small),
                                 thickness = 1.dp,
                                 color = MaterialTheme.colorScheme.outlineVariant
                             )
@@ -135,20 +135,20 @@ fun SettingsScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+                        Spacer(modifier = Modifier.height(spacing.medium))
 
                         // Social Section
                         SettingsSection(
                             title = "Social",
                             titleModifier = Modifier
-                                .padding(bottom = paddingScale * 0.02f),
+                                .padding(bottom = spacing.small),
                             sectionModifier = Modifier
                                 .fillMaxWidth()
                                 .background(
                                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(paddingScale * 0.02f)
+                                    shape = shapes.medium
                                 )
-                                .padding(paddingScale * 0.04f)
+                                .padding(spacing.medium)
                         ) {
                             SettingsToggle(
                                 label = "Disable Friend Requests",
@@ -156,7 +156,7 @@ fun SettingsScreen(
                                 checked = uiState.disableFriendRequests,
                                 onCheckedChange = settingsViewModel::onDisableFriendRequestsToggled
                             )
-                            Spacer(modifier = Modifier.height(paddingScale * 0.02f))
+                            Spacer(modifier = Modifier.height(spacing.small))
                             SettingsToggle(
                                 label = "Disable Game Invites",
                                 description = "Prevents friends from sending you game invites",
@@ -165,20 +165,20 @@ fun SettingsScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+                        Spacer(modifier = Modifier.height(spacing.medium))
 
                         // Account Section
                         SettingsSection(
                             title = "Account",
                             titleModifier = Modifier
-                                .padding(bottom = paddingScale * 0.02f),
+                                .padding(bottom = spacing.small),
                             sectionModifier = Modifier
                                 .fillMaxWidth()
                                 .background(
                                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(paddingScale * 0.02f)
+                                    shape = shapes.medium
                                 )
-                                .padding(paddingScale * 0.04f)
+                                .padding(spacing.medium)
                         ) {
                             TextButton(
                                 onClick = onChangePasswordClicked,
@@ -190,7 +190,6 @@ fun SettingsScreen(
                                 Text(
                                     text = "Change Password",
                                     style = MaterialTheme.typography.labelLarge.copy(
-                                        fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold
                                     ),
                                     textAlign = TextAlign.Center,
@@ -198,7 +197,7 @@ fun SettingsScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(paddingScale * 0.01f))
+                            Spacer(modifier = Modifier.height(spacing.extraSmall))
 
                             TextButton(
                                 onClick = settingsViewModel::onLogOutClicked,
@@ -210,7 +209,6 @@ fun SettingsScreen(
                                 Text(
                                     text = "Log Out",
                                     style = MaterialTheme.typography.labelLarge.copy(
-                                        fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold
                                     ),
                                     textAlign = TextAlign.Center,
@@ -218,7 +216,7 @@ fun SettingsScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(paddingScale * 0.01f))
+                            Spacer(modifier = Modifier.height(spacing.extraSmall))
 
                             TextButton(
                                 onClick = settingsViewModel::onDeleteAccountClicked,
@@ -230,7 +228,6 @@ fun SettingsScreen(
                                 Text(
                                     text = "Delete Account",
                                     style = MaterialTheme.typography.labelLarge.copy(
-                                        fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold
                                     ),
                                     textAlign = TextAlign.Center,
@@ -239,7 +236,7 @@ fun SettingsScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+                        Spacer(modifier = Modifier.height(spacing.medium))
                     }
                 }
             }

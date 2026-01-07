@@ -14,7 +14,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
 import eric.bitria.hexon.viewmodel.auth.ResetPasswordStatus
@@ -30,6 +29,10 @@ fun ResetPasswordScreen(
     onNavigateBack: () -> Unit
 ) {
     HexonTheme {
+        val dimensions = HexonTheme.dimensions
+        val spacing = dimensions.spacing
+        val paddingScale = dimensions.paddingScale
+
         LaunchedEffect(email, isResetMode) {
             viewModel.init(email, isResetMode)
         }
@@ -46,14 +49,13 @@ fun ResetPasswordScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            val paddingScale = minOf(maxWidth, maxHeight)
             val isPortrait = maxWidth < maxHeight
             val contentWidth = if (isPortrait) 0.85f else 0.4f
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = paddingScale * 0.04f, vertical = paddingScale * 0.02f)
+                    .padding(horizontal = spacing.screenHorizontal, vertical = spacing.screenVertical)
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -61,14 +63,13 @@ fun ResetPasswordScreen(
                 Text(
                     if (isResetMode) "Reset Password" else "Change Password",
                     style = MaterialTheme.typography.displaySmall.copy(
-                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
-                        fontSize = (paddingScale * 0.07f).value.sp
+                        fontWeight = FontWeight.Bold
                     ),
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(Modifier.height(paddingScale * 0.02f))
+                Spacer(Modifier.height(spacing.small))
 
                 val subText = if (isResetMode)
                     "Enter the code sent to your email and your new password."
@@ -77,14 +78,13 @@ fun ResetPasswordScreen(
                 Text(
                     subText,
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        fontSize = (paddingScale * 0.035f).value.sp
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                     ),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(contentWidth)
                 )
 
-                Spacer(Modifier.height(paddingScale * 0.05f))
+                Spacer(Modifier.height(spacing.mediumLarge))
 
                 Column(
                     modifier = Modifier.fillMaxWidth(contentWidth),
@@ -96,8 +96,7 @@ fun ResetPasswordScreen(
                             onValueChange = { viewModel.onResetCodeChange(it) },
                             placeholder = "6-digit Code",
                             error = viewModel.resetCodeError,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            paddingScale = paddingScale
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                         )
                     } else {
                         LoginInputField(
@@ -106,12 +105,11 @@ fun ResetPasswordScreen(
                             placeholder = "Current Password",
                             error = viewModel.oldPasswordError,
                             visualTransformation = PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                            paddingScale = paddingScale
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                         )
                     }
 
-                    Spacer(Modifier.height(paddingScale * 0.025f))
+                    Spacer(Modifier.height(spacing.extraSmall))
 
                     LoginInputField(
                         value = viewModel.password,
@@ -119,11 +117,10 @@ fun ResetPasswordScreen(
                         placeholder = "New Password",
                         error = viewModel.passwordError,
                         visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        paddingScale = paddingScale
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                     )
 
-                    Spacer(Modifier.height(paddingScale * 0.025f))
+                    Spacer(Modifier.height(spacing.extraSmall))
 
                     LoginInputField(
                         value = viewModel.confirmPassword,
@@ -131,11 +128,10 @@ fun ResetPasswordScreen(
                         placeholder = "Confirm New Password",
                         error = viewModel.confirmPasswordError,
                         visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        paddingScale = paddingScale
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                     )
 
-                    Spacer(Modifier.height(paddingScale * 0.05f))
+                    Spacer(Modifier.height(spacing.mediumLarge))
 
                     HexonPrimaryButton(
                         text = if (isResetMode) "Reset Password" else "Update Password",
@@ -153,35 +149,29 @@ fun ResetPasswordScreen(
                         } else {
                             Text(
                                 if (isResetMode) "Reset Password" else "Update Password",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontSize = (paddingScale * 0.04f).value.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                style = MaterialTheme.typography.labelLarge
                             )
                         }
                     }
 
-                    Spacer(Modifier.height(paddingScale * 0.03f))
+                    Spacer(Modifier.height(spacing.mediumSmall))
 
                     TextButton(onClick = onNavigateBack) {
                         Text(
                             "Cancel",
                             style = MaterialTheme.typography.labelMedium.copy(
                                 color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = (paddingScale * 0.035f).value.sp
+                                fontWeight = FontWeight.Bold
                             )
                         )
                     }
 
                     if (viewModel.state == ResetPasswordStatus.ERROR) {
-                        Spacer(Modifier.height(paddingScale * 0.035f))
+                        Spacer(Modifier.height(spacing.mediumSmall))
                         Text(
                             text = viewModel.errorMessage ?: "Unknown error occurred",
                             color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = (paddingScale * 0.035f).value.sp
-                            ),
+                            style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center
                         )
                     }

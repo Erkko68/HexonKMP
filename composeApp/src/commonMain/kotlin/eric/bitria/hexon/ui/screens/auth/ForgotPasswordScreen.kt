@@ -13,7 +13,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
 import eric.bitria.hexon.viewmodel.auth.ForgotPasswordStatus
@@ -27,6 +26,10 @@ fun ForgotPasswordScreen(
     onNavigateBack: () -> Unit
 ) {
     HexonTheme {
+        val dimensions = HexonTheme.dimensions
+        val spacing = dimensions.spacing
+        val paddingScale = dimensions.paddingScale
+
         LaunchedEffect(viewModel.state) {
             if (viewModel.state == ForgotPasswordStatus.SUCCESS) {
                 onNavigateToReset(viewModel.email)
@@ -39,14 +42,13 @@ fun ForgotPasswordScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            val paddingScale = minOf(maxWidth, maxHeight)
             val isPortrait = maxWidth < maxHeight
             val contentWidth = if (isPortrait) 0.85f else 0.4f
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = paddingScale * 0.04f, vertical = paddingScale * 0.02f)
+                    .padding(horizontal = spacing.screenHorizontal, vertical = spacing.screenVertical)
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -54,26 +56,24 @@ fun ForgotPasswordScreen(
                 Text(
                     "Forgot Password",
                     style = MaterialTheme.typography.displaySmall.copy(
-                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
-                        fontSize = (paddingScale * 0.08f).value.sp
+                        fontWeight = FontWeight.Bold
                     ),
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(Modifier.height(paddingScale * 0.02f))
+                Spacer(Modifier.height(spacing.small))
 
                 Text(
                     "Enter your email to receive a password reset code.",
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        fontSize = (paddingScale * 0.035f).value.sp
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                     ),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(contentWidth)
                 )
 
-                Spacer(Modifier.height(paddingScale * 0.05f))
+                Spacer(Modifier.height(spacing.mediumLarge))
 
                 Column(
                     modifier = Modifier.fillMaxWidth(contentWidth),
@@ -84,11 +84,10 @@ fun ForgotPasswordScreen(
                         onValueChange = { viewModel.onEmailChange(it) },
                         placeholder = "Email",
                         error = viewModel.emailError,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                        paddingScale = paddingScale
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
 
-                    Spacer(Modifier.height(paddingScale * 0.05f))
+                    Spacer(Modifier.height(spacing.mediumLarge))
 
                     HexonPrimaryButton(
                         text = "Send Reset Code",
@@ -106,35 +105,29 @@ fun ForgotPasswordScreen(
                         } else {
                             Text(
                                 "Send Reset Code",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontSize = (paddingScale * 0.04f).value.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                style = MaterialTheme.typography.labelLarge
                             )
                         }
                     }
 
-                    Spacer(Modifier.height(paddingScale * 0.03f))
+                    Spacer(Modifier.height(spacing.mediumSmall))
 
                     TextButton(onClick = onNavigateBack) {
                         Text(
                             "Back to Login",
                             style = MaterialTheme.typography.labelMedium.copy(
                                 color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = (paddingScale * 0.035f).value.sp
+                                fontWeight = FontWeight.Bold
                             )
                         )
                     }
 
                     if (viewModel.state == ForgotPasswordStatus.ERROR) {
-                        Spacer(Modifier.height(paddingScale * 0.035f))
+                        Spacer(Modifier.height(spacing.mediumSmall))
                         Text(
                             text = viewModel.errorMessage ?: "Unknown error occurred",
                             color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = (paddingScale * 0.035f).value.sp
-                            ),
+                            style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center
                         )
                     }

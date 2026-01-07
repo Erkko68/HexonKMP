@@ -40,7 +40,9 @@ fun FriendListItem(
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints {
-        val paddingScale = minOf(maxWidth, maxHeight)
+        val dimensions = HexonTheme.dimensions
+        val spacing = dimensions.spacing
+        val paddingScale = dimensions.paddingScale
         val vividColor = friend.username.toVividColor()
 
         Row(
@@ -48,7 +50,7 @@ fun FriendListItem(
                 .background(
                     brush = Brush.horizontalGradient(
                         0.0f to vividColor.copy(alpha = 0.35f),
-                        0.5f to Color.Transparent, // Smoother transition over 50%
+                        0.5f to Color.Transparent, 
                         startX = 0f,
                         endX = constraints.maxWidth.toFloat()
                     )
@@ -59,8 +61,8 @@ fun FriendListItem(
                 modifier = Modifier
                     .weight(1f)
                     .clickable { onViewProfile(friend.username) }
-                    .fillMaxSize()
-                    .padding(start = paddingScale * 0.06f),
+                    .fillMaxHeight()
+                    .padding(start = spacing.large),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Start
             ) {
@@ -76,8 +78,8 @@ fun FriendListItem(
             IconButton(
                 onClick = { onInvite(friend.username) },
                 modifier = Modifier
-                    .padding(end = paddingScale * 0.04f)
-                    .size(paddingScale * 0.08f)
+                    .padding(end = spacing.medium)
+                    .size(paddingScale * 0.09f) // Slightly larger button
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary)
             ) {
@@ -85,7 +87,7 @@ fun FriendListItem(
                     imageVector = Icons.Default.Gamepad,
                     contentDescription = "Invite Friend to Play",
                     tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(paddingScale * 0.05f)
+                    modifier = Modifier.size(paddingScale * 0.055f) // Slightly larger icon
                 )
             }
         }

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.MaterialTheme
@@ -25,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.friends.AddFriendInput
 import eric.bitria.hexon.ui.components.friends.FriendListItem
@@ -44,24 +42,24 @@ fun FriendsScreen(
     val friends by friendsViewModel.friendsList.collectAsState()
 
     HexonTheme {
+        val dimensions = HexonTheme.dimensions
+        val spacing = dimensions.spacing
+        val shapes = dimensions.shapes
 
         BoxWithConstraints {
-
-            val paddingScale = minOf(maxWidth, maxHeight)
-            val listItemSize = maxOf(maxWidth, maxHeight) * 0.08f
             val isPortrait = maxWidth < maxHeight
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
-                    .padding(vertical = paddingScale * 0.02f),
+                    .padding(vertical = spacing.screenVertical),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = paddingScale * 0.04f)
+                        .padding(horizontal = spacing.screenHorizontal)
                 ) {
                     HexonHeader(
                         title = "FRIENDS",
@@ -78,7 +76,7 @@ fun FriendsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth(if (isPortrait) 1f else 0.5f)
-                        .padding(horizontal = paddingScale * 0.04f),
+                        .padding(horizontal = spacing.screenHorizontal),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
@@ -88,17 +86,17 @@ fun FriendsScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(listItemSize * 0.8f)
-                            .clip(RoundedCornerShape(paddingScale * 0.04f))
+                            .height(dimensions.listItemHeight)
+                            .clip(shapes.medium)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                     )
 
-                    Spacer(modifier = Modifier.height(paddingScale * 0.05f))
+                    Spacer(modifier = Modifier.height(spacing.mediumLarge))
 
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(bottom = paddingScale * 0.04f),
-                        verticalArrangement = Arrangement.spacedBy(paddingScale * 0.02f)
+                        contentPadding = PaddingValues(bottom = spacing.medium),
+                        verticalArrangement = Arrangement.spacedBy(spacing.small)
                     ) {
                         items(friends, key = { it.id }) { friend ->
                             FriendListItem(
@@ -107,25 +105,24 @@ fun FriendsScreen(
                                 onViewProfile = { onViewProfileClicked(it) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(listItemSize)
-                                    .clip(RoundedCornerShape(paddingScale * 0.04f))
+                                    .height(dimensions.listItemHeight)
+                                    .clip(shapes.medium)
                                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                             )
                         }
 
                         item {
-                            Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+                            Spacer(modifier = Modifier.height(spacing.medium))
                             Text(
-                                "Friend Requests",
+                                text = "Friend Requests",
                                 style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
-                                    letterSpacing = 1.sp
+                                    fontWeight = FontWeight.Bold
                                 ),
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth()
                             )
-                            Spacer(modifier = Modifier.height(paddingScale * 0.02f))
+                            Spacer(modifier = Modifier.height(spacing.small))
                         }
 
                         items(friends, key = { it.username }) { friend ->
@@ -135,8 +132,8 @@ fun FriendsScreen(
                                 onViewProfile = { onViewProfileClicked(it) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(listItemSize)
-                                    .clip(RoundedCornerShape(paddingScale * 0.04f))
+                                    .height(dimensions.listItemHeight)
+                                    .clip(shapes.medium)
                                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                             )
                         }

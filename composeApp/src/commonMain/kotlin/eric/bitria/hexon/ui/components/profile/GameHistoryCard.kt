@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.social.GameHistoryItem
 
 @Composable
@@ -22,27 +22,28 @@ fun GameHistoryCard(
     item: GameHistoryItem,
     modifier: Modifier
 ) {
+    val dimensions = HexonTheme.dimensions
+    val spacing = dimensions.spacing
+    val shapes = dimensions.shapes
+
     BoxWithConstraints(
         modifier = modifier
     ) {
-        val height = maxHeight
-        val width = maxWidth
-        
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(height * 0.2f)
+                    shape = shapes.medium
                 )
-                .padding(horizontal = width * 0.06f),
+                .padding(horizontal = spacing.large),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Left Side: Result and Info
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(width * 0.04f)
+                horizontalArrangement = Arrangement.spacedBy(spacing.medium)
             ) {
                 Text(
                     text = if (item.isWin) "WIN" else "LOSS",

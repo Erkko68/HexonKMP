@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.render.GameLayer
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonHeader
@@ -37,14 +36,13 @@ fun MainMenuScreen(
     gameSceneViewModel: GameSceneViewModel = koinViewModel(),
 ) {
     HexonTheme {
+        val spacing = HexonTheme.dimensions.spacing
 
         BoxWithConstraints (
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            val paddingScale = minOf(maxWidth, maxHeight)
-
             GameLayer(
                 modifier = Modifier.fillMaxSize(),
                 jsonCollector = gameSceneViewModel.sendJson,
@@ -54,7 +52,7 @@ fun MainMenuScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = paddingScale * 0.04f, vertical = paddingScale * 0.02f)
+                    .padding(horizontal = spacing.screenHorizontal, vertical = spacing.screenVertical)
                     .clickable(onClick = onStartGameClicked),
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -82,15 +80,14 @@ fun MainMenuScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = paddingScale * 0.08f),
+                        .padding(bottom = spacing.extraLarge),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Tap to Start",
                         style = MaterialTheme.typography.displaySmall.copy(
                             color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp
+                            fontWeight = FontWeight.Bold
                         )
                     )
                 }

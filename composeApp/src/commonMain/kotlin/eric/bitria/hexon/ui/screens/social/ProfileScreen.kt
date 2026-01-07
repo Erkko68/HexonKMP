@@ -45,8 +45,10 @@ fun ProfileScreen(
     val vividColor = uiState.username.toVividColor()
 
     HexonTheme {
+        val dimensions = HexonTheme.dimensions
+        val spacing = dimensions.spacing
+
         BoxWithConstraints {
-            val paddingScale = minOf(maxWidth, maxHeight)
             val isPortrait = maxWidth < maxHeight
 
             Box(
@@ -63,7 +65,7 @@ fun ProfileScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = paddingScale * 0.04f, vertical = paddingScale * 0.02f),
+                        .padding(horizontal = spacing.screenHorizontal, vertical = spacing.screenVertical),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     HexonHeader {
@@ -82,12 +84,12 @@ fun ProfileScreen(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth(if (isPortrait) 1f else 0.5f)
-                            .padding(horizontal = paddingScale * 0.02f),
+                            .padding(horizontal = spacing.small),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ){
                         item {
                             if (isPortrait){
-                                Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+                                Spacer(modifier = Modifier.height(spacing.medium))
                             }
 
                             UserInfoSection(
@@ -96,7 +98,7 @@ fun ProfileScreen(
                                 stats = uiState.stats
                             )
 
-                            Spacer(modifier = Modifier.height(paddingScale * 0.06f))
+                            Spacer(modifier = Modifier.height(spacing.large))
 
                             Text(
                                 text = "Game History",
@@ -109,16 +111,16 @@ fun ProfileScreen(
                                 textAlign = TextAlign.Center
                             )
 
-                            Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+                            Spacer(modifier = Modifier.height(spacing.medium))
                         }
                         items(uiState.gameHistory, key = { it.id }) { item ->
                             GameHistoryCard(
                                 item = item,
                                 modifier = Modifier
-                                    .height(paddingScale * 0.2f)
+                                    .height(dimensions.listItemHeight)
                                     .fillMaxWidth()
                             )
-                            Spacer(modifier = Modifier.height(paddingScale * 0.04f))
+                            Spacer(modifier = Modifier.height(spacing.medium))
                         }
                     }
                 }

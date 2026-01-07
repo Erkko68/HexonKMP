@@ -2,10 +2,7 @@ package eric.bitria.hexon.ui.components.friends
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -32,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import eric.bitria.hexon.theme.HexonTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -42,66 +40,66 @@ fun AddFriendInput(
     var text by remember { mutableStateOf("") }
     var isFocused by remember { mutableStateOf(false) }
 
-    BoxWithConstraints {
-        val paddingScale = minOf(maxWidth, maxHeight)
-        val shape = RoundedCornerShape(paddingScale * 0.04f)
+    val dimensions = HexonTheme.dimensions
+    val spacing = dimensions.spacing
+    val shapes = dimensions.shapes
+    val paddingScale = dimensions.paddingScale
 
-        Row(
-            modifier = modifier
-                .onFocusChanged { isFocused = it.isFocused }
-                .border(
-                    width = 2.dp,
-                    color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                    shape = shape
-                ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            BasicTextField(
-                value = text,
-                onValueChange = { text = it },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = paddingScale * 0.06f),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                ),
-                singleLine = true,
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                decorationBox = { innerTextField ->
-                    if (text.isEmpty()) {
-                        Text(
-                            text = "Add friend by username",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                fontWeight = FontWeight.Bold
-                            )
+    Row(
+        modifier = modifier
+            .onFocusChanged { isFocused = it.isFocused }
+            .border(
+                width = 2.dp,
+                color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = shapes.medium
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BasicTextField(
+            value = text,
+            onValueChange = { text = it },
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = spacing.large),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
+            ),
+            singleLine = true,
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            decorationBox = { innerTextField ->
+                if (text.isEmpty()) {
+                    Text(
+                        text = "Add friend by username",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            fontWeight = FontWeight.Bold
                         )
-                    }
-                    innerTextField()
+                    )
                 }
-            )
-
-            IconButton(
-                onClick = {
-                    if (text.isNotBlank()) {
-                        onAddFriend(text)
-                        text = ""
-                    }
-                },
-                modifier = Modifier
-                    .padding(end = paddingScale * 0.04f)
-                    .size(paddingScale * 0.08f)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.secondary)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Friend",
-                    tint = MaterialTheme.colorScheme.onSecondary,
-                    modifier = Modifier.size(paddingScale * 0.05f)
-                )
+                innerTextField()
             }
+        )
+
+        IconButton(
+            onClick = {
+                if (text.isNotBlank()) {
+                    onAddFriend(text)
+                    text = ""
+                }
+            },
+            modifier = Modifier
+                .padding(end = spacing.medium)
+                .size(paddingScale * 0.09f)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.secondary)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add Friend",
+                tint = MaterialTheme.colorScheme.onSecondary,
+                modifier = Modifier.size(paddingScale * 0.055f)
+            )
         }
     }
 }
@@ -109,12 +107,14 @@ fun AddFriendInput(
 @Preview
 @Composable
 fun AddFriendInputPreview() {
-    AddFriendInput(
-        onAddFriend = {},
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .fillMaxWidth()
-            .height(48.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-    )
+    HexonTheme {
+        AddFriendInput(
+            onAddFriend = {},
+            modifier = Modifier
+                .clip(HexonTheme.dimensions.shapes.medium)
+                .fillMaxWidth()
+                .height(48.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        )
+    }
 }
