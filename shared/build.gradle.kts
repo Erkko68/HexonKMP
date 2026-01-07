@@ -16,7 +16,7 @@ kotlin {
     iosX64()
     iosArm64()
     iosSimulatorArm64()
-    
+
     jvm()
     
     sourceSets {
@@ -26,25 +26,6 @@ kotlin {
             implementation(libs.ktor.client.contentnegotiation)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.auth)
-
-            implementation(project.dependencies.platform(libs.koin.bom))
-            implementation(libs.koin.compose)
-            implementation(libs.koin.compose.viewmodel)
-            implementation(libs.koin.compose.viewmodel.navigation)
-            implementation(libs.insert.koin.koin.core)
-
-            // Persistent Settings and Persistent Encrypted Data
-            implementation(libs.multiplatform.settings.no.arg)
-            implementation(libs.kvault)
-        }
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
-        }
-        androidMain.dependencies {
-            implementation(libs.ktor.client.okhttp)
-        }
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
         }
     }
 }

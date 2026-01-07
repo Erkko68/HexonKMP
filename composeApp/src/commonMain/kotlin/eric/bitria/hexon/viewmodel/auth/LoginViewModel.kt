@@ -9,7 +9,7 @@ import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResult
-import eric.bitria.hexon.repository.AuthRepository
+import eric.bitria.hexon.client.repository.AuthRepository
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch

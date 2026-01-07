@@ -1,7 +1,10 @@
 package eric.bitria.hexon
 
-import eric.bitria.hexon.di.platformStorageModule
-import eric.bitria.hexon.di.sharedModule
+import eric.bitria.hexon.client.di.networkModule
+import eric.bitria.hexon.client.di.platformModule
+import eric.bitria.hexon.client.di.platformStorageModule
+import eric.bitria.hexon.client.di.repositoryModule
+import eric.bitria.hexon.client.di.storageModule
 import eric.bitria.hexon.viewmodel.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.GameUIViewModel
 import eric.bitria.hexon.viewmodel.MainMenuViewModel
@@ -35,6 +38,13 @@ val viewModelsModule = module {
 fun initKoin(config: KoinAppDeclaration? = null){
     startKoin {
         config?.invoke(this)
-        modules(platformStorageModule, sharedModule, viewModelsModule)
+        modules(
+            platformModule,
+            platformStorageModule,
+            storageModule,
+            networkModule,
+            repositoryModule,
+            viewModelsModule
+        )
     }
 }

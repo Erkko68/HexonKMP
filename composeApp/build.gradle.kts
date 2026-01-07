@@ -1,6 +1,4 @@
 import com.android.build.api.dsl.androidLibrary
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -35,6 +33,7 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.ktor.client.okhttp)
         }
         commonMain.dependencies {
             implementation(libs.material.icons.extended)
@@ -53,15 +52,25 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             api(libs.compose.webview.multiplatform)
 
+            // Koin Dependency Injection
             implementation(project.dependencies.platform(libs.koin.bom))
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.koin.compose.viewmodel.navigation)
             implementation(libs.insert.koin.koin.core)
+
+            // Persistent Settings and Persistent Encrypted Data
+            implementation(libs.multiplatform.settings.no.arg)
+            implementation(libs.kvault)
+
+            // Ktor Client
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.auth)
+            implementation(libs.ktor.client.contentnegotiation)
+            implementation(libs.ktor.serialization.json)
         }
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
-            implementation(libs.kotlinx.coroutines.test)
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
     }
 }
