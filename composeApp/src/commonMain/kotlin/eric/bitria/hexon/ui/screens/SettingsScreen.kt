@@ -68,7 +68,8 @@ fun SettingsButton(
 fun SettingsScreen(
     settingsViewModel: SettingsViewModel = koinViewModel(),
     onExitClicked: () -> Unit,
-    onChangePasswordClicked: () -> Unit
+    onChangePasswordClicked: () -> Unit,
+    onLogout: () -> Unit
 ) {
     val uiState by settingsViewModel.uiState.collectAsState()
 
@@ -214,7 +215,10 @@ fun SettingsScreen(
 
                             SettingsButton(
                                 text = "Log Out",
-                                onClick = settingsViewModel::onLogOutClicked,
+                                onClick = {
+                                    settingsViewModel.logout()
+                                    onLogout()
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 paddingScale = dimensions.paddingScale
                             )

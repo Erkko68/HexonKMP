@@ -56,8 +56,8 @@ fun SettingsToggle(
                 colors = SwitchDefaults.colors(
                     // CHECKED
                     checkedThumbColor = MaterialTheme.colorScheme.primary,
-                    checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-                    checkedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                    checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                    checkedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
 
                     // UNCHECKED
                     uncheckedThumbColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),

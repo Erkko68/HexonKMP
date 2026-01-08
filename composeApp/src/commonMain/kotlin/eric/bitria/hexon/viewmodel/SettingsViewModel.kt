@@ -1,6 +1,7 @@
 package eric.bitria.hexon.viewmodel
 
 import androidx.lifecycle.ViewModel
+import eric.bitria.hexon.client.persistence.AccountManager
 import eric.bitria.hexon.client.persistence.SettingsManager
 import eric.bitria.hexon.client.persistence.token.TokenManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +20,8 @@ data class SettingsUiState(
 
 class SettingsViewModel(
     private val settingsManager: SettingsManager,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val accountManager: AccountManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -72,8 +74,10 @@ class SettingsViewModel(
         settingsManager.putBoolean("mirror_ui", isDisabled)
     }
 
-    fun onLogOutClicked() {
+    fun logout() {
         tokenManager.clearTokens()
+        accountManager.clear()
+        settingsManager.clear()
     }
 
     fun onDeleteAccountClicked() {

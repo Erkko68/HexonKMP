@@ -94,7 +94,7 @@ fun ForgotPasswordScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
 
-                    Spacer(Modifier.height(spacing.extraSmall))
+                    Spacer(Modifier.height(spacing.small))
 
                     LoginInputField(
                         value = viewModel.password,
@@ -105,7 +105,7 @@ fun ForgotPasswordScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                     )
 
-                    Spacer(Modifier.height(spacing.extraSmall))
+                    Spacer(Modifier.height(spacing.small))
 
                     LoginInputField(
                         value = viewModel.confirmPassword,

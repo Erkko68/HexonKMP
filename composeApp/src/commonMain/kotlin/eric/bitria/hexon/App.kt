@@ -204,6 +204,11 @@ fun App(
                     onExitClicked = { navController.popBackStack() },
                     onChangePasswordClicked = {
                         navController.navigate(Screens.ResetPassword)
+                    },
+                    onLogout = {
+                        navController.navigate(Screens.Login) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 )
             }
