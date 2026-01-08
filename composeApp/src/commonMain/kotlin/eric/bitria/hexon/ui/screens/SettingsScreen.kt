@@ -1,25 +1,13 @@
 package eric.bitria.hexon.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -72,11 +60,65 @@ fun SettingsScreen(
     onLogout: () -> Unit
 ) {
     val uiState by settingsViewModel.uiState.collectAsState()
+    var showLogoutConfirmation by remember { mutableStateOf(false) }
 
     HexonTheme {
         val dimensions = HexonTheme.dimensions
         val spacing = dimensions.spacing
         val shapes = dimensions.shapes
+
+        if (showLogoutConfirmation) {
+            AlertDialog(
+                onDismissRequest = { showLogoutConfirmation = false },
+                title = {
+                    Text(
+                        "Log Out",
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                },
+                text = {
+                    Text(
+                        "Are you sure you want to log out? All your local settings and session data will be cleared.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showLogoutConfirmation = false
+                            settingsViewModel.logout()
+                            onLogout()
+                        }
+                    ) {
+                        Text(
+                            "LOG OUT",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLogoutConfirmation = false }) {
+                        Text(
+                            "CANCEL",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp,
+                shape = shapes.medium
+            )
+        }
 
         BoxWithConstraints {
             val isPortrait = maxWidth < maxHeight
@@ -215,10 +257,7 @@ fun SettingsScreen(
 
                             SettingsButton(
                                 text = "Log Out",
-                                onClick = {
-                                    settingsViewModel.logout()
-                                    onLogout()
-                                },
+                                onClick = { showLogoutConfirmation = true },
                                 modifier = Modifier.fillMaxWidth(),
                                 paddingScale = dimensions.paddingScale
                             )
