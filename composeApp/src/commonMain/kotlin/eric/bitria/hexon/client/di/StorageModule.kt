@@ -1,6 +1,8 @@
 package eric.bitria.hexon.client.di
 
 import com.russhwolf.settings.Settings
+import eric.bitria.hexon.client.persistence.AccountManager
+import eric.bitria.hexon.client.persistence.AccountManagerImpl
 import eric.bitria.hexon.client.persistence.EncryptedData
 import eric.bitria.hexon.client.persistence.EncryptedDataImpl
 import eric.bitria.hexon.client.persistence.SettingsManager
@@ -21,4 +23,6 @@ val storageModule = module {
     single<EncryptedData> { EncryptedDataImpl(get()) }
     
     single<TokenManager> { TokenManagerImpl(get(), get()) }
+    
+    single<AccountManager> { AccountManagerImpl(get()) }
 }

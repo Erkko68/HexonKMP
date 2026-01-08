@@ -8,12 +8,14 @@ import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.dtos.auth.ChangePasswordRequest
 import eric.bitria.hexon.dtos.auth.ChangePasswordResult
 import eric.bitria.hexon.client.repository.AccountRepository
+import eric.bitria.hexon.client.persistence.AccountManager
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
 class ResetPasswordViewModel(
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    private val accountManager: AccountManager
 ) : ViewModel() {
 
     var email by mutableStateOf("")
@@ -53,8 +55,12 @@ class ResetPasswordViewModel(
         private set
 
     fun init(email: String, isResetMode: Boolean) {
-        this.email = email
         this.isResetMode = isResetMode
+        if (isResetMode) {
+            this.email = email
+        } else {
+            this.email = accountManager.getEmail() ?: email
+        }
     }
 
     fun onResetCodeChange(newCode: String) {

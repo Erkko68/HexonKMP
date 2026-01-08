@@ -10,13 +10,15 @@ import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.client.repository.AuthRepository
+import eric.bitria.hexon.client.persistence.AccountManager
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
 class LoginViewModel(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val accountManager: AccountManager
 ) : ViewModel() {
 
     // --- Fields ---
@@ -119,6 +121,7 @@ class LoginViewModel(
                     val response = authRepository.login(LoginRequest(email, password))
                     when (response.result) {
                         LoginResult.SUCCESS -> {
+                            accountManager.saveEmail(email)
                             loginState = LoginStatus.SUCCESS
                         }
                         LoginResult.PENDING_VERIFICATION -> {
@@ -151,6 +154,7 @@ class LoginViewModel(
                     val response = authRepository.register(RegisterRequest(name, email, password))
                     when (response.result) {
                         RegisterResult.VERIFICATION_SENT -> {
+                            accountManager.saveEmail(email)
                             loginState = LoginStatus.VERIFICATION_SENT
                         }
                         else -> {
