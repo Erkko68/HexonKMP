@@ -1,30 +1,25 @@
-package eric.bitria.hexon.viewmodel.auth
+package eric.bitria.hexon.viewmodel.account
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import eric.bitria.hexon.client.repository.AccountRepository
 import eric.bitria.hexon.dtos.auth.ChangePasswordRequest
 import eric.bitria.hexon.dtos.auth.ChangePasswordResult
-import eric.bitria.hexon.client.repository.AccountRepository
-import eric.bitria.hexon.client.persistence.AccountManager
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
-class ResetPasswordViewModel(
-    private val accountRepository: AccountRepository,
-    private val accountManager: AccountManager
+class ForgotPasswordViewModel(
+    private val accountRepository: AccountRepository
 ) : ViewModel() {
 
     var email by mutableStateOf("")
         private set
 
     var resetCode by mutableStateOf("")
-        private set
-
-    var oldPassword by mutableStateOf("")
         private set
 
     var password by mutableStateOf("")
@@ -36,16 +31,10 @@ class ResetPasswordViewModel(
     var state by mutableStateOf(ResetPasswordStatus.IDLE)
         private set
 
-    var isResetMode by mutableStateOf(true)
-        private set
-
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
     var resetCodeError by mutableStateOf<String?>(null)
-        private set
-
-    var oldPasswordError by mutableStateOf<String?>(null)
         private set
 
     var passwordError by mutableStateOf<String?>(null)
@@ -54,23 +43,13 @@ class ResetPasswordViewModel(
     var confirmPasswordError by mutableStateOf<String?>(null)
         private set
 
-    fun init(email: String, isResetMode: Boolean) {
-        this.isResetMode = isResetMode
-        if (isResetMode) {
-            this.email = email
-        } else {
-            this.email = accountManager.getEmail() ?: email
-        }
+    fun init(email: String) {
+        this.email = email
     }
 
     fun onResetCodeChange(newCode: String) {
         resetCode = newCode
         resetCodeError = if (Validators.isValidCode(newCode)) null else "Code must be 6 digits."
-    }
-
-    fun onOldPasswordChange(newPassword: String) {
-        oldPassword = newPassword
-        oldPasswordError = if (Validators.isValidPassword(newPassword)) null else "Invalid password format."
     }
 
     fun onPasswordChange(newPassword: String) {
@@ -92,19 +71,14 @@ class ResetPasswordViewModel(
     }
 
     private fun validateForm(): Boolean {
-        if (isResetMode) {
-            onResetCodeChange(resetCode)
-        } else {
-            onOldPasswordChange(oldPassword)
-        }
+        onResetCodeChange(resetCode)
         onPasswordChange(password)
         validateConfirmPassword()
         
-        return (if (isResetMode) resetCodeError == null else oldPasswordError == null) && 
-                passwordError == null && confirmPasswordError == null
+        return resetCodeError == null && passwordError == null && confirmPasswordError == null
     }
 
-    fun changePassword() {
+    fun resetPassword() {
         if (!validateForm()) return
 
         viewModelScope.launch {
@@ -115,8 +89,8 @@ class ResetPasswordViewModel(
                     val response = accountRepository.changePassword(
                         ChangePasswordRequest(
                             email = email,
-                            resetCode = if (isResetMode) resetCode else null,
-                            oldPassword = if (!isResetMode) oldPassword else null,
+                            resetCode = resetCode,
+                            oldPassword = null,
                             newPassword = password
                         )
                     )
@@ -132,7 +106,7 @@ class ResetPasswordViewModel(
                 }
             } catch (e: Exception) {
                 state = ResetPasswordStatus.ERROR
-                errorMessage = "Failed to update password: ${e.message}"
+                errorMessage = "Failed to reset password: ${e.message}"
             }
         }
     }
@@ -140,8 +114,4 @@ class ResetPasswordViewModel(
     fun resetState() {
         state = ResetPasswordStatus.IDLE
     }
-}
-
-enum class ResetPasswordStatus {
-    IDLE, LOADING, SUCCESS, ERROR
 }

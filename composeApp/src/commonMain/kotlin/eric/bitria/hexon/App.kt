@@ -16,9 +16,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.screens.*
-import eric.bitria.hexon.ui.screens.auth.ForgotPasswordScreen
+import eric.bitria.hexon.ui.screens.account.ForgotPasswordScreen
+import eric.bitria.hexon.ui.screens.account.SendPasswordResetCodeScreen
 import eric.bitria.hexon.ui.screens.auth.LoginScreen
-import eric.bitria.hexon.ui.screens.auth.ResetPasswordScreen
+import eric.bitria.hexon.ui.screens.account.ResetPasswordScreen
 import eric.bitria.hexon.ui.screens.auth.VerifyScreen
 import eric.bitria.hexon.ui.screens.social.FriendProfileScreen
 import eric.bitria.hexon.ui.screens.social.FriendsScreen
@@ -53,7 +54,21 @@ fun App(
                         navController.navigate(Screens.Verify(email))
                     },
                     onNavigateToForgotPassword = {
-                        navController.navigate(Screens.ForgotPassword)
+                        navController.navigate(Screens.SendPasswordResetCode)
+                    }
+                )
+            }
+
+            composable<Screens.SendPasswordResetCode>(
+                enterTransition = { fadeIn(animationSpec = tween(500)) },
+                exitTransition = { fadeOut(animationSpec = tween(500)) }
+            ) {
+                SendPasswordResetCodeScreen(
+                    onNavigateToReset = { email ->
+                        navController.navigate(Screens.ForgotPassword(email))
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
                     }
                 )
             }
@@ -61,10 +76,14 @@ fun App(
             composable<Screens.ForgotPassword>(
                 enterTransition = { fadeIn(animationSpec = tween(500)) },
                 exitTransition = { fadeOut(animationSpec = tween(500)) }
-            ) {
+            ) { backStackEntry ->
+                val forgot: Screens.ForgotPassword = backStackEntry.toRoute()
                 ForgotPasswordScreen(
-                    onNavigateToReset = { email ->
-                        navController.navigate(Screens.ResetPassword(email, isResetMode = true))
+                    email = forgot.email,
+                    onResetSuccess = {
+                        navController.navigate(Screens.Login) {
+                            popUpTo(Screens.Login) { inclusive = true }
+                        }
                     },
                     onNavigateBack = {
                         navController.popBackStack()
@@ -75,19 +94,10 @@ fun App(
             composable<Screens.ResetPassword>(
                 enterTransition = { fadeIn(animationSpec = tween(500)) },
                 exitTransition = { fadeOut(animationSpec = tween(500)) }
-            ) { backStackEntry ->
-                val reset: Screens.ResetPassword = backStackEntry.toRoute()
+            ) {
                 ResetPasswordScreen(
-                    email = reset.email,
-                    isResetMode = reset.isResetMode,
-                    onResetSuccess = {
-                        if (reset.isResetMode) {
-                            navController.navigate(Screens.Login) {
-                                popUpTo(Screens.Login) { inclusive = true }
-                            }
-                        } else {
-                            navController.popBackStack()
-                        }
+                    onSuccess = {
+                        navController.popBackStack()
                     },
                     onNavigateBack = {
                         navController.popBackStack()
@@ -193,9 +203,7 @@ fun App(
                 SettingsScreen(
                     onExitClicked = { navController.popBackStack() },
                     onChangePasswordClicked = {
-                        // In a real app, you'd get the current user's email from a session/profile.
-                        // For now, we'll navigate to ResetPassword in non-reset mode.
-                        navController.navigate(Screens.ResetPassword(email = "", isResetMode = false))
+                        navController.navigate(Screens.ResetPassword)
                     }
                 )
             }

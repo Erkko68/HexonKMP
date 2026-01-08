@@ -1,4 +1,4 @@
-package eric.bitria.hexon.viewmodel.auth
+package eric.bitria.hexon.viewmodel.account
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -12,7 +12,7 @@ import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
-class ForgotPasswordViewModel(
+class SendPasswordResetCodeViewModel(
     private val accountRepository: AccountRepository
 ) : ViewModel() {
 
