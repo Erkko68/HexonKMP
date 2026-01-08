@@ -7,13 +7,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.dtos.auth.ForgotPasswordRequest
 import eric.bitria.hexon.dtos.auth.ForgotPasswordResult
-import eric.bitria.hexon.client.repository.AuthRepository
+import eric.bitria.hexon.client.repository.AccountRepository
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
 class ForgotPasswordViewModel(
-    private val authRepository: AuthRepository
+    private val accountRepository: AccountRepository
 ) : ViewModel() {
 
     var email by mutableStateOf("")
@@ -46,7 +46,7 @@ class ForgotPasswordViewModel(
             errorMessage = null
             try {
                 withTimeout(10000L) {
-                    val response = authRepository.forgotPassword(ForgotPasswordRequest(email))
+                    val response = accountRepository.forgotPassword(ForgotPasswordRequest(email))
                     when (response.result) {
                         ForgotPasswordResult.SUCCESS -> {
                             state = ForgotPasswordStatus.SUCCESS

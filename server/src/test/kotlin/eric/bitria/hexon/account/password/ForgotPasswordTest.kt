@@ -1,11 +1,11 @@
-package eric.bitria.hexon.auth.password
+package eric.bitria.hexon.account.password
 
-import eric.bitria.hexon.auth.changePassword
-import eric.bitria.hexon.auth.forgotPassword
+import eric.bitria.hexon.account.changePassword
+import eric.bitria.hexon.account.forgotPassword
+import eric.bitria.hexon.account.withTestAccountClient
 import eric.bitria.hexon.auth.login
 import eric.bitria.hexon.auth.register
 import eric.bitria.hexon.auth.verify
-import eric.bitria.hexon.auth.withTestAuthClient
 import eric.bitria.hexon.dtos.auth.ChangePasswordResult
 import eric.bitria.hexon.dtos.auth.ForgotPasswordResult
 import eric.bitria.hexon.dtos.auth.LoginResult
@@ -17,7 +17,7 @@ import kotlin.test.assertEquals
 class ForgotPasswordTest {
 
     @Test
-    fun `test forgot password flow success`() = withTestAuthClient { client, inbox ->
+    fun `test forgot password flow success`() = withTestAccountClient { client, inbox ->
         val email = "test@example.com"
         val initialPassword = "Password123!"
         val newPassword = "NewPassword123!"
@@ -50,7 +50,7 @@ class ForgotPasswordTest {
     }
 
     @Test
-    fun `test forgot password with wrong code fails`() = withTestAuthClient { client, inbox ->
+    fun `test forgot password with wrong code fails`() = withTestAccountClient { client, inbox ->
         val email = "wrongcode@example.com"
         client.register("wrongcode", email, "Password123!")
         client.verify(email, inbox.value)
@@ -66,7 +66,7 @@ class ForgotPasswordTest {
     }
 
     @Test
-    fun `test forgot password for non-existent user still returns success`() = withTestAuthClient { client, _ ->
+    fun `test forgot password for non-existent user still returns success`() = withTestAccountClient { client, _ ->
         // For security, many APIs return success even if the email doesn't exist
         val forgotResp = client.forgotPassword("nonexistent@example.com")
         assertEquals(ForgotPasswordResult.SUCCESS, forgotResp.result)

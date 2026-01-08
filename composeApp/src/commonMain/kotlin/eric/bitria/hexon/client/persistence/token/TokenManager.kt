@@ -1,4 +1,4 @@
-package eric.bitria.hexon.client.repository.token
+package eric.bitria.hexon.client.persistence.token
 
 interface TokenManager {
     fun saveTokens(accessToken: String, refreshToken: String)

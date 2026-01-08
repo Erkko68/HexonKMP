@@ -71,6 +71,10 @@ fun LoginScreen(
 
         var selectedTab by remember { mutableStateOf("Login") }
 
+        LaunchedEffect(Unit) {
+            loginViewModel.attemptAutoLogin()
+        }
+
         LaunchedEffect(loginViewModel.loginState) {
             when (loginViewModel.loginState) {
                 LoginStatus.SUCCESS -> onLoginSuccess()

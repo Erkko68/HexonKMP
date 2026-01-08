@@ -96,6 +96,18 @@ class LoginViewModel(
 
     // --- Flows Triggers ---
 
+    fun attemptAutoLogin() {
+        viewModelScope.launch {
+            loginState = LoginStatus.LOADING
+            val success = authRepository.autoLogin()
+            loginState = if (success) {
+                LoginStatus.SUCCESS
+            } else {
+                LoginStatus.IDLE
+            }
+        }
+    }
+
     fun loginWithEmail() {
         if (!validateLoginForm()) return
         

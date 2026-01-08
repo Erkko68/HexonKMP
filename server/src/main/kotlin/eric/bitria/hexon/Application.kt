@@ -7,7 +7,7 @@ import eric.bitria.hexon.database.DatabaseFactory
 import eric.bitria.hexon.auth.email.SmtpConfig
 import eric.bitria.hexon.auth.email.SmtpEmailService
 import eric.bitria.hexon.auth.login.LoginServiceImp
-import eric.bitria.hexon.auth.password.PasswordServiceImp
+import eric.bitria.hexon.account.password.PasswordServiceImp
 import eric.bitria.hexon.auth.refresh.RefreshServiceImp
 import eric.bitria.hexon.auth.register.RegisterServiceImp
 import eric.bitria.hexon.routes.loginRoute
@@ -15,7 +15,7 @@ import eric.bitria.hexon.routes.refreshRoute
 import eric.bitria.hexon.routes.registerRoutes
 import eric.bitria.hexon.auth.token.JwtConfig
 import eric.bitria.hexon.auth.token.JwtTokenService
-import eric.bitria.hexon.routes.passwordRoutes
+import eric.bitria.hexon.routes.accountRoutes
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -71,7 +71,7 @@ fun Application.module() {
         registerRoutes(registerService)
         loginRoute(loginService)
         refreshRoute(refreshService)
-        passwordRoutes(passwordService)
+        accountRoutes(passwordService)
     }
 }
 

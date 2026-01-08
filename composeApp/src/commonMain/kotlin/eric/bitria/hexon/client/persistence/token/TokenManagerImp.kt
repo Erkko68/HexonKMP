@@ -1,4 +1,4 @@
-package eric.bitria.hexon.client.repository.token
+package eric.bitria.hexon.client.persistence.token
 
 import eric.bitria.hexon.client.persistence.EncryptedData
 import eric.bitria.hexon.client.persistence.SettingsManager

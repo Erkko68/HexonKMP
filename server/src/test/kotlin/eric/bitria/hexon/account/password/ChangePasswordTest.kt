@@ -1,6 +1,7 @@
-package eric.bitria.hexon.auth.password
+package eric.bitria.hexon.account.password
 
-import eric.bitria.hexon.auth.changePassword
+import eric.bitria.hexon.account.changePassword
+import eric.bitria.hexon.account.withTestAccountClient
 import eric.bitria.hexon.auth.login
 import eric.bitria.hexon.auth.register
 import eric.bitria.hexon.auth.verify
@@ -13,7 +14,7 @@ import kotlin.test.assertEquals
 class ChangePasswordTest {
 
     @Test
-    fun `test change password with old password success`() = withTestAuthClient { client, inbox ->
+    fun `test change password with old password success`() = withTestAccountClient { client, inbox ->
         val email = "change@example.com"
         val oldPassword = "OldPassword123!"
         val newPassword = "NewPassword123!"
@@ -33,7 +34,7 @@ class ChangePasswordTest {
     }
 
     @Test
-    fun `test change password with wrong old password fails`() = withTestAuthClient { client, inbox ->
+    fun `test change password with wrong old password fails`() = withTestAccountClient { client, inbox ->
         val email = "wrongold@example.com"
         val actualPassword = "ActualPassword123!"
 
@@ -49,7 +50,7 @@ class ChangePasswordTest {
     }
 
     @Test
-    fun `test change password with weak password fails`() = withTestAuthClient { client, inbox ->
+    fun `test change password with weak password fails`() = withTestAccountClient { client, inbox ->
         val email = "weak@example.com"
         val oldPassword = "Password123!"
 
@@ -65,7 +66,7 @@ class ChangePasswordTest {
     }
 
     @Test
-    fun `test change password for non-existent user fails`() = withTestAuthClient { client, _ ->
+    fun `test change password for non-existent user fails`() = withTestAccountClient { client, _ ->
         val changeResp = client.changePassword(
             email = "nonexistent@example.com",
             oldPassword = "AnyPassword123!",

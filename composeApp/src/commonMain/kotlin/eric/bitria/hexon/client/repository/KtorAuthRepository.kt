@@ -1,7 +1,7 @@
 package eric.bitria.hexon.client.repository
 
 import eric.bitria.hexon.dtos.auth.*
-import eric.bitria.hexon.client.repository.token.TokenManager
+import eric.bitria.hexon.client.persistence.token.TokenManager
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
@@ -67,17 +67,13 @@ class KtorAuthRepository(
         }.body()
     }
 
-    override suspend fun forgotPassword(request: ForgotPasswordRequest): ForgotPasswordResponse {
-        return client.post("/auth/forgot-password") {
-            contentType(ContentType.Application.Json)
-            setBody(request)
-        }.body()
-    }
-
-    override suspend fun changePassword(request: ChangePasswordRequest): ChangePasswordResponse {
-        return client.post("/auth/change-password") {
-            contentType(ContentType.Application.Json)
-            setBody(request)
-        }.body()
+    override suspend fun autoLogin(): Boolean {
+        val refreshToken = tokenManager.getRefreshToken() ?: return false
+        return try {
+            val response = refresh(RefreshRequest(refreshToken))
+            response.result == RefreshResult.SUCCESS
+        } catch (e: Exception) {
+            false
+        }
     }
 }

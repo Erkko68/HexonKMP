@@ -2,9 +2,8 @@ package eric.bitria.hexon.auth.mock
 
 import at.favre.lib.crypto.bcrypt.BCrypt
 import eric.bitria.hexon.auth.email.EmailService
-import eric.bitria.hexon.auth.password.PasswordService
+import eric.bitria.hexon.account.password.PasswordService
 import eric.bitria.hexon.auth.repository.AuthRepository
-import eric.bitria.hexon.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.ChangePasswordRequest
 import eric.bitria.hexon.dtos.auth.ChangePasswordResponse
 import eric.bitria.hexon.dtos.auth.ChangePasswordResult

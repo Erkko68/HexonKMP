@@ -1,6 +1,6 @@
 package eric.bitria.hexon.client.di
 
-import eric.bitria.hexon.client.repository.token.TokenManager
+import eric.bitria.hexon.client.persistence.token.TokenManager
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RefreshResult

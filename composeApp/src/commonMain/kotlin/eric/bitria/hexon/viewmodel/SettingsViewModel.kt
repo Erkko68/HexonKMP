@@ -2,7 +2,7 @@ package eric.bitria.hexon.viewmodel
 
 import androidx.lifecycle.ViewModel
 import eric.bitria.hexon.client.persistence.SettingsManager
-import eric.bitria.hexon.client.repository.token.TokenManager
+import eric.bitria.hexon.client.persistence.token.TokenManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

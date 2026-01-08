@@ -5,8 +5,8 @@ import eric.bitria.hexon.client.persistence.EncryptedData
 import eric.bitria.hexon.client.persistence.EncryptedDataImpl
 import eric.bitria.hexon.client.persistence.SettingsManager
 import eric.bitria.hexon.client.persistence.SettingsManagerImpl
-import eric.bitria.hexon.client.repository.token.TokenManager
-import eric.bitria.hexon.client.repository.token.TokenManagerImpl
+import eric.bitria.hexon.client.persistence.token.TokenManager
+import eric.bitria.hexon.client.persistence.token.TokenManagerImpl
 import org.koin.core.module.Module
 import org.koin.dsl.module
 

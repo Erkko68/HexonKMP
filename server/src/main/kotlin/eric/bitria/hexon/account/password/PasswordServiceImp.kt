@@ -1,4 +1,4 @@
-package eric.bitria.hexon.auth.password
+package eric.bitria.hexon.account.password
 
 import at.favre.lib.crypto.bcrypt.BCrypt
 import eric.bitria.hexon.auth.email.EmailService

@@ -8,6 +8,5 @@ interface AuthRepository {
     suspend fun refresh(request: RefreshRequest): RefreshResponse
     suspend fun verifyEmail(request: VerifyEmailRequest): VerifyEmailResponse
     suspend fun resendVerificationCode(request: ResendVerificationCodeRequest): ResendVerificationCodeResponse
-    suspend fun forgotPassword(request: ForgotPasswordRequest): ForgotPasswordResponse
-    suspend fun changePassword(request: ChangePasswordRequest): ChangePasswordResponse
+    suspend fun autoLogin(): Boolean
 }

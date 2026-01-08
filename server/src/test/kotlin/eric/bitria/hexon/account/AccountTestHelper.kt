@@ -1,22 +1,22 @@
-package eric.bitria.hexon.auth
+package eric.bitria.hexon.account
 
 import eric.bitria.hexon.auth.mock.Inbox
 import eric.bitria.hexon.auth.mock.MockAuthRepository
 import eric.bitria.hexon.auth.mock.MockEmailService
 import eric.bitria.hexon.auth.mock.MockLoginService
+import eric.bitria.hexon.auth.mock.MockPasswordService
 import eric.bitria.hexon.auth.mock.MockRefreshService
 import eric.bitria.hexon.auth.mock.MockRegisterService
 import eric.bitria.hexon.auth.mock.MockTokenService
-import eric.bitria.hexon.dtos.auth.LoginRequest
-import eric.bitria.hexon.dtos.auth.LoginResponse
-import eric.bitria.hexon.dtos.auth.RefreshRequest
-import eric.bitria.hexon.dtos.auth.RefreshResponse
+import eric.bitria.hexon.dtos.auth.ChangePasswordRequest
+import eric.bitria.hexon.dtos.auth.ChangePasswordResponse
+import eric.bitria.hexon.dtos.auth.ForgotPasswordRequest
+import eric.bitria.hexon.dtos.auth.ForgotPasswordResponse
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResponse
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
+import eric.bitria.hexon.routes.accountRoutes
 import eric.bitria.hexon.routes.loginRoute
 import eric.bitria.hexon.routes.refreshRoute
 import eric.bitria.hexon.routes.registerRoutes
@@ -34,10 +34,10 @@ import io.ktor.server.testing.testApplication
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 
 /**
- * Launch a test server with all auth routes and JSON configured,
+ * Launch a test server with account routes and JSON configured,
  * and provides a ready-to-use Ktor client.
  */
-fun withTestAuthClient(
+fun withTestAccountClient(
     block: suspend (HttpClient, Inbox) -> Unit
 ) {
     val inbox = Inbox("")
@@ -69,6 +69,12 @@ fun withTestAuthClient(
                         emailService = emailService
                     )
                 )
+                accountRoutes(
+                    passwordService = MockPasswordService(
+                        repository = repository,
+                        emailService = emailService
+                    )
+                )
             }
         }
 
@@ -79,6 +85,27 @@ fun withTestAuthClient(
         block(client, inbox)
     }
 }
+
+suspend fun HttpClient.forgotPassword(
+    email: String
+): ForgotPasswordResponse = post("/account/forgot-password") {
+    contentType(ContentType.Application.Json)
+    setBody(ForgotPasswordRequest(email))
+}.body()
+
+suspend fun HttpClient.changePassword(
+    email: String,
+    resetCode: String? = null,
+    newPassword: String,
+    oldPassword: String? = null
+): ChangePasswordResponse = post("/account/change-password") {
+    contentType(ContentType.Application.Json)
+    setBody(ChangePasswordRequest(email, resetCode, oldPassword, newPassword))
+}.body()
+
+
+// Auxiliary functions
+
 
 /**
  * Abbreviation of the register endpoint.
@@ -101,35 +128,4 @@ suspend fun HttpClient.verify(
 ): VerifyEmailResponse = post("/auth/verify") {
     contentType(ContentType.Application.Json)
     setBody(VerifyEmailRequest(email, code))
-}.body()
-
-/**
- * Abbreviation of the resend verification endpoint.
- */
-suspend fun HttpClient.resendVerification(
-    email: String
-): ResendVerificationCodeResponse = post("/auth/resend-verification") {
-    contentType(ContentType.Application.Json)
-    setBody(ResendVerificationCodeRequest(email))
-}.body()
-
-/**
- * Abbreviation of the refresh endpoint.
- */
-suspend fun HttpClient.refresh(
-    refreshToken: String
-): RefreshResponse = post("/auth/refresh") {
-    contentType(ContentType.Application.Json)
-    setBody(RefreshRequest(refreshToken))
-}.body()
-
-/**
- * Abbreviation of the login endpoint.
- */
-suspend fun HttpClient.login(
-    email: String,
-    password: String
-): LoginResponse = post("/auth/login") {
-    contentType(ContentType.Application.Json)
-    setBody(LoginRequest(email, password))
 }.body()
