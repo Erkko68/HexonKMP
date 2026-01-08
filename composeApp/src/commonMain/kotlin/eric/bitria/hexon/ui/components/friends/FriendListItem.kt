@@ -79,7 +79,7 @@ fun FriendListItem(
                 onClick = { onInvite(friend.username) },
                 modifier = Modifier
                     .padding(end = spacing.medium)
-                    .size(paddingScale * 0.09f) // Slightly larger button
+                    .size(paddingScale * 0.06f) // Slightly larger button
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary)
             ) {

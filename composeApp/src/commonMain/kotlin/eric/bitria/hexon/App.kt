@@ -1,9 +1,9 @@
 package eric.bitria.hexon
 
-import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -35,19 +35,31 @@ fun App(
             startDestination = Screens.Login,
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(MaterialTheme.colorScheme.background),
+            // Modern Shared Z-Axis transitions
+            enterTransition = {
+                fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
+                        scaleIn(initialScale = 0.92f, animationSpec = tween(300, easing = LinearOutSlowInEasing))
+            },
+            exitTransition = {
+                fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
+                        scaleOut(targetScale = 1.08f, animationSpec = tween(300, easing = FastOutLinearInEasing))
+            },
+            popEnterTransition = {
+                fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
+                        scaleIn(initialScale = 1.08f, animationSpec = tween(300, easing = LinearOutSlowInEasing))
+            },
+            popExitTransition = {
+                fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
+                        scaleOut(targetScale = 0.92f, animationSpec = tween(300, easing = FastOutLinearInEasing))
+            }
         ) {
 
-            composable<Screens.Login>(
-                enterTransition = { fadeIn(animationSpec = tween(500)) },
-                exitTransition = { fadeOut(animationSpec = tween(500)) }
-            ) {
+            composable<Screens.Login> {
                 LoginScreen(
                     onLoginSuccess = {
                         navController.navigate(Screens.MainMenu) {
-                            popUpTo(Screens.Login) {
-                                inclusive = true
-                            }
+                            popUpTo(Screens.Login) { inclusive = true }
                         }
                     },
                     onNavigateToVerify = { email ->
@@ -59,24 +71,16 @@ fun App(
                 )
             }
 
-            composable<Screens.SendPasswordResetCode>(
-                enterTransition = { fadeIn(animationSpec = tween(500)) },
-                exitTransition = { fadeOut(animationSpec = tween(500)) }
-            ) {
+            composable<Screens.SendPasswordResetCode> {
                 SendPasswordResetCodeScreen(
                     onNavigateToReset = { email ->
                         navController.navigate(Screens.ForgotPassword(email))
                     },
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 
-            composable<Screens.ForgotPassword>(
-                enterTransition = { fadeIn(animationSpec = tween(500)) },
-                exitTransition = { fadeOut(animationSpec = tween(500)) }
-            ) { backStackEntry ->
+            composable<Screens.ForgotPassword> { backStackEntry ->
                 val forgot: Screens.ForgotPassword = backStackEntry.toRoute()
                 ForgotPasswordScreen(
                     email = forgot.email,
@@ -85,58 +89,30 @@ fun App(
                             popUpTo(Screens.Login) { inclusive = true }
                         }
                     },
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 
-            composable<Screens.ResetPassword>(
-                enterTransition = { fadeIn(animationSpec = tween(500)) },
-                exitTransition = { fadeOut(animationSpec = tween(500)) }
-            ) {
+            composable<Screens.ResetPassword> {
                 ResetPasswordScreen(
-                    onSuccess = {
-                        navController.popBackStack()
-                    },
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
+                    onSuccess = { navController.popBackStack() },
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 
-            composable<Screens.Verify>(
-                enterTransition = { fadeIn(animationSpec = tween(500)) },
-                exitTransition = { fadeOut(animationSpec = tween(500)) }
-            ) { backStackEntry ->
+            composable<Screens.Verify> { backStackEntry ->
                 val verify: Screens.Verify = backStackEntry.toRoute()
                 VerifyScreen(
                     email = verify.email,
                     onVerifySuccess = {
                         navController.navigate(Screens.MainMenu) {
-                            popUpTo(Screens.Login) {
-                                inclusive = true
-                            }
+                            popUpTo(Screens.Login) { inclusive = true }
                         }
                     }
                 )
             }
 
-            composable<Screens.MainMenu>(
-                enterTransition = { fadeIn(animationSpec = tween(500)) },
-                exitTransition = {
-                    slideOutOfContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Left,
-                        animationSpec = tween(400)
-                    )
-                },
-                popEnterTransition = {
-                    slideIntoContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Right,
-                        animationSpec = tween(400)
-                    )
-                }
-            ) {
+            composable<Screens.MainMenu> {
                 MainMenuScreen(
                     onFriendsClicked = { navController.navigate(Screens.Friends) },
                     onProfileClicked = { navController.navigate(Screens.Profile) },
@@ -144,40 +120,14 @@ fun App(
                 )
             }
 
-            composable<Screens.Profile>(
-                enterTransition = {
-                    slideIntoContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Left,
-                        animationSpec = tween(400)
-                    )
-                },
-                exitTransition = {
-                    slideOutOfContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Right,
-                        animationSpec = tween(400)
-                    )
-                }
-            ) {
+            composable<Screens.Profile> {
                 ProfileScreen(
                     onExitClicked = { navController.popBackStack() },
                     onSettingsClicked = { navController.navigate(Screens.Settings) }
                 )
             }
 
-            composable<Screens.Friends>(
-                enterTransition = {
-                    slideIntoContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Left,
-                        animationSpec = tween(400)
-                    )
-                },
-                exitTransition = {
-                    slideOutOfContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Right,
-                        animationSpec = tween(400)
-                    )
-                }
-            ) {
+            composable<Screens.Friends> {
                 FriendsScreen(
                     onExitClicked = { navController.popBackStack() },
                     onViewProfileClicked = { username ->
@@ -186,25 +136,10 @@ fun App(
                 )
             }
 
-            composable<Screens.Settings>(
-                enterTransition = {
-                    slideIntoContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Left,
-                        animationSpec = tween(400)
-                    )
-                },
-                exitTransition = {
-                    slideOutOfContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Right,
-                        animationSpec = tween(400)
-                    )
-                }
-            ) {
+            composable<Screens.Settings> {
                 SettingsScreen(
                     onExitClicked = { navController.popBackStack() },
-                    onChangePasswordClicked = {
-                        navController.navigate(Screens.ResetPassword)
-                    },
+                    onChangePasswordClicked = { navController.navigate(Screens.ResetPassword) },
                     onLogout = {
                         navController.navigate(Screens.Login) {
                             popUpTo(0) { inclusive = true }
@@ -213,50 +148,20 @@ fun App(
                 )
             }
 
-            composable<Screens.Game>(
-                enterTransition = {
-                    slideIntoContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Up,
-                        animationSpec = tween(400)
-                    )
-                },
-                exitTransition = {
-                    slideOutOfContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Down,
-                        animationSpec = tween(400)
-                    )
-                }
-            ) {
+            composable<Screens.Game> {
                 GameScreen(
                     onExitClicked = { navController.popBackStack() },
                     onAboutClicked = { /*navController.navigate(Screens.About)*/ }
                 )
             }
 
-            composable<Screens.FriendProfile>(
-                enterTransition = {
-                    slideIntoContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Left,
-                        animationSpec = tween(400)
-                    )
-                },
-                exitTransition = {
-                    slideOutOfContainer(
-                        AnimatedContentTransitionScope.SlideDirection.Right,
-                        animationSpec = tween(400)
-                    )
-                }
-            ) { backStackEntry ->
-
+            composable<Screens.FriendProfile> { backStackEntry ->
                 val friendProfile: Screens.FriendProfile = backStackEntry.toRoute()
-                val username = friendProfile.username
-
                 FriendProfileScreen(
-                    username = username,
+                    username = friendProfile.username,
                     onExitClicked = { navController.popBackStack() }
                 )
             }
-
         }
     }
 }

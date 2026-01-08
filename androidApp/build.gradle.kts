@@ -17,6 +17,17 @@ android {
         versionName = "1.0"
     }
     buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+
+        create("staging") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".staging"
+            versionNameSuffix = "-staging"
+        }
+
         getByName("release") {
             isMinifyEnabled = false
         }

@@ -1,4 +1,14 @@
 import com.android.build.api.dsl.androidLibrary
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath(libs.buildkonfig.gradle.plugin)
+    }
+}
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -6,6 +16,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinxSerialization)
+    alias(libs.plugins.buildkonfig)
 }
 
 kotlin {
@@ -75,16 +86,34 @@ kotlin {
     }
 }
 
+buildkonfig {
+    packageName = "eric.bitria.hexon"
+
+    defaultConfigs {
+        buildConfigField(STRING, "BASE_URL", "http://localhost:8080")
+    }
+
+    targetConfigs("debug") {
+        create("android") {
+            buildConfigField(STRING, "BASE_URL", "http://10.0.2.2:8080")
+        }
+    }
+
+    defaultConfigs("staging") {
+        buildConfigField(STRING, "BASE_URL", "http://192.168.100.207:8080")
+    }
+
+    defaultConfigs("release") {
+        buildConfigField(STRING, "BASE_URL", "https://hexon.biri.es")
+    }
+}
+
 val bundleThreeJs by tasks.registering(Exec::class) {
     group = "build"
     workingDir = file("../threeJs")
 
     // Use shell to execute npm to ensure it's found in the PATH
-    if (org.apache.tools.ant.taskdefs.condition.Os.isFamily(org.apache.tools.ant.taskdefs.condition.Os.FAMILY_WINDOWS)) {
-        commandLine("cmd", "/c", "npm run build")
-    } else {
-        commandLine("sh", "-c", "npm run build")
-    }
+    commandLine("sh", "-c", "npm run build")
 
     isIgnoreExitValue = false
     standardOutput = System.out
@@ -93,4 +122,5 @@ val bundleThreeJs by tasks.registering(Exec::class) {
 
 tasks.matching { it.name == "preBuild" }.configureEach {
     dependsOn(bundleThreeJs)
+    dependsOn("generateBuildKonfig")
 }
