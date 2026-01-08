@@ -12,8 +12,7 @@ class MockAuthRepository : AuthRepository {
         val username: String,
         val passwordHash: String,
         val verified: Boolean,
-        val verificationCode: String?,
-        val resetCode: String? = null
+        val code: String? = null
     )
 
     override suspend fun usernameExists(username: String) = users.values.any { it.username == username }
@@ -23,12 +22,12 @@ class MockAuthRepository : AuthRepository {
     override suspend fun isAccountVerified(email: String) = users[email]?.verified ?: false
 
     override suspend fun getVerificationCodeByEmail(email: String): String? {
-        return users[email]?.verificationCode
+        return users[email]?.code
     }
 
     override suspend fun markAccountAsVerified(email: String) {
         val user = users[email] ?: return
-        users[email] = user.copy(verified = true, verificationCode = null)
+        users[email] = user.copy(verified = true, code = null)
     }
 
     override suspend fun saveOrUpdateUnverifiedUser(
@@ -52,11 +51,6 @@ class MockAuthRepository : AuthRepository {
         return users.entries.firstOrNull { it.value.username == username }?.key
     }
 
-    override suspend fun updateVerificationCode(email: String, verificationCode: String) {
-        val user = users[email] ?: return
-        users[email] = user.copy(verified = false, verificationCode = verificationCode)
-    }
-
     override suspend fun getPasswordByEmail(email: String): String? {
         return users[email]?.passwordHash
     }
@@ -66,17 +60,17 @@ class MockAuthRepository : AuthRepository {
         users[email] = user.copy(passwordHash = passwordHash)
     }
 
-    override suspend fun updateResetCode(email: String, resetCode: String) {
+    override suspend fun updateUserCodeByEmail(email: String, resetCode: String) {
         val user = users[email] ?: return
-        users[email] = user.copy(resetCode = resetCode)
+        users[email] = user.copy(code = resetCode)
     }
 
-    override suspend fun getResetCodeByEmail(email: String): String? {
-        return users[email]?.resetCode
+    override suspend fun getUserCodeByEmail(email: String): String? {
+        return users[email]?.code
     }
 
-    override suspend fun clearResetCode(email: String) {
+    override suspend fun clearUserCode(email: String) {
         val user = users[email] ?: return
-        users[email] = user.copy(resetCode = null)
+        users[email] = user.copy(code = null)
     }
 }

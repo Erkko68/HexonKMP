@@ -1,7 +1,7 @@
 package eric.bitria.hexon.utils
 
-import eric.bitria.hexon.dtos.auth.ChangePasswordResult
-import eric.bitria.hexon.dtos.auth.ForgotPasswordResult
+import eric.bitria.hexon.dtos.account.ChangePasswordResult
+import eric.bitria.hexon.dtos.account.ForgotPasswordResult
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.dtos.auth.RegisterResult

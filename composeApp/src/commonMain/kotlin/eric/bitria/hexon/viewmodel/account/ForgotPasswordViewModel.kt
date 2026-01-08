@@ -6,8 +6,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.client.repository.AccountRepository
-import eric.bitria.hexon.dtos.auth.ChangePasswordRequest
-import eric.bitria.hexon.dtos.auth.ChangePasswordResult
+import eric.bitria.hexon.dtos.account.ChangePasswordRequest
+import eric.bitria.hexon.dtos.account.ChangePasswordResult
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout

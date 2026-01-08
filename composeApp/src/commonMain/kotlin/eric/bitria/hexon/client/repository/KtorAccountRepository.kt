@@ -1,6 +1,9 @@
 package eric.bitria.hexon.client.repository
 
-import eric.bitria.hexon.dtos.auth.*
+import eric.bitria.hexon.dtos.account.ChangePasswordRequest
+import eric.bitria.hexon.dtos.account.ChangePasswordResponse
+import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
+import eric.bitria.hexon.dtos.account.ForgotPasswordResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post

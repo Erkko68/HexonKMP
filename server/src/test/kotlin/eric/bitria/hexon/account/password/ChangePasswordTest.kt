@@ -5,8 +5,7 @@ import eric.bitria.hexon.account.withTestAccountClient
 import eric.bitria.hexon.auth.login
 import eric.bitria.hexon.auth.register
 import eric.bitria.hexon.auth.verify
-import eric.bitria.hexon.auth.withTestAuthClient
-import eric.bitria.hexon.dtos.auth.ChangePasswordResult
+import eric.bitria.hexon.dtos.account.ChangePasswordResult
 import eric.bitria.hexon.dtos.auth.LoginResult
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals

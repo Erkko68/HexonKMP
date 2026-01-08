@@ -35,7 +35,7 @@ class AuthRepositoryDB : AuthRepository {
         Users
             .selectAll()
             .where { Users.email eq email }
-            .map { it[Users.verificationCode] }
+            .map { it[Users.code] }
             .singleOrNull()
     }
 
@@ -43,7 +43,7 @@ class AuthRepositoryDB : AuthRepository {
         dbQuery {
             Users.update({ Users.email eq email }) {
                 it[isVerified] = true
-                it[verificationCode] = null
+                it[code] = null
             }
         }
     }
@@ -67,14 +67,14 @@ class AuthRepositoryDB : AuthRepository {
                     it[Users.email] = email
                     it[Users.username] = username
                     it[Users.password] = hashedPassword
-                    it[Users.verificationCode] = verificationCode
+                    it[Users.code] = verificationCode
                     it[isVerified] = false
                 }
             } else if (!existingUser[Users.isVerified]) {
                 Users.update({ Users.email eq email }) {
                     it[Users.username] = username
                     it[Users.password] = hashedPassword
-                    it[Users.verificationCode] = verificationCode
+                    it[Users.code] = verificationCode
                 }
             }
         }
@@ -96,14 +96,6 @@ class AuthRepositoryDB : AuthRepository {
             .singleOrNull()
     }
 
-    override suspend fun updateVerificationCode(email: String, verificationCode: String) {
-        dbQuery {
-            Users.update({ Users.email eq email }) {
-                it[Users.verificationCode] = verificationCode
-            }
-        }
-    }
-
     override suspend fun getPasswordByEmail(email: String): String? = dbQuery {
         Users
             .selectAll()
@@ -120,26 +112,28 @@ class AuthRepositoryDB : AuthRepository {
         }
     }
 
-    override suspend fun updateResetCode(email: String, resetCode: String) {
+    override suspend fun updateUserCodeByEmail(email: String, resetCode: String) {
         dbQuery {
             Users.update({ Users.email eq email }) {
-                it[Users.resetCode] = resetCode
+                it[Users.code] = resetCode
             }
         }
     }
 
-    override suspend fun getResetCodeByEmail(email: String): String? = dbQuery {
+    override suspend fun getUserCodeByEmail(email: String): String? = dbQuery {
         Users
             .selectAll()
             .where { Users.email eq email }
-            .map { it[Users.resetCode] }
+            .map {
+                it[Users.code]
+            }
             .singleOrNull()
     }
 
-    override suspend fun clearResetCode(email: String) {
+    override suspend fun clearUserCode(email: String) {
         dbQuery {
             Users.update({ Users.email eq email }) {
-                it[resetCode] = null
+                it[code] = null
             }
         }
     }

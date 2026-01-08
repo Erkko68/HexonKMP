@@ -3,7 +3,12 @@ package eric.bitria.hexon.account.password
 import at.favre.lib.crypto.bcrypt.BCrypt
 import eric.bitria.hexon.auth.email.EmailService
 import eric.bitria.hexon.auth.repository.AuthRepository
-import eric.bitria.hexon.dtos.auth.*
+import eric.bitria.hexon.dtos.account.ChangePasswordRequest
+import eric.bitria.hexon.dtos.account.ChangePasswordResponse
+import eric.bitria.hexon.dtos.account.ChangePasswordResult
+import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
+import eric.bitria.hexon.dtos.account.ForgotPasswordResponse
+import eric.bitria.hexon.dtos.account.ForgotPasswordResult
 import eric.bitria.hexon.utils.Validators
 
 class PasswordServiceImp(
@@ -22,7 +27,7 @@ class PasswordServiceImp(
 
         // Case 1: Password reset via code (Forgot Password flow)
         if (request.resetCode != null) {
-            val savedCode = repository.getResetCodeByEmail(request.email)
+            val savedCode = repository.getUserCodeByEmail(request.email)
             if (savedCode == null || savedCode != request.resetCode) {
                 return ChangePasswordResponse(
                     result = ChangePasswordResult.INVALID_PASSWORD_OR_CODE,
@@ -32,7 +37,7 @@ class PasswordServiceImp(
 
             val hashedPassword = BCrypt.withDefaults().hashToString(12, request.newPassword.toCharArray())
             repository.updatePassword(request.email, hashedPassword)
-            repository.clearResetCode(request.email)
+            repository.clearUserCode(request.email)
 
             return ChangePasswordResponse(
                 result = ChangePasswordResult.SUCCESS,
@@ -71,7 +76,7 @@ class PasswordServiceImp(
         )
     }
 
-    override suspend fun forgotPassword(request: ForgotPasswordRequest): ForgotPasswordResponse {
+    override suspend fun forgotPasswordCodeRequest(request: ForgotPasswordRequest): ForgotPasswordResponse {
         if (!Validators.isValidEmail(request.email)) {
             return ForgotPasswordResponse(
                 result = ForgotPasswordResult.UNKNOWN_ERROR,
@@ -80,8 +85,6 @@ class PasswordServiceImp(
         }
 
         if (!repository.emailExists(request.email)) {
-            // Security best practice: don't reveal if email exists, 
-            // but for this app's logic we'll return a success-like message or a specific error.
             return ForgotPasswordResponse(
                 result = ForgotPasswordResult.SUCCESS,
                 message = "If an account exists with this email, a reset code has been sent."
@@ -89,7 +92,7 @@ class PasswordServiceImp(
         }
 
         val resetCode = (100000..999999).random().toString()
-        repository.updateResetCode(request.email, resetCode)
+        repository.updateUserCodeByEmail(request.email, resetCode)
 
         emailService.sendEmail(
             to = request.email,

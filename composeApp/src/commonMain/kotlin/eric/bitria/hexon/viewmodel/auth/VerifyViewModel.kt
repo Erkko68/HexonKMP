@@ -12,9 +12,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
 class VerifyViewModel(
-    val email: String,
     private val authRepository: AuthRepository
 ) : ViewModel() {
+
+    var email by mutableStateOf("")
+        private set
 
     var code by mutableStateOf("")
         private set
@@ -24,6 +26,10 @@ class VerifyViewModel(
 
     var errorMessage by mutableStateOf<String?>(null)
         private set
+
+    fun updateEmail(email: String) {
+        this.email = email
+    }
 
     fun onCodeChange(newCode: String) {
         if (newCode.length <= 6 && newCode.all { it.isDigit() }) {

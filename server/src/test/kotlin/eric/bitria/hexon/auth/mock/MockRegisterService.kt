@@ -176,7 +176,7 @@ class MockRegisterService(
         val verificationCode = generateVerificationCode()
 
         // Regenerate verification code
-        repository.updateVerificationCode(request.email,verificationCode)
+        repository.updateUserCodeByEmail(request.email,verificationCode)
 
         emailService.sendEmail(
             to = request.email,

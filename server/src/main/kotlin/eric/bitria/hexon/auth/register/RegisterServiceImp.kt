@@ -1,11 +1,7 @@
 package eric.bitria.hexon.auth.register
 
-import eric.bitria.hexon.auth.repository.AuthRepository
-import eric.bitria.hexon.utils.Validators.isValidCode
-import eric.bitria.hexon.utils.Validators.isValidEmail
-import eric.bitria.hexon.utils.Validators.isValidPassword
-import eric.bitria.hexon.utils.Validators.isValidUsername
 import eric.bitria.hexon.auth.email.EmailService
+import eric.bitria.hexon.auth.repository.AuthRepository
 import eric.bitria.hexon.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResponse
@@ -15,6 +11,10 @@ import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResponse
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResult
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
+import eric.bitria.hexon.utils.Validators.isValidCode
+import eric.bitria.hexon.utils.Validators.isValidEmail
+import eric.bitria.hexon.utils.Validators.isValidPassword
+import eric.bitria.hexon.utils.Validators.isValidUsername
 
 /**
  * Handles the business logic for user registration and email verification.
@@ -178,7 +178,7 @@ class RegisterServiceImp(
         val verificationCode = generateVerificationCode()
 
         // Regenerate verification code
-        repository.updateVerificationCode(request.email,verificationCode)
+        repository.updateUserCodeByEmail(request.email,verificationCode)
 
         emailService.sendEmail(
             to = request.email,

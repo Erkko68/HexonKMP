@@ -6,8 +6,8 @@ import eric.bitria.hexon.account.withTestAccountClient
 import eric.bitria.hexon.auth.login
 import eric.bitria.hexon.auth.register
 import eric.bitria.hexon.auth.verify
-import eric.bitria.hexon.dtos.auth.ChangePasswordResult
-import eric.bitria.hexon.dtos.auth.ForgotPasswordResult
+import eric.bitria.hexon.dtos.account.ChangePasswordResult
+import eric.bitria.hexon.dtos.account.ForgotPasswordResult
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult

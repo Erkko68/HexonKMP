@@ -17,14 +17,8 @@ interface AuthRepository {
     // Mark as verified once the service confirms the code is correct
     suspend fun markAccountAsVerified(email: String)
 
-    suspend fun updateVerificationCode(email: String, verificationCode: String)
-
     // --- User Management ---
 
-    /**
-     * Saves a new user or updates an existing unverified user.
-     * Implementation should check if the email exists and is NOT verified before updating.
-     */
     suspend fun saveOrUpdateUnverifiedUser(
         email: String, 
         username: String, 
@@ -43,9 +37,9 @@ interface AuthRepository {
     // --- Password Reset ---
     suspend fun updatePassword(email: String, passwordHash: String)
 
-    suspend fun updateResetCode(email: String, resetCode: String)
+    suspend fun updateUserCodeByEmail(email: String, resetCode: String)
 
-    suspend fun getResetCodeByEmail(email: String): String?
+    suspend fun getUserCodeByEmail(email: String): String?
 
-    suspend fun clearResetCode(email: String)
+    suspend fun clearUserCode(email: String)
 }

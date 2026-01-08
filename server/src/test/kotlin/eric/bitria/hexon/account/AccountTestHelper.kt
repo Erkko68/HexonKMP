@@ -8,10 +8,10 @@ import eric.bitria.hexon.auth.mock.MockPasswordService
 import eric.bitria.hexon.auth.mock.MockRefreshService
 import eric.bitria.hexon.auth.mock.MockRegisterService
 import eric.bitria.hexon.auth.mock.MockTokenService
-import eric.bitria.hexon.dtos.auth.ChangePasswordRequest
-import eric.bitria.hexon.dtos.auth.ChangePasswordResponse
-import eric.bitria.hexon.dtos.auth.ForgotPasswordRequest
-import eric.bitria.hexon.dtos.auth.ForgotPasswordResponse
+import eric.bitria.hexon.dtos.account.ChangePasswordRequest
+import eric.bitria.hexon.dtos.account.ChangePasswordResponse
+import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
+import eric.bitria.hexon.dtos.account.ForgotPasswordResponse
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest

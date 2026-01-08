@@ -55,7 +55,7 @@ class LoginServiceImp(
 
         if (!repository.isAccountVerified(request.email)) {
             val verificationCode = (100000..999999).random().toString()
-            repository.updateVerificationCode(request.email, verificationCode)
+            repository.updateUserCodeByEmail(request.email, verificationCode)
             emailService.sendEmail(
                 to = request.email,
                 subject = "Email Verification",

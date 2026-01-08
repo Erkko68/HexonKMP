@@ -31,18 +31,21 @@ import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
 import eric.bitria.hexon.viewmodel.auth.VerifyStatus
 import eric.bitria.hexon.viewmodel.auth.VerifyViewModel
 import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.parameter.parametersOf
 
 @Composable
 fun VerifyScreen(
     email: String,
-    verifyViewModel: VerifyViewModel = koinViewModel { parametersOf(email) },
+    verifyViewModel: VerifyViewModel = koinViewModel(),
     onVerifySuccess: () -> Unit
 ) {
     HexonTheme {
         val dimensions = HexonTheme.dimensions
         val spacing = dimensions.spacing
         val paddingScale = dimensions.paddingScale
+
+        LaunchedEffect(email) {
+            verifyViewModel.updateEmail(email)
+        }
 
         LaunchedEffect(verifyViewModel.verifyStatus) {
             if (verifyViewModel.verifyStatus == VerifyStatus.SUCCESS) onVerifySuccess()
@@ -76,7 +79,7 @@ fun VerifyScreen(
                 Spacer(Modifier.height(spacing.small))
 
                 Text(
-                    "We sent a 6-digit code to\n$email",
+                    "We sent a 6-digit code to\n${verifyViewModel.email}",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                     ),

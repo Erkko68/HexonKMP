@@ -1,4 +1,4 @@
-package eric.bitria.hexon.dtos.auth
+package eric.bitria.hexon.dtos.account
 
 import kotlinx.serialization.Serializable
 
