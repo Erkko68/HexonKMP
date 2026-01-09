@@ -7,7 +7,6 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
-import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
@@ -15,6 +14,7 @@ import org.jetbrains.exposed.sql.upsert
 import java.time.ZoneOffset
 import kotlin.time.Instant
 import kotlin.time.toJavaInstant
+import kotlin.time.toKotlinInstant
 
 class ExposedEmailVerificationRepository(
     private val database: Database
@@ -37,24 +37,19 @@ class ExposedEmailVerificationRepository(
         Unit
     }
 
-    override suspend fun getVerificationCodeHash(
-        email: String,
-        requiredType: EmailVerificationType
-    ): String? = dbQuery {
-        val now = java.time.LocalDateTime.now(ZoneOffset.UTC)
-
-        // Select the code only if:
-        // 1. Email matches
-        // 2. The Type matches (Security check)
-        // 3. It hasn't expired
+    override suspend fun getVerificationCode(email: String): StoredVerificationCode? = dbQuery {
         EmailVerificationCodes
             .selectAll()
-            .where {
-                (EmailVerificationCodes.email eq email) and
-                        (EmailVerificationCodes.type eq requiredType) and
-                        (EmailVerificationCodes.expiresAt greater now)
+            .where { EmailVerificationCodes.email eq email }
+            .map {
+                StoredVerificationCode(
+                    codeHash = it[EmailVerificationCodes.codeHash],
+                    type = it[EmailVerificationCodes.type],
+                    expiresAt = it[EmailVerificationCodes.expiresAt]
+                        .toInstant(ZoneOffset.UTC)
+                        .toKotlinInstant()
+                )
             }
-            .map { it[EmailVerificationCodes.codeHash] }
             .singleOrNull()
     }
 

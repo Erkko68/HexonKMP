@@ -18,13 +18,10 @@ interface EmailVerificationRepository {
     )
 
     /**
-     * Retrieves the hash ONLY if the email AND the expected type match.
-     * Returns null if no code exists, or if the stored code is for a different type.
+     * Retrieves the active code record for an email, regardless of type or expiry.
+     * The Service will decide if it is valid or not.
      */
-    suspend fun getVerificationCodeHash(
-        email: String,
-        requiredType: EmailVerificationType
-    ): String?
+    suspend fun getVerificationCode(email: String): StoredVerificationCode?
 
     /**
      * Increments the attempt counter for the user's active code.
