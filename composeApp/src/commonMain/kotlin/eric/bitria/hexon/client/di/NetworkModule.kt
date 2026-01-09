@@ -25,10 +25,19 @@ val networkModule = module {
         val platform = get<TargetPlatform>()
 
         HttpClient {
+            // 1. Defaults: Set the Base URL so you don't repeat it everywhere
             install(DefaultRequest) {
                 url(platform.baseUrl)
+                contentType(ContentType.Application.Json) // Default to JSON
             }
 
+            // 2. Logging: For debugging Auth flows
+            //install(Logging) {
+            //    logger = Logger.SIMPLE
+            //    level = LogLevel.ALL // Switch to INFO or HEADERS in production
+            //}
+
+            // 3. Serialization
             install(ContentNegotiation) {
                 json(Json {
                     ignoreUnknownKeys = true
@@ -37,6 +46,7 @@ val networkModule = module {
                 })
             }
 
+            // 4. Authentication
             install(Auth) {
                 bearer {
                     loadTokens {
@@ -52,24 +62,36 @@ val networkModule = module {
                     refreshTokens {
                         val refreshToken = tokenManager.getRefreshToken() ?: return@refreshTokens null
 
-                        val response = client.post("${platform.baseUrl}/auth/refresh") {
+                        val response = client.post("/auth/refresh") {
                             markAsRefreshTokenRequest()
-                            contentType(ContentType.Application.Json)
                             setBody(RefreshRequest(refreshToken))
                         }.body<RefreshResponse>()
 
                         if (response.result == RefreshResult.SUCCESS) {
-                            // If we receive SUCCESS wwe always receive refreshTokens from the server
-                            tokenManager.saveTokens(response.accessToken!!, response.refreshToken!!)
-                            BearerTokens(response.accessToken!!, response.refreshToken!!)
+                            val newAccess = response.accessToken!!
+                            val newRefresh = response.refreshToken!!
+
+                            tokenManager.saveTokens(newAccess, newRefresh)
+                            BearerTokens(newAccess, newRefresh)
                         } else {
+                            // If refresh failed (e.g., session expired), clear local data
                             tokenManager.clearTokens()
                             null
                         }
                     }
 
+                    // 5. SMART SEND LOGIC
+                    // Return 'true' to send the token immediately.
+                    // Return 'false' to NOT send the token (unless server challenges with 401).
                     sendWithoutRequest { request ->
-                        request.url.pathSegments.none { it == "login" || it == "register" || it == "refresh" || it == "verify" || it == "resend-verification" || it == "forgot-password" }
+                        val path = request.url.pathSegments
+
+                        // Define public paths that NEVER need a token
+                        val isPublic = path.contains("/auth") ||
+                                path.contains("/users/email") // Verification/Resend endpoints
+
+                        // Send token proactively for everything else
+                        !isPublic
                     }
                 }
             }

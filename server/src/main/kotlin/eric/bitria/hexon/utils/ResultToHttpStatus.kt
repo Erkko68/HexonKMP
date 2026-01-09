@@ -1,7 +1,6 @@
 package eric.bitria.hexon.utils
 
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
-import eric.bitria.hexon.dtos.account.ResetPasswordResult
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.dtos.auth.RegisterResult
@@ -50,4 +49,12 @@ fun ResendVerificationCodeResult.toHttpStatus() = when (this) {
     ResendVerificationCodeResult.SUCCESS -> HTTPStatusCode.OK
     ResendVerificationCodeResult.ALREADY_VERIFIED -> HTTPStatusCode.Conflict
     ResendVerificationCodeResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
+}
+
+fun ChangePasswordResult.toHttpStatus() = when (this) {
+    ChangePasswordResult.SUCCESS -> HTTPStatusCode.OK
+    ChangePasswordResult.WRONG_PASSWORD -> HTTPStatusCode.Unauthorized
+    ChangePasswordResult.INVALID_PASSWORD -> HTTPStatusCode.BadRequest
+    ChangePasswordResult.USER_NOT_FOUND -> HTTPStatusCode.NotFound
+    ChangePasswordResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }

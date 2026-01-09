@@ -79,6 +79,13 @@ class ExposedAuthRepository : AuthRepository {
         }
     }
 
+    override suspend fun updatePassword(userId: String, newPasswordHash: String) = dbQuery {
+        Users.update({ Users.id eq userId }) {
+            it[password] = newPasswordHash
+        }
+        Unit
+    }
+
     // --- Helper Mapping ---
     private fun rowToUser(row: ResultRow): User {
         return User(

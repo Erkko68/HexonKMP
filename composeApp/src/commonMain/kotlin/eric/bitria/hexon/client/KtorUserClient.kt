@@ -1,5 +1,7 @@
-package eric.bitria.hexon.client.repository
+package eric.bitria.hexon.client
 
+import eric.bitria.hexon.dtos.account.ChangePasswordRequest
+import eric.bitria.hexon.dtos.account.ChangePasswordResponse
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
@@ -29,7 +31,13 @@ class KtorUserClient(
         }.body()
     }
 
-    // Future implementation for passwords (based on your old code)
+    override suspend fun changePassword(request: ChangePasswordRequest): ChangePasswordResponse {
+        return client.post("/users/password/change") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+    }
+
     /*
     suspend fun forgotPassword(request: ResetPasswordRequest): ResetPasswordResponse {
         return client.post("/users/password/forgot") {
@@ -38,11 +46,6 @@ class KtorUserClient(
         }.body()
     }
 
-    suspend fun changePassword(request: ChangePasswordRequest): ChangePasswordResponse {
-        return client.post("/users/password/change") {
-            contentType(ContentType.Application.Json)
-            setBody(request)
-        }.body()
-    }
     */
+
 }

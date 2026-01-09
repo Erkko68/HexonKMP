@@ -16,6 +16,7 @@ import eric.bitria.hexon.email.smtp.SmtpServiceImp
 import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.routes.usersRoutes
+import eric.bitria.hexon.users.password.PasswordServiceImpl
 import eric.bitria.hexon.users.repository.ExposedUserRepository
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -71,6 +72,7 @@ fun Application.module() {
         authRepository = authRepository,
         tokenService = tokenService
     )
+    val passwordService = PasswordServiceImpl(authRepository)
 
     // Routes
     routing {
@@ -80,7 +82,8 @@ fun Application.module() {
             refreshService = refreshService
         )
         usersRoutes(
-            accountVerificationService
+            accountVerificationService = accountVerificationService,
+            passwordService = passwordService
         )
     }
 }

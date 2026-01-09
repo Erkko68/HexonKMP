@@ -17,31 +17,8 @@ data class ChangePasswordResponse(
 @Serializable
 enum class ChangePasswordResult {
     SUCCESS,
-    INVALID_PASSWORD_FORMAT,
-    INVALID_PASSWORD,
-    UNKNOWN_ERROR
-}
-
-@Serializable
-data class ResetPasswordRequest(
-    val code: String,
-    val email: String,
-    val newPassword: String
-)
-
-@Serializable
-data class ResetPasswordResponse(
-    val result: ResetPasswordResult,
-    val message: String
-)
-
-@Serializable
-enum class ResetPasswordResult {
-    SUCCESS,
-    UNKNOWN_EMAIL,
-    INVALID_EMAIL_FORMAT,
-    INVALID_CODE_FORMAT,
-    INVALID_PASSWORD_FORMAT,
-    INVALID_CODE,
+    WRONG_PASSWORD,     // Old password didn't match
+    INVALID_PASSWORD,   // New password is too weak (optional)
+    USER_NOT_FOUND,
     UNKNOWN_ERROR
 }

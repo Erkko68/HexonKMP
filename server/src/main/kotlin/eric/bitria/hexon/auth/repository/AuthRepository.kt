@@ -45,5 +45,15 @@ interface AuthRepository {
      */
     suspend fun getRefreshTokenHash(userId: String): String?
 
+    /**
+     * Marks a user as verified.
+     * Used by AccountVerificationService.
+     */
     suspend fun verifyUser(userId: String)
+
+    /**
+     * Updates the password hash for a specific user.
+     * Used by ChangePasswordService.
+     */
+    suspend fun updatePassword(userId: String, newPasswordHash: String)
 }
