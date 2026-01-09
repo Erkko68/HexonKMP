@@ -18,7 +18,7 @@ import io.ktor.server.routing.post
 fun Route.authRoutes(
     registerService: RegisterService,
     loginService: LoginService,
-    //refreshService: RefreshService
+    refreshService: RefreshService
 ) {
 
     post("/auth/register") {
@@ -32,11 +32,11 @@ fun Route.authRoutes(
         val response = loginService.login(request)
         call.respond(response.result.toHttpStatus(), response)
     }
-//
-//    post("/auth/refresh") {
-//        val request = call.receive<RefreshRequest>()
-//        val response = refreshService.refresh(request)
-//        call.respond(response.result.toHttpStatus(), response)
-//    }
+
+    post("/auth/refresh") {
+        val request = call.receive<RefreshRequest>()
+        val response = refreshService.refresh(request)
+        call.respond(response.result.toHttpStatus(), response)
+    }
 
 }

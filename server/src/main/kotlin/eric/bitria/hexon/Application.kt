@@ -2,25 +2,19 @@ package eric.bitria.hexon
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import eric.bitria.hexon.auth.repository.AuthRepositoryDB
-import eric.bitria.hexon.database.DatabaseFactory
-import eric.bitria.hexon.email.smtp.SmtpConfig
-import eric.bitria.hexon.email.smtp.SmtpServiceImp
-import eric.bitria.hexon.auth.login.LoginServiceImp
-import eric.bitria.hexon.account.password.ChangePasswordServiceImp
-import eric.bitria.hexon.auth.refresh.RefreshServiceImp
+import eric.bitria.hexon.auth.login.LoginServiceImpl
+import eric.bitria.hexon.auth.refresh.RefreshServiceImpl
 import eric.bitria.hexon.auth.register.AccountVerificationServiceImpl
-import eric.bitria.hexon.auth.register.RegisterServiceImp
 import eric.bitria.hexon.auth.register.RegisterServiceImpl
 import eric.bitria.hexon.auth.repository.ExposedAuthRepository
-import eric.bitria.hexon.routes.loginRoute
-import eric.bitria.hexon.routes.refreshRoute
-import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.auth.token.JwtConfig
 import eric.bitria.hexon.auth.token.JwtTokenService
+import eric.bitria.hexon.database.DatabaseFactory
 import eric.bitria.hexon.email.repository.ExposedEmailVerificationRepository
+import eric.bitria.hexon.email.smtp.SmtpConfig
+import eric.bitria.hexon.email.smtp.SmtpServiceImp
 import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
-import eric.bitria.hexon.routes.accountRoutes
+import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.routes.emailVerificationRoutes
 import eric.bitria.hexon.users.repository.ExposedUserRepository
 import io.ktor.serialization.kotlinx.json.json
@@ -67,10 +61,22 @@ fun Application.module() {
         authRepository = authRepository,
         emailVerificationService = emailVerificationService
     )
+    val loginService = LoginServiceImpl(
+        authRepository = authRepository,
+        tokenService = JwtTokenService(jwtConfig)
+    )
+    val refreshService = RefreshServiceImpl(
+        authRepository = authRepository,
+        tokenService = JwtTokenService(jwtConfig)
+    )
 
     // Routes
     routing {
-        authRoutes(registerService)
+        authRoutes(
+            registerService = registerService,
+            loginService = loginService,
+            refreshService = refreshService
+        )
         emailVerificationRoutes(accountVerificationService)
     }
 }

@@ -16,7 +16,7 @@ class MockTokenService : TokenService {
         userId: String
     ): String = "refresh-token-$userId-${counter.getAndIncrement()}"
 
-    override fun verifyToken(token: String): String? {
+    override fun validateRefreshToken(token: String): String? {
         if (token.startsWith("refresh-token-") || token.startsWith("access-token-") || token.startsWith("reset-token-")) {
             val prefix = when {
                 token.startsWith("refresh-token-") -> "refresh-token-"

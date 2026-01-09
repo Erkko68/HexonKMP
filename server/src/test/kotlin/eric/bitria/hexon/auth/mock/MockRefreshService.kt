@@ -8,7 +8,7 @@ import eric.bitria.hexon.dtos.auth.RefreshResult
 
 class MockRefreshService(private val tokenService: TokenService) : RefreshService {
     override suspend fun refresh(request: RefreshRequest): RefreshResponse {
-        val userId = tokenService.verifyToken(request.refreshToken)
+        val userId = tokenService.validateRefreshToken(request.refreshToken)
             ?: return RefreshResponse(
                 result = RefreshResult.INVALID_TOKEN,
                 message = "Invalid or expired refresh token",

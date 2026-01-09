@@ -43,7 +43,7 @@ class JwtTokenService(
             .sign(algorithm)
     }
 
-    override fun verifyToken(token: String): String? {
+    override fun validateRefreshToken(token: String): String? {
         return try {
             val decodedJWT = verifier.verify(token)
             decodedJWT.subject
