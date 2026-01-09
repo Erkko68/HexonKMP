@@ -68,7 +68,7 @@ val networkModule = module {
                     }
 
                     sendWithoutRequest { request ->
-                        request.url.pathSegments.none { it == "login" || it == "register" || it == "refresh" || it == "verify" || it == "resend-verification" }
+                        request.url.pathSegments.none { it == "login" || it == "register" || it == "refresh" || it == "verify" || it == "resend-verification" || it == "forgot-password" }
                     }
                 }
             }

@@ -1,5 +1,7 @@
 package eric.bitria.hexon.account
 
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
 import eric.bitria.hexon.auth.mock.Inbox
 import eric.bitria.hexon.auth.mock.MockAuthRepository
 import eric.bitria.hexon.auth.mock.MockEmailService
@@ -8,6 +10,7 @@ import eric.bitria.hexon.auth.mock.MockPasswordService
 import eric.bitria.hexon.auth.mock.MockRefreshService
 import eric.bitria.hexon.auth.mock.MockRegisterService
 import eric.bitria.hexon.auth.mock.MockTokenService
+import eric.bitria.hexon.auth.token.JwtConfig
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResponse
 import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
@@ -22,12 +25,18 @@ import eric.bitria.hexon.routes.refreshRoute
 import eric.bitria.hexon.routes.registerRoutes
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.install
+import io.ktor.server.auth.authentication
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
@@ -44,10 +53,38 @@ fun withTestAccountClient(
     val tokenService = MockTokenService()
     val emailService = MockEmailService(inbox)
     val repository = MockAuthRepository()
+    
+    val testJwtConfig = JwtConfig(
+        issuer = "test-issuer",
+        audience = "test-audience",
+        secret = "test-secret",
+        realm = "test-realm",
+        accessTokenTtlMillis = 3600000,
+        refreshTokenTtlMillis = 3600000
+    )
 
     testApplication {
         application {
             install(ContentNegotiation) { json() }
+            
+            authentication {
+                jwt("auth-jwt") {
+                    realm = testJwtConfig.realm
+                    verifier(
+                        JWT.require(Algorithm.HMAC256(testJwtConfig.secret))
+                            .withIssuer(testJwtConfig.issuer)
+                            .withAudience(testJwtConfig.audience)
+                            .build()
+                    )
+                    validate { credential ->
+                        if (credential.payload.subject != null) {
+                            JWTPrincipal(credential.payload)
+                        } else {
+                            null
+                        }
+                    }
+                }
+            }
 
             routing {
                 registerRoutes(
@@ -80,6 +117,21 @@ fun withTestAccountClient(
 
         val client = createClient {
             install(ClientContentNegotiation) { json() }
+            install(Auth) {
+                bearer {
+                    loadTokens {
+                        // For tests, we use a dummy token that will be validated by the mock verifier
+                        BearerTokens(
+                            accessToken = JWT.create()
+                                .withSubject("test-user")
+                                .withIssuer(testJwtConfig.issuer)
+                                .withAudience(testJwtConfig.audience)
+                                .sign(Algorithm.HMAC256(testJwtConfig.secret)),
+                            refreshToken = "test-refresh-token"
+                        )
+                    }
+                }
+            }
         }
 
         block(client, inbox)

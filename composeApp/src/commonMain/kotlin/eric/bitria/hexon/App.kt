@@ -11,12 +11,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import eric.bitria.hexon.client.persistence.token.TokenManager
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.screens.GameScreen
 import eric.bitria.hexon.ui.screens.MainMenuScreen
@@ -30,11 +34,23 @@ import eric.bitria.hexon.ui.screens.auth.VerifyScreen
 import eric.bitria.hexon.ui.screens.social.FriendProfileScreen
 import eric.bitria.hexon.ui.screens.social.FriendsScreen
 import eric.bitria.hexon.ui.screens.social.ProfileScreen
+import org.koin.compose.koinInject
 
 @Composable
 fun App(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    tokenManager: TokenManager = koinInject()
 ) {
+    val isSessionValid by tokenManager.isSessionValid.collectAsState()
+
+    LaunchedEffect(isSessionValid) {
+        if (!isSessionValid) {
+            navController.navigate(Screens.Login) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
     HexonTheme {
         NavHost(
             navController = navController,
@@ -147,9 +163,7 @@ fun App(
                     onExitClicked = { navController.popBackStack() },
                     onChangePasswordClicked = { navController.navigate(Screens.ResetPassword) },
                     onLogout = {
-                        navController.navigate(Screens.Login) {
-                            popUpTo(0) { inclusive = true }
-                        }
+                        tokenManager.clearTokens()
                     }
                 )
             }
