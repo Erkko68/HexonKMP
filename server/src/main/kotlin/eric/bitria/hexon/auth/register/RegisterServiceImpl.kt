@@ -2,7 +2,7 @@ package eric.bitria.hexon.auth.register
 
 import at.favre.lib.crypto.bcrypt.BCrypt
 import eric.bitria.hexon.auth.repository.AuthRepository
-import eric.bitria.hexon.database.tables.EmailVerificationType
+import eric.bitria.hexon.dtos.auth.EmailVerificationType
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResponse
 import eric.bitria.hexon.dtos.auth.RegisterResult

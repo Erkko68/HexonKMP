@@ -9,7 +9,7 @@ import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResult
-import eric.bitria.hexon.client.repository.AuthRepository
+import eric.bitria.hexon.client.repository.AuthClient
 import eric.bitria.hexon.client.persistence.AccountManager
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.TimeoutCancellationException
@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
 class LoginViewModel(
-    private val authRepository: AuthRepository,
+    private val authClient: AuthClient,
     private val accountManager: AccountManager
 ) : ViewModel() {
 
@@ -101,7 +101,7 @@ class LoginViewModel(
     fun attemptAutoLogin() {
         viewModelScope.launch {
             loginState = LoginStatus.LOADING
-            val success = authRepository.autoLogin()
+            val success = authClient.autoLogin()
             loginState = if (success) {
                 LoginStatus.SUCCESS
             } else {
@@ -118,13 +118,13 @@ class LoginViewModel(
             errorMessage = null
             try {
                 withTimeout(10000L) { // 10 seconds timeout
-                    val response = authRepository.login(LoginRequest(email, password))
+                    val response = authClient.login(LoginRequest(email, password))
                     when (response.result) {
                         LoginResult.SUCCESS -> {
                             accountManager.saveEmail(email)
                             loginState = LoginStatus.SUCCESS
                         }
-                        LoginResult.PENDING_VERIFICATION -> {
+                        LoginResult.NOT_VERIFIED -> {
                             loginState = LoginStatus.VERIFICATION_SENT
                         }
                         else -> {
@@ -151,9 +151,9 @@ class LoginViewModel(
             errorMessage = null
             try {
                 withTimeout(10000L) { // 10 seconds timeout
-                    val response = authRepository.register(RegisterRequest(name, email, password))
+                    val response = authClient.register(RegisterRequest(name, email, password))
                     when (response.result) {
-                        RegisterResult.VERIFICATION_SENT -> {
+                        RegisterResult.SUCCESS -> {
                             accountManager.saveEmail(email)
                             loginState = LoginStatus.VERIFICATION_SENT
                         }

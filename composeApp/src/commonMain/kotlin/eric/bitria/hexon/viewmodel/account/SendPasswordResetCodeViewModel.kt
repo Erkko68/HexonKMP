@@ -7,13 +7,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.dtos.account.ResetPasswordRequest
 import eric.bitria.hexon.dtos.account.ResetPasswordResult
-import eric.bitria.hexon.client.repository.AccountRepository
+import eric.bitria.hexon.client.repository.UserClient
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
 class SendPasswordResetCodeViewModel(
-    private val accountRepository: AccountRepository
+    private val userClient: UserClient
 ) : ViewModel() {
 
     var email by mutableStateOf("")
@@ -46,7 +46,7 @@ class SendPasswordResetCodeViewModel(
             errorMessage = null
             try {
                 withTimeout(10000L) {
-                    val response = accountRepository.forgotPassword(ResetPasswordRequest(email))
+                    val response = userClient.forgotPassword(ResetPasswordRequest(email))
                     when (response.result) {
                         ResetPasswordResult.SUCCESS -> {
                             state = ForgotPasswordStatus.SUCCESS

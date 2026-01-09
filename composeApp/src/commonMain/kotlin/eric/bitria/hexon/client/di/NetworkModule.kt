@@ -59,8 +59,9 @@ val networkModule = module {
                         }.body<RefreshResponse>()
 
                         if (response.result == RefreshResult.SUCCESS) {
-                            tokenManager.saveTokens(response.accessToken, response.refreshToken)
-                            BearerTokens(response.accessToken, response.refreshToken)
+                            // If we receive SUCCESS wwe always receive refreshTokens from the server
+                            tokenManager.saveTokens(response.accessToken!!, response.refreshToken!!)
+                            BearerTokens(response.accessToken!!, response.refreshToken!!)
                         } else {
                             tokenManager.clearTokens()
                             null

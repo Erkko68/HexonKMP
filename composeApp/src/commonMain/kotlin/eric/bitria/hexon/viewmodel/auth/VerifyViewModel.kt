@@ -5,14 +5,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.dtos.auth.*
-import eric.bitria.hexon.client.repository.AuthRepository
+import eric.bitria.hexon.client.repository.UserClient
+import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
+import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
+import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
 class VerifyViewModel(
-    private val authRepository: AuthRepository
+    private val userClient: UserClient
 ) : ViewModel() {
 
     var email by mutableStateOf("")
@@ -48,7 +50,7 @@ class VerifyViewModel(
             errorMessage = null
             try {
                 withTimeout(10000L) {
-                    val response = authRepository.verifyEmail(VerifyEmailRequest(email, code))
+                    val response = userClient.verifyEmail(VerifyEmailRequest(email, code))
                     when (response.result) {
                         VerifyEmailResult.SUCCESS -> {
                             verifyStatus = VerifyStatus.SUCCESS
@@ -72,7 +74,7 @@ class VerifyViewModel(
     fun resendCode() {
         viewModelScope.launch {
             try {
-                authRepository.resendVerificationCode(SendEmailVerificationCodeRequest(email))
+                userClient.resendVerificationCode(ResendVerificationCodeRequest(email))
                 // Optionally show a message that code was resent
             } catch (e: Exception) {
                 // Handle error

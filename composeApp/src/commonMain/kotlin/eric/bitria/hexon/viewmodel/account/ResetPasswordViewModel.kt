@@ -7,14 +7,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
-import eric.bitria.hexon.client.repository.AccountRepository
+import eric.bitria.hexon.client.repository.UserClient
 import eric.bitria.hexon.client.persistence.AccountManager
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
 class ResetPasswordViewModel(
-    private val accountRepository: AccountRepository,
+    private val userClient: UserClient,
     private val accountManager: AccountManager
 ) : ViewModel() {
 
@@ -88,7 +88,7 @@ class ResetPasswordViewModel(
             errorMessage = null
             try {
                 withTimeout(10000L) {
-                    val response = accountRepository.changePassword(
+                    val response = userClient.changePassword(
                         ChangePasswordRequest(
                             email = email,
                             resetCode = null,
