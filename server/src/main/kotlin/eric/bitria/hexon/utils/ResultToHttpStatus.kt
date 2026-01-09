@@ -32,24 +32,32 @@ fun VerifyEmailResult.toHttpStatus() = when (this) {
 
 fun RefreshResult.toHttpStatus() = when (this) {
     RefreshResult.SUCCESS -> HTTPStatusCode.OK
+    RefreshResult.USER_NOT_FOUND -> HTTPStatusCode.NotFound
+    RefreshResult.TOKEN_MISMATCH,
     RefreshResult.INVALID_TOKEN -> HTTPStatusCode.Unauthorized
     RefreshResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }
 
 fun LoginResult.toHttpStatus() = when (this) {
     LoginResult.SUCCESS -> HTTPStatusCode.OK
-    LoginResult.PENDING_VERIFICATION -> HTTPStatusCode.Conflict
-    LoginResult.INVALID_EMAIL_OR_PASSWORD -> HTTPStatusCode.Unauthorized
+    LoginResult.INVALID_CREDENTIALS,
+    LoginResult.NOT_VERIFIED -> HTTPStatusCode.Unauthorized
     LoginResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }
 
 fun ChangePasswordResult.toHttpStatus() = when (this) {
     ChangePasswordResult.SUCCESS -> HTTPStatusCode.OK
-    ChangePasswordResult.INVALID_PASSWORD_OR_CODE -> HTTPStatusCode.Unauthorized
+    ChangePasswordResult.INVALID_PASSWORD_FORMAT -> TODO()
+    ChangePasswordResult.INVALID_PASSWORD -> TODO()
     ChangePasswordResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }
 
 fun ResetPasswordResult.toHttpStatus() = when (this) {
     ResetPasswordResult.SUCCESS -> HTTPStatusCode.OK
+    ResetPasswordResult.UNKNOWN_EMAIL -> TODO()
+    ResetPasswordResult.INVALID_EMAIL_FORMAT -> TODO()
+    ResetPasswordResult.INVALID_CODE_FORMAT -> TODO()
+    ResetPasswordResult.INVALID_PASSWORD_FORMAT -> TODO()
+    ResetPasswordResult.INVALID_CODE -> TODO()
     ResetPasswordResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }

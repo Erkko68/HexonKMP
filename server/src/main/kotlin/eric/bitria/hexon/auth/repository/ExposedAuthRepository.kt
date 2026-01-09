@@ -73,6 +73,12 @@ class ExposedAuthRepository : AuthRepository {
             .singleOrNull()
     }
 
+    override suspend fun verifyUser(userId: String): Unit = dbQuery {
+        Users.update({ Users.id eq userId }) {
+            it[isVerified] = true
+        }
+    }
+
     // --- Helper Mapping ---
     private fun rowToUser(row: ResultRow): User {
         return User(
