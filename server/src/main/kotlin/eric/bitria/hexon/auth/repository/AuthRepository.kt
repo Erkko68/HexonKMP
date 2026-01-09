@@ -44,4 +44,6 @@ interface AuthRepository {
      * Used by RefreshService to check if the incoming token matches the DB.
      */
     suspend fun getRefreshTokenHash(userId: String): String?
+
+    suspend fun verifyUser(userId: String)
 }

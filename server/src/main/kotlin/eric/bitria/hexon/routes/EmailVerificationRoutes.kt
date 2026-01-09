@@ -1,20 +1,19 @@
 package eric.bitria.hexon.routes
 
-import eric.bitria.hexon.dtos.auth.RegisterRequest
-import eric.bitria.hexon.email.smtp.SmtpService
+import eric.bitria.hexon.auth.register.AccountVerificationService
+import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.utils.toHttpStatus
 import io.ktor.server.request.receive
+import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 
 fun Route.emailVerificationRoutes(
-    smtpService: SmtpService
+    accountVerificationService: AccountVerificationService
 ) {
-
-    post("/email-verifications") {
-        val request = call.receive<RegisterRequest>()
-        val response = registerService.register(request)
+    post("/email-verification") {
+        val request = call.receive<VerifyEmailRequest>()
+        val response = accountVerificationService.verifyEmail(request)
         call.respond(response.result.toHttpStatus(),response)
     }
-
 }

@@ -5,7 +5,6 @@ import eric.bitria.hexon.dtos.account.ResetPasswordResult
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.dtos.auth.RegisterResult
-import eric.bitria.hexon.dtos.auth.SendEmailVerificationCodeResult
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import io.ktor.http.HttpStatusCode as HTTPStatusCode
 
@@ -14,9 +13,9 @@ import io.ktor.http.HttpStatusCode as HTTPStatusCode
  */
 
 fun RegisterResult.toHttpStatus() = when (this) {
-    RegisterResult.VERIFICATION_SENT -> HTTPStatusCode.OK
-    RegisterResult.USERNAME_EXISTS,
-    RegisterResult.EMAIL_EXISTS -> HTTPStatusCode.Conflict
+    RegisterResult.SUCCESS -> HTTPStatusCode.OK
+    RegisterResult.USERNAME_ALREADY_EXISTS,
+    RegisterResult.EMAIL_ALREADY_EXISTS -> HTTPStatusCode.Conflict
     RegisterResult.INVALID_USERNAME,
     RegisterResult.INVALID_EMAIL,
     RegisterResult.INVALID_PASSWORD -> HTTPStatusCode.BadRequest
@@ -25,18 +24,10 @@ fun RegisterResult.toHttpStatus() = when (this) {
 
 fun VerifyEmailResult.toHttpStatus() = when (this) {
     VerifyEmailResult.SUCCESS -> HTTPStatusCode.OK
-    VerifyEmailResult.INVALID_EMAIL,
-    VerifyEmailResult.INVALID_VERIFICATION_CODE -> HTTPStatusCode.BadRequest
-    VerifyEmailResult.ACCOUNT_ALREADY_VERIFIED -> HTTPStatusCode.Conflict
-    else -> HTTPStatusCode.InternalServerError
-}
-
-fun SendEmailVerificationCodeResult.toHttpStatus() = when (this) {
-    SendEmailVerificationCodeResult.SUCCESS -> HTTPStatusCode.OK
-    SendEmailVerificationCodeResult.INVALID_EMAIL -> HTTPStatusCode.BadRequest
-    SendEmailVerificationCodeResult.EMAIL_NOT_REGISTERED,
-    SendEmailVerificationCodeResult.EMAIL_ALREADY_VERIFIED -> HTTPStatusCode.Conflict
-    else -> HTTPStatusCode.InternalServerError
+    VerifyEmailResult.INVALID_CODE -> HTTPStatusCode.BadRequest
+    VerifyEmailResult.USER_NOT_FOUND -> HTTPStatusCode.NotFound
+    VerifyEmailResult.ALREADY_VERIFIED -> HTTPStatusCode.Conflict
+    VerifyEmailResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }
 
 fun RefreshResult.toHttpStatus() = when (this) {

@@ -3,7 +3,6 @@ package eric.bitria.hexon.email.repository
 import eric.bitria.hexon.database.DatabaseFactory.dbQuery
 import eric.bitria.hexon.database.tables.EmailVerificationCodes
 import eric.bitria.hexon.database.tables.EmailVerificationType
-import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
@@ -16,9 +15,7 @@ import kotlin.time.Instant
 import kotlin.time.toJavaInstant
 import kotlin.time.toKotlinInstant
 
-class ExposedEmailVerificationRepository(
-    private val database: Database
-) : EmailVerificationRepository {
+class ExposedEmailVerificationRepository : EmailVerificationRepository {
 
     override suspend fun saveVerificationCode(
         email: String,

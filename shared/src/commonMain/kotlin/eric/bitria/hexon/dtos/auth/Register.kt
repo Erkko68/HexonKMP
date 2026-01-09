@@ -16,7 +16,7 @@ data class RegisterResponse(
 )
 
 enum class RegisterResult {
-    SUCCESS,
+    SUCCESS, // Represents "Verification Sent"
     EMAIL_ALREADY_EXISTS,
     USERNAME_ALREADY_EXISTS,
     INVALID_PASSWORD,

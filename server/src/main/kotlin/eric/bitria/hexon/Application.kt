@@ -9,13 +9,20 @@ import eric.bitria.hexon.email.smtp.SmtpServiceImp
 import eric.bitria.hexon.auth.login.LoginServiceImp
 import eric.bitria.hexon.account.password.ChangePasswordServiceImp
 import eric.bitria.hexon.auth.refresh.RefreshServiceImp
+import eric.bitria.hexon.auth.register.AccountVerificationServiceImpl
 import eric.bitria.hexon.auth.register.RegisterServiceImp
+import eric.bitria.hexon.auth.register.RegisterServiceImpl
+import eric.bitria.hexon.auth.repository.ExposedAuthRepository
 import eric.bitria.hexon.routes.loginRoute
 import eric.bitria.hexon.routes.refreshRoute
 import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.auth.token.JwtConfig
 import eric.bitria.hexon.auth.token.JwtTokenService
+import eric.bitria.hexon.email.repository.ExposedEmailVerificationRepository
+import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.routes.accountRoutes
+import eric.bitria.hexon.routes.emailVerificationRoutes
+import eric.bitria.hexon.users.repository.ExposedUserRepository
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -35,7 +42,9 @@ fun Application.module() {
 
     // 2. Initialize Database
     DatabaseFactory.init(environment.config)
-    val authRepository = AuthRepositoryDB()
+    val emailVerificationRepository = ExposedEmailVerificationRepository()
+    val authRepository = ExposedAuthRepository()
+    val userRepository = ExposedUserRepository()
 
     // 3. Install plugins
     install(ContentNegotiation) { json() }
@@ -44,37 +53,25 @@ fun Application.module() {
     configureSecurity(jwtConfig)
 
     // 5. Initialize services
-    val jwtService = JwtTokenService(jwtConfig)
     val emailService = SmtpServiceImp(smtpConfig)
-
-    val passwordService = ChangePasswordServiceImp(
+    val emailVerificationService = EmailVerificationServiceImpl(
+        verificationRepo = emailVerificationRepository,
+        smtpService = emailService,
+        userRepository = userRepository
+    )
+    val registerService = RegisterServiceImpl(
         authRepository = authRepository,
-        smtpService = emailService
+        emailVerificationService = emailVerificationService
     )
-
-    val registerService = RegisterServiceImp(
-        repository = authRepository,
-        tokenService = jwtService,
-        smtpService = emailService
-    )
-
-    val loginService = LoginServiceImp(
+    val accountVerificationService = AccountVerificationServiceImpl(
         authRepository = authRepository,
-        tokenService = jwtService,
-        smtpService = emailService
-    )
-
-    val refreshService = RefreshServiceImp(
-        repository = authRepository,
-        tokenService = jwtService
+        emailVerificationService = emailVerificationService
     )
 
     // Routes
     routing {
         authRoutes(registerService)
-        loginRoute(loginService)
-        refreshRoute(refreshService)
-        accountRoutes(passwordService)
+        emailVerificationRoutes(accountVerificationService)
     }
 }
 

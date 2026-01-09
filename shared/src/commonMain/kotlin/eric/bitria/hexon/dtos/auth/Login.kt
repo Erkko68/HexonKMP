@@ -12,14 +12,13 @@ data class LoginRequest(
 data class LoginResponse(
     val result: LoginResult,
     val message: String,
-    val accessToken: String,
-    val refreshToken: String
+    val accessToken: String? = null,
+    val refreshToken: String? = null
 )
 
-@Serializable
 enum class LoginResult {
     SUCCESS,
-    INVALID_EMAIL_OR_PASSWORD,
-    PENDING_VERIFICATION,
+    INVALID_CREDENTIALS,
+    NOT_VERIFIED,
     UNKNOWN_ERROR
 }
