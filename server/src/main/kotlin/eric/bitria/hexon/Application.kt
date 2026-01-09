@@ -4,7 +4,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import eric.bitria.hexon.auth.login.LoginServiceImpl
 import eric.bitria.hexon.auth.refresh.RefreshServiceImpl
-import eric.bitria.hexon.auth.register.AccountVerificationServiceImpl
+import eric.bitria.hexon.users.verify.UserVerificationServiceImpl
 import eric.bitria.hexon.auth.register.RegisterServiceImpl
 import eric.bitria.hexon.auth.repository.ExposedAuthRepository
 import eric.bitria.hexon.auth.token.JwtConfig
@@ -15,7 +15,7 @@ import eric.bitria.hexon.email.smtp.SmtpConfig
 import eric.bitria.hexon.email.smtp.SmtpServiceImp
 import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.routes.authRoutes
-import eric.bitria.hexon.routes.emailVerificationRoutes
+import eric.bitria.hexon.routes.usersRoutes
 import eric.bitria.hexon.users.repository.ExposedUserRepository
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -57,7 +57,7 @@ fun Application.module() {
         authRepository = authRepository,
         emailVerificationService = emailVerificationService
     )
-    val accountVerificationService = AccountVerificationServiceImpl(
+    val accountVerificationService = UserVerificationServiceImpl(
         authRepository = authRepository,
         emailVerificationService = emailVerificationService
     )
@@ -77,7 +77,9 @@ fun Application.module() {
             loginService = loginService,
             refreshService = refreshService
         )
-        emailVerificationRoutes(accountVerificationService)
+        usersRoutes(
+            accountVerificationService
+        )
     }
 }
 

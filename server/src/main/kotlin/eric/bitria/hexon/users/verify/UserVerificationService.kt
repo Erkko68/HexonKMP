@@ -1,10 +1,10 @@
-package eric.bitria.hexon.auth.register
+package eric.bitria.hexon.users.verify
 
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 
 
-interface AccountVerificationService {
+interface UserVerificationService {
 
     /**
      * Verifies the email confirmation code.

@@ -1,4 +1,4 @@
-package eric.bitria.hexon.auth.register
+package eric.bitria.hexon.users.verify
 
 import eric.bitria.hexon.auth.repository.AuthRepository
 import eric.bitria.hexon.database.tables.EmailVerificationType
@@ -7,10 +7,10 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import eric.bitria.hexon.email.verification.EmailVerificationService
 
-class AccountVerificationServiceImpl(
+class UserVerificationServiceImpl(
     private val authRepository: AuthRepository,
     private val emailVerificationService: EmailVerificationService
-) : AccountVerificationService {
+) : UserVerificationService {
 
     override suspend fun verifyEmail(request: VerifyEmailRequest): VerifyEmailResponse {
 
