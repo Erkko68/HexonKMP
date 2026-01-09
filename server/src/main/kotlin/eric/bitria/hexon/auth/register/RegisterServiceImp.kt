@@ -1,5 +1,6 @@
 package eric.bitria.hexon.auth.register
 
+import at.favre.lib.crypto.bcrypt.BCrypt
 import eric.bitria.hexon.auth.email.EmailService
 import eric.bitria.hexon.auth.repository.AuthRepository
 import eric.bitria.hexon.auth.token.TokenService
@@ -15,6 +16,7 @@ import eric.bitria.hexon.utils.Validators.isValidCode
 import eric.bitria.hexon.utils.Validators.isValidEmail
 import eric.bitria.hexon.utils.Validators.isValidPassword
 import eric.bitria.hexon.utils.Validators.isValidUsername
+import eric.bitria.hexon.utils.hashToken
 
 /**
  * Handles the business logic for user registration and email verification.
@@ -132,16 +134,21 @@ class RegisterServiceImp(
         val savedCode = repository.getVerificationCodeByEmail(email)
 
         return if (savedCode == code) {
+
+            // Generate acces and refresh tokens and save refresh token hash
+            val userId = repository.getUserIdByEmail(email)
+            val accessToken = tokenService.generateAccessToken(userId)
+            val refreshToken = tokenService.generateRefreshToken(userId)
+
+            val refreshTokenHash = hashToken(refreshToken)
+            repository.updateRefreshTokenHash(userId, refreshTokenHash)
+
             repository.markAccountAsVerified(email)
             VerifyEmailResponse(
                 result = VerifyEmailResult.SUCCESS,
                 message = "",
-                accessToken = tokenService.generateAccessToken(
-                    userId = repository.getUserIdByEmail(email)
-                ),
-                refreshToken = tokenService.generateRefreshToken(
-                    userId = repository.getUserIdByEmail(email)
-                )
+                accessToken = accessToken,
+                refreshToken = refreshToken
             )
         } else {
             VerifyEmailResponse(

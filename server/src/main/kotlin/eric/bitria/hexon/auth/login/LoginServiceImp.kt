@@ -1,14 +1,15 @@
 package eric.bitria.hexon.auth.login
 
 import at.favre.lib.crypto.bcrypt.BCrypt
-import eric.bitria.hexon.auth.repository.AuthRepository
 import eric.bitria.hexon.auth.email.EmailService
+import eric.bitria.hexon.auth.repository.AuthRepository
 import eric.bitria.hexon.auth.token.TokenService
-import eric.bitria.hexon.utils.Validators.isValidEmail
-import eric.bitria.hexon.utils.Validators.isValidPassword
 import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResponse
 import eric.bitria.hexon.dtos.auth.LoginResult
+import eric.bitria.hexon.utils.Validators.isValidEmail
+import eric.bitria.hexon.utils.Validators.isValidPassword
+import eric.bitria.hexon.utils.hashToken
 
 class LoginServiceImp(
     private val repository: AuthRepository,
@@ -73,7 +74,7 @@ class LoginServiceImp(
         val accessToken = tokenService.generateAccessToken(userId)
         val refreshToken = tokenService.generateRefreshToken(userId)
 
-        val refreshTokenHash = BCrypt.withDefaults().hashToString(12, refreshToken.toCharArray())
+        val refreshTokenHash = hashToken(refreshToken)
         repository.updateRefreshTokenHash(userId, refreshTokenHash)
         
         return LoginResponse(

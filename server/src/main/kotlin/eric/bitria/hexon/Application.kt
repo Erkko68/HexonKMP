@@ -64,7 +64,10 @@ fun Application.module() {
         emailService = emailService
     )
 
-    val refreshService = RefreshServiceImp(jwtService)
+    val refreshService = RefreshServiceImp(
+        repository = authRepository,
+        tokenService = jwtService
+    )
 
     // Routes
     routing {

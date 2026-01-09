@@ -4,7 +4,7 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import eric.bitria.hexon.database.tables.Friends
 import eric.bitria.hexon.database.tables.Users
-import io.ktor.server.config.*
+import io.ktor.server.config.ApplicationConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
