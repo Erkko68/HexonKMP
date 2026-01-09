@@ -1,11 +1,11 @@
 package eric.bitria.hexon.utils
 
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
-import eric.bitria.hexon.dtos.account.ForgotPasswordResult
+import eric.bitria.hexon.dtos.account.ResetPasswordResult
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.dtos.auth.RegisterResult
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResult
+import eric.bitria.hexon.dtos.auth.SendEmailVerificationCodeResult
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import io.ktor.http.HttpStatusCode as HTTPStatusCode
 
@@ -31,11 +31,11 @@ fun VerifyEmailResult.toHttpStatus() = when (this) {
     else -> HTTPStatusCode.InternalServerError
 }
 
-fun ResendVerificationCodeResult.toHttpStatus() = when (this) {
-    ResendVerificationCodeResult.SUCCESS -> HTTPStatusCode.OK
-    ResendVerificationCodeResult.INVALID_EMAIL -> HTTPStatusCode.BadRequest
-    ResendVerificationCodeResult.EMAIL_NOT_REGISTERED,
-    ResendVerificationCodeResult.EMAIL_ALREADY_VERIFIED -> HTTPStatusCode.Conflict
+fun SendEmailVerificationCodeResult.toHttpStatus() = when (this) {
+    SendEmailVerificationCodeResult.SUCCESS -> HTTPStatusCode.OK
+    SendEmailVerificationCodeResult.INVALID_EMAIL -> HTTPStatusCode.BadRequest
+    SendEmailVerificationCodeResult.EMAIL_NOT_REGISTERED,
+    SendEmailVerificationCodeResult.EMAIL_ALREADY_VERIFIED -> HTTPStatusCode.Conflict
     else -> HTTPStatusCode.InternalServerError
 }
 
@@ -58,7 +58,7 @@ fun ChangePasswordResult.toHttpStatus() = when (this) {
     ChangePasswordResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }
 
-fun ForgotPasswordResult.toHttpStatus() = when (this) {
-    ForgotPasswordResult.SUCCESS -> HTTPStatusCode.OK
-    ForgotPasswordResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
+fun ResetPasswordResult.toHttpStatus() = when (this) {
+    ResetPasswordResult.SUCCESS -> HTTPStatusCode.OK
+    ResetPasswordResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }

@@ -2,7 +2,7 @@ package eric.bitria.hexon.auth.mock
 
 import at.favre.lib.crypto.bcrypt.BCrypt
 import eric.bitria.hexon.auth.repository.AuthRepository
-import eric.bitria.hexon.auth.email.EmailService
+import eric.bitria.hexon.email.smtp.SmtpService
 import eric.bitria.hexon.auth.login.LoginService
 import eric.bitria.hexon.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.LoginRequest
@@ -12,7 +12,7 @@ import eric.bitria.hexon.dtos.auth.LoginResult
 class MockLoginService(
     private val repository: AuthRepository,
     private val tokenService: TokenService,
-    private val emailService: EmailService
+    private val smtpService: SmtpService
 ) : LoginService {
 
     override suspend fun login(request: LoginRequest): LoginResponse {
@@ -38,7 +38,7 @@ class MockLoginService(
         if (!repository.isAccountVerified(request.email)) {
             val verificationCode = (100000..999999).random().toString()
             repository.updateUserCodeByEmail(request.email, verificationCode)
-            emailService.sendEmail(
+            smtpService.sendEmail(
                 to = request.email,
                 subject = "Email Verification",
                 body = verificationCode

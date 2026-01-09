@@ -1,8 +1,8 @@
 package eric.bitria.hexon.auth.mock
 
-import eric.bitria.hexon.auth.email.EmailService
+import eric.bitria.hexon.email.smtp.SmtpService
 
-class MockEmailService(private val inBox: Inbox) : EmailService {
+class MockSmtpService(private val inBox: Inbox) : SmtpService {
     override fun sendEmail(to: String, subject: String, body: String) {
         inBox.value = body
     }

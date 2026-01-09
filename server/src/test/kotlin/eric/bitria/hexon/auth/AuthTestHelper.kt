@@ -2,7 +2,7 @@ package eric.bitria.hexon.auth
 
 import eric.bitria.hexon.auth.mock.Inbox
 import eric.bitria.hexon.auth.mock.MockAuthRepository
-import eric.bitria.hexon.auth.mock.MockEmailService
+import eric.bitria.hexon.auth.mock.MockSmtpService
 import eric.bitria.hexon.auth.mock.MockLoginService
 import eric.bitria.hexon.auth.mock.MockRefreshService
 import eric.bitria.hexon.auth.mock.MockRegisterService
@@ -13,13 +13,13 @@ import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResponse
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResponse
+import eric.bitria.hexon.dtos.auth.SendEmailVerificationCodeRequest
+import eric.bitria.hexon.dtos.auth.SendEmailVerificationCodeResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.routes.loginRoute
 import eric.bitria.hexon.routes.refreshRoute
-import eric.bitria.hexon.routes.registerRoutes
+import eric.bitria.hexon.routes.authRoutes
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
@@ -42,7 +42,7 @@ fun withTestAuthClient(
 ) {
     val inbox = Inbox("")
     val tokenService = MockTokenService()
-    val emailService = MockEmailService(inbox)
+    val emailService = MockSmtpService(inbox)
     val repository = MockAuthRepository()
 
     testApplication {
@@ -50,11 +50,11 @@ fun withTestAuthClient(
             install(ContentNegotiation) { json() }
 
             routing {
-                registerRoutes(
+                authRoutes(
                     registerService = MockRegisterService(
                         repository = repository,
                         tokenService = tokenService,
-                        emailService = emailService
+                        smtpService = emailService
                     )
                 )
                 refreshRoute(
@@ -66,7 +66,7 @@ fun withTestAuthClient(
                     loginService = MockLoginService(
                         repository = repository,
                         tokenService = tokenService,
-                        emailService = emailService
+                        smtpService = emailService
                     )
                 )
             }
@@ -108,9 +108,9 @@ suspend fun HttpClient.verify(
  */
 suspend fun HttpClient.resendVerification(
     email: String
-): ResendVerificationCodeResponse = post("/auth/resend-verification") {
+): SendEmailVerificationCodeResponse = post("/auth/resend-verification") {
     contentType(ContentType.Application.Json)
-    setBody(ResendVerificationCodeRequest(email))
+    setBody(SendEmailVerificationCodeRequest(email))
 }.body()
 
 /**

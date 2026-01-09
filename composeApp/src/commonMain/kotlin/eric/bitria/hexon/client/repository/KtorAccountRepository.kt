@@ -2,8 +2,8 @@ package eric.bitria.hexon.client.repository
 
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResponse
-import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
-import eric.bitria.hexon.dtos.account.ForgotPasswordResponse
+import eric.bitria.hexon.dtos.account.ResetPasswordRequest
+import eric.bitria.hexon.dtos.account.ResetPasswordResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
@@ -15,7 +15,7 @@ class KtorAccountRepository(
     private val client: HttpClient
 ) : AccountRepository {
 
-    override suspend fun forgotPassword(request: ForgotPasswordRequest): ForgotPasswordResponse {
+    override suspend fun forgotPassword(request: ResetPasswordRequest): ResetPasswordResponse {
         return client.post("/account/forgot-password") {
             contentType(ContentType.Application.Json)
             setBody(request)

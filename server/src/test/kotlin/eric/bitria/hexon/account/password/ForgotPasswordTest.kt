@@ -7,7 +7,7 @@ import eric.bitria.hexon.auth.login
 import eric.bitria.hexon.auth.register
 import eric.bitria.hexon.auth.verify
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
-import eric.bitria.hexon.dtos.account.ForgotPasswordResult
+import eric.bitria.hexon.dtos.account.ResetPasswordResult
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
@@ -30,7 +30,7 @@ class ForgotPasswordTest {
 
         // 2. Request forgot password
         val forgotResp = client.forgotPassword(email)
-        assertEquals(ForgotPasswordResult.SUCCESS, forgotResp.result)
+        assertEquals(ResetPasswordResult.SUCCESS, forgotResp.result)
         val resetCode = inbox.value
 
         // 3. Change password using reset code
@@ -69,6 +69,6 @@ class ForgotPasswordTest {
     fun `test forgot password for non-existent user still returns success`() = withTestAccountClient { client, _ ->
         // For security, many APIs return success even if the email doesn't exist
         val forgotResp = client.forgotPassword("nonexistent@example.com")
-        assertEquals(ForgotPasswordResult.SUCCESS, forgotResp.result)
+        assertEquals(ResetPasswordResult.SUCCESS, forgotResp.result)
     }
 }

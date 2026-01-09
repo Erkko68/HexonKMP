@@ -1,4 +1,4 @@
-package eric.bitria.hexon.auth.email
+package eric.bitria.hexon.email.smtp
 
 import io.ktor.server.config.ApplicationConfig
 

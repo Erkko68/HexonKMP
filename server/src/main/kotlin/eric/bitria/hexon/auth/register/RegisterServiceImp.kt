@@ -1,15 +1,14 @@
 package eric.bitria.hexon.auth.register
 
-import at.favre.lib.crypto.bcrypt.BCrypt
-import eric.bitria.hexon.auth.email.EmailService
+import eric.bitria.hexon.email.smtp.SmtpService
 import eric.bitria.hexon.auth.repository.AuthRepository
 import eric.bitria.hexon.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResponse
 import eric.bitria.hexon.dtos.auth.RegisterResult
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResponse
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResult
+import eric.bitria.hexon.dtos.auth.SendEmailVerificationCodeRequest
+import eric.bitria.hexon.dtos.auth.SendEmailVerificationCodeResponse
+import eric.bitria.hexon.dtos.auth.SendEmailVerificationCodeResult
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import eric.bitria.hexon.utils.Validators.isValidCode
@@ -24,7 +23,7 @@ import eric.bitria.hexon.utils.hashToken
 class RegisterServiceImp(
     private val repository: AuthRepository,
     private val tokenService: TokenService,
-    private val emailService: EmailService
+    private val smtpService: SmtpService
 ) : RegisterService {
 
     /**
@@ -78,7 +77,7 @@ class RegisterServiceImp(
         repository.saveOrUpdateUnverifiedUser(request.email, request.username, request.password, verificationCode)
 
         // Send email to user
-        emailService.sendEmail(
+        smtpService.sendEmail(
             to = request.email,
             subject = "Email Verification",
             body = "Your verification code is: $verificationCode"
@@ -160,24 +159,24 @@ class RegisterServiceImp(
         }
     }
 
-    override suspend fun resendVerificationCode(request: ResendVerificationCodeRequest): ResendVerificationCodeResponse {
+    override suspend fun resendVerificationCode(request: SendEmailVerificationCodeRequest): SendEmailVerificationCodeResponse {
         if (!isValidEmail(request.email)) {
-            return ResendVerificationCodeResponse(
-                result = ResendVerificationCodeResult.INVALID_EMAIL,
+            return SendEmailVerificationCodeResponse(
+                result = SendEmailVerificationCodeResult.INVALID_EMAIL,
                 message = "Invalid email",
             )
         }
 
         if (!repository.emailExists(request.email)) {
-            return ResendVerificationCodeResponse(
-                result = ResendVerificationCodeResult.EMAIL_NOT_REGISTERED,
+            return SendEmailVerificationCodeResponse(
+                result = SendEmailVerificationCodeResult.EMAIL_NOT_REGISTERED,
                 message = "Email is not registered: ${request.email}",
             )
         }
 
         if (repository.isAccountVerified(request.email)) {
-            return ResendVerificationCodeResponse(
-                result = ResendVerificationCodeResult.EMAIL_ALREADY_VERIFIED,
+            return SendEmailVerificationCodeResponse(
+                result = SendEmailVerificationCodeResult.EMAIL_ALREADY_VERIFIED,
                 message = "Email already verified.",
             )
         }
@@ -187,14 +186,14 @@ class RegisterServiceImp(
         // Regenerate verification code
         repository.updateUserCodeByEmail(request.email,verificationCode)
 
-        emailService.sendEmail(
+        smtpService.sendEmail(
             to = request.email,
             subject = "Email Verification",
             body = "Your verification code is: $verificationCode"
         )
 
-        return ResendVerificationCodeResponse(
-            result = ResendVerificationCodeResult.SUCCESS,
+        return SendEmailVerificationCodeResponse(
+            result = SendEmailVerificationCodeResult.SUCCESS,
             message = "Resent verification code.",
         )
     }

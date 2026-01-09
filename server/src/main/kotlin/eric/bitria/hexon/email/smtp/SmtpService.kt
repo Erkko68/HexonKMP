@@ -1,6 +1,6 @@
-package eric.bitria.hexon.auth.email
+package eric.bitria.hexon.email.smtp
 
-interface EmailService {
+interface SmtpService {
     /**
      * Sends an email to the specified recipient.
      * @param to recipient email address

@@ -60,7 +60,7 @@ class KtorAuthRepository(
         return response
     }
 
-    override suspend fun resendVerificationCode(request: ResendVerificationCodeRequest): ResendVerificationCodeResponse {
+    override suspend fun resendVerificationCode(request: SendEmailVerificationCodeRequest): SendEmailVerificationCodeResponse {
         return client.post("/auth/resend-verification") {
             contentType(ContentType.Application.Json)
             setBody(request)

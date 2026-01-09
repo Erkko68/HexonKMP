@@ -1,29 +1,40 @@
 package eric.bitria.hexon.routes
 
-import eric.bitria.hexon.account.password.PasswordService
+import eric.bitria.hexon.account.password.ChangePasswordService
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
-import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
+import eric.bitria.hexon.dtos.account.ResetPasswordRequest
 import eric.bitria.hexon.utils.toHttpStatus
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
-fun Route.accountRoutes(passwordService: PasswordService) {
+fun Route.accountRoutes(changePasswordService: ChangePasswordService) {
     route("/account") {
-        authenticate("auth-jwt") {
-            post("/change-password") {
-                val request = call.receive<ChangePasswordRequest>()
-                val response = passwordService.changePassword(request)
-                call.respond(response.result.toHttpStatus(), response)
-            }
+
+        post("/password") {
+            val userId = call.principal<JWTPrincipal>()
+                ?.payload
+                ?.getClaim("id")
+                ?.asString()
+                ?: return@post call.respond(
+                    HttpStatusCode.Unauthorized,
+                    "Access token must be provided"
+                )
+
+            val request = call.receive<ChangePasswordRequest>()
+            val response = changePasswordService.changeWithOldPassword(userId, request)
+
+            call.respond(response.result.toHttpStatus(), response)
         }
 
-        post("/forgot-password") {
-            val request = call.receive<ForgotPasswordRequest>()
-            val response = passwordService.forgotPasswordCodeRequest(request)
+        post("/reset-password") {
+            val request = call.receive<ResetPasswordRequest>()
+            val response = changePasswordService.resetPassword(request)
             call.respond(response.result.toHttpStatus(), response)
         }
     }

@@ -51,13 +51,13 @@ class MockAuthRepository : AuthRepository {
         return users.entries.firstOrNull { it.value.username == username }?.key
     }
 
-    override suspend fun getPasswordByEmail(email: String): String? {
-        return users[email]?.passwordHash
+    override suspend fun getPasswordByUserId(userId: String): String? {
+        return users[userId]?.passwordHash
     }
 
-    override suspend fun updatePassword(email: String, passwordHash: String) {
-        val user = users[email] ?: return
-        users[email] = user.copy(passwordHash = passwordHash)
+    override suspend fun updatePasswordByUserId(userId: String, passwordHash: String) {
+        val user = users[userId] ?: return
+        users[userId] = user.copy(passwordHash = passwordHash)
     }
 
     override suspend fun updateUserCodeByEmail(email: String, resetCode: String) {
@@ -65,8 +65,8 @@ class MockAuthRepository : AuthRepository {
         users[email] = user.copy(code = resetCode)
     }
 
-    override suspend fun getUserCodeByEmail(email: String): String? {
-        return users[email]?.code
+    override suspend fun getUserCodeByUserId(userId: String): String? {
+        return users[userId]?.code
     }
 
     override suspend fun clearUserCode(email: String) {

@@ -1,4 +1,4 @@
-package eric.bitria.hexon.auth.email
+package eric.bitria.hexon.email.smtp
 
 import jakarta.mail.Authenticator
 import jakarta.mail.Message
@@ -9,9 +9,9 @@ import jakarta.mail.internet.InternetAddress
 import jakarta.mail.internet.MimeMessage
 import java.util.Properties
 
-class SmtpEmailService(
+class SmtpServiceImp(
     private val smtpConfig: SmtpConfig
-) : EmailService {
+) : SmtpService {
     private val session: Session
 
     init {

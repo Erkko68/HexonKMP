@@ -17,5 +17,5 @@ interface RegisterService {
     /**
      * Resends the verification code to the user's email.
      */
-    suspend fun resendVerificationCode(request: ResendVerificationCodeRequest): ResendVerificationCodeResponse
+    suspend fun resendVerificationCode(request: SendEmailVerificationCodeRequest): SendEmailVerificationCodeResponse
 }

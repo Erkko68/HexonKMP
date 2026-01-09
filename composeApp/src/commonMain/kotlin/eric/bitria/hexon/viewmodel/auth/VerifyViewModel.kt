@@ -72,7 +72,7 @@ class VerifyViewModel(
     fun resendCode() {
         viewModelScope.launch {
             try {
-                authRepository.resendVerificationCode(ResendVerificationCodeRequest(email))
+                authRepository.resendVerificationCode(SendEmailVerificationCodeRequest(email))
                 // Optionally show a message that code was resent
             } catch (e: Exception) {
                 // Handle error

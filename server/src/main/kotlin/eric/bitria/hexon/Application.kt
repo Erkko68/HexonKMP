@@ -4,15 +4,15 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import eric.bitria.hexon.auth.repository.AuthRepositoryDB
 import eric.bitria.hexon.database.DatabaseFactory
-import eric.bitria.hexon.auth.email.SmtpConfig
-import eric.bitria.hexon.auth.email.SmtpEmailService
+import eric.bitria.hexon.email.smtp.SmtpConfig
+import eric.bitria.hexon.email.smtp.SmtpServiceImp
 import eric.bitria.hexon.auth.login.LoginServiceImp
-import eric.bitria.hexon.account.password.PasswordServiceImp
+import eric.bitria.hexon.account.password.ChangePasswordServiceImp
 import eric.bitria.hexon.auth.refresh.RefreshServiceImp
 import eric.bitria.hexon.auth.register.RegisterServiceImp
 import eric.bitria.hexon.routes.loginRoute
 import eric.bitria.hexon.routes.refreshRoute
-import eric.bitria.hexon.routes.registerRoutes
+import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.auth.token.JwtConfig
 import eric.bitria.hexon.auth.token.JwtTokenService
 import eric.bitria.hexon.routes.accountRoutes
@@ -45,23 +45,23 @@ fun Application.module() {
 
     // 5. Initialize services
     val jwtService = JwtTokenService(jwtConfig)
-    val emailService = SmtpEmailService(smtpConfig)
+    val emailService = SmtpServiceImp(smtpConfig)
 
-    val passwordService = PasswordServiceImp(
-        repository = authRepository,
-        emailService = emailService
+    val passwordService = ChangePasswordServiceImp(
+        authRepository = authRepository,
+        smtpService = emailService
     )
 
     val registerService = RegisterServiceImp(
         repository = authRepository,
         tokenService = jwtService,
-        emailService = emailService
+        smtpService = emailService
     )
 
     val loginService = LoginServiceImp(
-        repository = authRepository,
+        authRepository = authRepository,
         tokenService = jwtService,
-        emailService = emailService
+        smtpService = emailService
     )
 
     val refreshService = RefreshServiceImp(
@@ -71,7 +71,7 @@ fun Application.module() {
 
     // Routes
     routing {
-        registerRoutes(registerService)
+        authRoutes(registerService)
         loginRoute(loginService)
         refreshRoute(refreshService)
         accountRoutes(passwordService)

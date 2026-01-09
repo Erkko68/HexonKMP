@@ -8,7 +8,6 @@ object Users : Table("users") {
     val username = varchar("username", 20).uniqueIndex()
     val password = varchar("password", 255)
     val isVerified = bool("is_verified").default(false)
-    val code = varchar("code", 6).nullable()
     val refreshTokenHash = varchar("refresh_hash", 255).nullable()
 
     override val primaryKey = PrimaryKey(id)

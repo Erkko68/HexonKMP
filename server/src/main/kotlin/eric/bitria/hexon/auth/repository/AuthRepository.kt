@@ -26,20 +26,20 @@ interface AuthRepository {
         verificationCode: String
     )
 
-    suspend fun getUserIdByEmail(email: String): String
+    suspend fun getUserIdByEmail(email: String): String?
 
     suspend fun getEmailByUsername(username: String): String?
 
     // --- Authentication ---
 
-    suspend fun getPasswordByEmail(email: String): String?
+    suspend fun getPasswordByUserId(userId: String): String?
 
     // --- Password Reset ---
-    suspend fun updatePassword(email: String, passwordHash: String)
+    suspend fun updatePasswordByUserId(userId: String, passwordHash: String)
 
     suspend fun updateUserCodeByEmail(email: String, resetCode: String)
 
-    suspend fun getUserCodeByEmail(email: String): String?
+    suspend fun getUserCodeByUserId(userId: String): String?
 
     suspend fun clearUserCode(email: String)
 

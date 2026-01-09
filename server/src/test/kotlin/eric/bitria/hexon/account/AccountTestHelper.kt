@@ -4,17 +4,17 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import eric.bitria.hexon.auth.mock.Inbox
 import eric.bitria.hexon.auth.mock.MockAuthRepository
-import eric.bitria.hexon.auth.mock.MockEmailService
+import eric.bitria.hexon.auth.mock.MockSmtpService
 import eric.bitria.hexon.auth.mock.MockLoginService
-import eric.bitria.hexon.auth.mock.MockPasswordService
+import eric.bitria.hexon.auth.mock.MockChangePasswordService
 import eric.bitria.hexon.auth.mock.MockRefreshService
 import eric.bitria.hexon.auth.mock.MockRegisterService
 import eric.bitria.hexon.auth.mock.MockTokenService
 import eric.bitria.hexon.auth.token.JwtConfig
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResponse
-import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
-import eric.bitria.hexon.dtos.account.ForgotPasswordResponse
+import eric.bitria.hexon.dtos.account.ResetPasswordRequest
+import eric.bitria.hexon.dtos.account.ResetPasswordResponse
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
@@ -22,7 +22,7 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.routes.accountRoutes
 import eric.bitria.hexon.routes.loginRoute
 import eric.bitria.hexon.routes.refreshRoute
-import eric.bitria.hexon.routes.registerRoutes
+import eric.bitria.hexon.routes.authRoutes
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.auth.Auth
@@ -51,7 +51,7 @@ fun withTestAccountClient(
 ) {
     val inbox = Inbox("")
     val tokenService = MockTokenService()
-    val emailService = MockEmailService(inbox)
+    val emailService = MockSmtpService(inbox)
     val repository = MockAuthRepository()
     
     val testJwtConfig = JwtConfig(
@@ -87,11 +87,11 @@ fun withTestAccountClient(
             }
 
             routing {
-                registerRoutes(
+                authRoutes(
                     registerService = MockRegisterService(
                         repository = repository,
                         tokenService = tokenService,
-                        emailService = emailService
+                        smtpService = emailService
                     )
                 )
                 refreshRoute(
@@ -103,13 +103,13 @@ fun withTestAccountClient(
                     loginService = MockLoginService(
                         repository = repository,
                         tokenService = tokenService,
-                        emailService = emailService
+                        smtpService = emailService
                     )
                 )
                 accountRoutes(
-                    passwordService = MockPasswordService(
+                    changePasswordService = MockChangePasswordService(
                         repository = repository,
-                        emailService = emailService
+                        smtpService = emailService
                     )
                 )
             }
@@ -140,9 +140,9 @@ fun withTestAccountClient(
 
 suspend fun HttpClient.forgotPassword(
     email: String
-): ForgotPasswordResponse = post("/account/forgot-password") {
+): ResetPasswordResponse = post("/account/forgot-password") {
     contentType(ContentType.Application.Json)
-    setBody(ForgotPasswordRequest(email))
+    setBody(ResetPasswordRequest(email))
 }.body()
 
 suspend fun HttpClient.changePassword(

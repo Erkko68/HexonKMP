@@ -80,12 +80,12 @@ class AuthRepositoryDB : AuthRepository {
         }
     }
 
-    override suspend fun getUserIdByEmail(email: String): String = dbQuery {
+    override suspend fun getUserIdByEmail(email: String): String? = dbQuery {
         Users
             .selectAll()
             .where { Users.email eq email }
             .map { it[Users.id] }
-            .singleOrNull() ?: ""
+            .singleOrNull()
     }
 
     override suspend fun getEmailByUsername(username: String): String? = dbQuery {
@@ -96,17 +96,17 @@ class AuthRepositoryDB : AuthRepository {
             .singleOrNull()
     }
 
-    override suspend fun getPasswordByEmail(email: String): String? = dbQuery {
+    override suspend fun getPasswordByUserId(userId: String): String? = dbQuery {
         Users
             .selectAll()
-            .where { Users.email eq email }
+            .where { Users.id eq userId }
             .map { it[Users.password] }
             .singleOrNull()
     }
 
-    override suspend fun updatePassword(email: String, passwordHash: String) {
+    override suspend fun updatePasswordByUserId(userId: String, passwordHash: String) {
         dbQuery {
-            Users.update({ Users.email eq email }) {
+            Users.update({ Users.id eq userId }) {
                 it[password] = passwordHash
             }
         }
@@ -120,10 +120,10 @@ class AuthRepositoryDB : AuthRepository {
         }
     }
 
-    override suspend fun getUserCodeByEmail(email: String): String? = dbQuery {
+    override suspend fun getUserCodeByUserId(userId: String): String? = dbQuery {
         Users
             .selectAll()
-            .where { Users.email eq email }
+            .where { Users.id eq userId }
             .map { it[Users.code] }
             .singleOrNull()
     }
