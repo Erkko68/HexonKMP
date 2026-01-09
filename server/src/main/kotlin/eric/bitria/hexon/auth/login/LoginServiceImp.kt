@@ -70,12 +70,17 @@ class LoginServiceImp(
         }
 
         val userId = repository.getUserIdByEmail(request.email)
+        val accessToken = tokenService.generateAccessToken(userId)
+        val refreshToken = tokenService.generateRefreshToken(userId)
+
+        val refreshTokenHash = BCrypt.withDefaults().hashToString(12, refreshToken.toCharArray())
+        repository.updateRefreshTokenHash(userId, refreshTokenHash)
         
         return LoginResponse(
             result = LoginResult.SUCCESS,
             message = "Login successful",
-            accessToken = tokenService.generateAccessToken(userId),
-            refreshToken = tokenService.generateRefreshToken(userId)
+            accessToken = accessToken,
+            refreshToken = refreshToken
         )
     }
 }

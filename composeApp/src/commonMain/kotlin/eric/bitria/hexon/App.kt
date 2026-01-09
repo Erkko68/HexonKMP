@@ -1,9 +1,12 @@
 package eric.bitria.hexon
 
-import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -15,11 +18,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import eric.bitria.hexon.theme.HexonTheme
-import eric.bitria.hexon.ui.screens.*
+import eric.bitria.hexon.ui.screens.GameScreen
+import eric.bitria.hexon.ui.screens.MainMenuScreen
+import eric.bitria.hexon.ui.screens.Screens
+import eric.bitria.hexon.ui.screens.SettingsScreen
 import eric.bitria.hexon.ui.screens.account.ForgotPasswordScreen
+import eric.bitria.hexon.ui.screens.account.ResetPasswordScreen
 import eric.bitria.hexon.ui.screens.account.SendPasswordResetCodeScreen
 import eric.bitria.hexon.ui.screens.auth.LoginScreen
-import eric.bitria.hexon.ui.screens.account.ResetPasswordScreen
 import eric.bitria.hexon.ui.screens.auth.VerifyScreen
 import eric.bitria.hexon.ui.screens.social.FriendProfileScreen
 import eric.bitria.hexon.ui.screens.social.FriendsScreen

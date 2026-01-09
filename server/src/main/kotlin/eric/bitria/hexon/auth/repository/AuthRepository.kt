@@ -42,4 +42,8 @@ interface AuthRepository {
     suspend fun getUserCodeByEmail(email: String): String?
 
     suspend fun clearUserCode(email: String)
+
+    // --- Refresh Token Management ---
+    suspend fun updateRefreshTokenHash(userId: String, hash: String)
+    suspend fun getRefreshTokenHash(userId: String): String?
 }

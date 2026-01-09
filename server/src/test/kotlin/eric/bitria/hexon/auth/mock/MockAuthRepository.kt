@@ -73,4 +73,12 @@ class MockAuthRepository : AuthRepository {
         val user = users[email] ?: return
         users[email] = user.copy(code = null)
     }
+
+    override suspend fun updateRefreshTokenHash(userId: String, hash: String) {
+        users[userId] = users[userId]?.copy(passwordHash = hash) ?: return
+    }
+
+    override suspend fun getRefreshTokenHash(userId: String): String? {
+        return users[userId]?.passwordHash
+    }
 }

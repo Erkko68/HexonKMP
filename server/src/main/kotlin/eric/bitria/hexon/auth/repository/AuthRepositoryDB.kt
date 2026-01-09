@@ -124,9 +124,7 @@ class AuthRepositoryDB : AuthRepository {
         Users
             .selectAll()
             .where { Users.email eq email }
-            .map {
-                it[Users.code]
-            }
+            .map { it[Users.code] }
             .singleOrNull()
     }
 
@@ -136,5 +134,21 @@ class AuthRepositoryDB : AuthRepository {
                 it[code] = null
             }
         }
+    }
+
+    override suspend fun updateRefreshTokenHash(userId: String, hash: String) {
+        dbQuery {
+            Users.update({ Users.id eq userId }) {
+                it[refreshTokenHash] = hash
+            }
+        }
+    }
+
+    override suspend fun getRefreshTokenHash(userId: String): String? = dbQuery {
+        Users
+            .selectAll()
+            .where { Users.id eq userId }
+            .map { it[Users.refreshTokenHash] }
+            .singleOrNull()
     }
 }
