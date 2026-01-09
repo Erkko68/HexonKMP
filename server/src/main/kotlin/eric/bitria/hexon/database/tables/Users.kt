@@ -2,7 +2,7 @@ package eric.bitria.hexon.database.tables
 
 import org.jetbrains.exposed.sql.Table
 
-object Users : Table("users") {
+object Users : Table("user") {
     val id = varchar("id", 36)
     val email = varchar("email", 64).uniqueIndex()
     val username = varchar("username", 20).uniqueIndex()

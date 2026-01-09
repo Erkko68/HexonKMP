@@ -2,48 +2,46 @@ package eric.bitria.hexon.auth.repository
 
 interface AuthRepository {
 
-    // --- Existence Checks ---
+    /**
+     * Checks if a user already exists with the given email or username.
+     * Used during Registration to prevent duplicates.
+     */
+    suspend fun isEmailRegistered(email: String): Boolean
+    suspend fun isUsernameTaken(username: String): Boolean
 
-    suspend fun usernameExists(username: String): Boolean
+    /**
+     * Creates a new user in the database.
+     * Used by RegisterService.
+     * @return The newly created User object (including generated ID).
+     */
+    suspend fun createUser(
+        email: String,
+        username: String,
+        passwordHash: String
+    ): User
 
-    suspend fun emailExists(email: String): Boolean
+    /**
+     * Finds a user by their email.
+     * Used by LoginService to verify credentials.
+     */
+    suspend fun findUserByEmail(email: String): User?
 
-    // --- Account Verification ---
+    /**
+     * Finds a user by their ID.
+     * Used by RefreshService (and general app usage).
+     */
+    suspend fun findUserById(userId: String): User?
 
-    suspend fun isAccountVerified(email: String): Boolean
+    /**
+     * Updates the refresh token hash for a specific user.
+     * Used by LoginService (to set initial token) and RefreshService (rotation).
+     * @param refreshTokenHash Nullable because logging out would set this to null.
+     */
+    suspend fun updateRefreshToken(userId: String, refreshTokenHash: String?)
 
-    suspend fun getVerificationCodeByEmail(email: String): String?
-
-    // Mark as verified once the service confirms the code is correct
-    suspend fun markAccountAsVerified(email: String)
-
-    // --- User Management ---
-
-    suspend fun saveOrUpdateUnverifiedUser(
-        email: String, 
-        username: String, 
-        password: String, 
-        verificationCode: String
-    )
-
-    suspend fun getUserIdByEmail(email: String): String?
-
-    suspend fun getEmailByUsername(username: String): String?
-
-    // --- Authentication ---
-
-    suspend fun getPasswordByUserId(userId: String): String?
-
-    // --- Password Reset ---
-    suspend fun updatePasswordByUserId(userId: String, passwordHash: String)
-
-    suspend fun updateUserCodeByEmail(email: String, resetCode: String)
-
-    suspend fun getUserCodeByUserId(userId: String): String?
-
-    suspend fun clearUserCode(email: String)
-
-    // --- Refresh Token Management ---
-    suspend fun updateRefreshTokenHash(userId: String, hash: String)
+    /**
+     * Retrieves the stored refresh token hash for validation.
+     * Used by RefreshService to check if the incoming token matches the DB.
+     */
     suspend fun getRefreshTokenHash(userId: String): String?
 }
