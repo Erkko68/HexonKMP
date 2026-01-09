@@ -1,5 +1,6 @@
 package eric.bitria.hexon.database.tables
 
+import eric.bitria.hexon.dtos.auth.EmailVerificationType
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.datetime
@@ -18,10 +19,4 @@ object EmailVerificationCodes : Table("email_verification_codes") {
     val createdAt = datetime("created_at")
 
     override val primaryKey = PrimaryKey(email)
-}
-
-enum class EmailVerificationType {
-    EMAIL_CONFIRMATION,
-    PASSWORD_RESET,
-    ACCOUNT_DELETION
 }

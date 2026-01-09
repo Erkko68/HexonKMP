@@ -1,6 +1,6 @@
 package eric.bitria.hexon.email.verification
 
-import eric.bitria.hexon.database.tables.EmailVerificationType
+import eric.bitria.hexon.dtos.auth.EmailVerificationType
 
 interface EmailVerificationService {
 

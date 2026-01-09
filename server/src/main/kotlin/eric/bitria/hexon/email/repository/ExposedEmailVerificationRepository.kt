@@ -2,7 +2,7 @@ package eric.bitria.hexon.email.repository
 
 import eric.bitria.hexon.database.DatabaseFactory.dbQuery
 import eric.bitria.hexon.database.tables.EmailVerificationCodes
-import eric.bitria.hexon.database.tables.EmailVerificationType
+import eric.bitria.hexon.dtos.auth.EmailVerificationType
 import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.less

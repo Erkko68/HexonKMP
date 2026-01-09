@@ -11,7 +11,9 @@ data class VerifyEmailRequest(
 @Serializable
 data class VerifyEmailResponse(
     val result: VerifyEmailResult,
-    val message: String
+    val message: String,
+    val accessToken: String? = null,
+    val refreshToken: String? = null
 )
 
 @Serializable

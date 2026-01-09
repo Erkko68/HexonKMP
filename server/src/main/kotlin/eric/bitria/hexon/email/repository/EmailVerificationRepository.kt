@@ -1,6 +1,6 @@
 package eric.bitria.hexon.email.repository
 
-import eric.bitria.hexon.database.tables.EmailVerificationType
+import eric.bitria.hexon.dtos.auth.EmailVerificationType
 import kotlin.time.Instant
 
 interface EmailVerificationRepository {

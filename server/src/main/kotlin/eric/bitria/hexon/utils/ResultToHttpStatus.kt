@@ -5,6 +5,7 @@ import eric.bitria.hexon.dtos.account.ResetPasswordResult
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.dtos.auth.RegisterResult
+import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResult
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import io.ktor.http.HttpStatusCode as HTTPStatusCode
 
@@ -45,19 +46,8 @@ fun LoginResult.toHttpStatus() = when (this) {
     LoginResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }
 
-fun ChangePasswordResult.toHttpStatus() = when (this) {
-    ChangePasswordResult.SUCCESS -> HTTPStatusCode.OK
-    ChangePasswordResult.INVALID_PASSWORD_FORMAT -> TODO()
-    ChangePasswordResult.INVALID_PASSWORD -> TODO()
-    ChangePasswordResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
-}
-
-fun ResetPasswordResult.toHttpStatus() = when (this) {
-    ResetPasswordResult.SUCCESS -> HTTPStatusCode.OK
-    ResetPasswordResult.UNKNOWN_EMAIL -> TODO()
-    ResetPasswordResult.INVALID_EMAIL_FORMAT -> TODO()
-    ResetPasswordResult.INVALID_CODE_FORMAT -> TODO()
-    ResetPasswordResult.INVALID_PASSWORD_FORMAT -> TODO()
-    ResetPasswordResult.INVALID_CODE -> TODO()
-    ResetPasswordResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
+fun ResendVerificationCodeResult.toHttpStatus() = when (this) {
+    ResendVerificationCodeResult.SUCCESS -> HTTPStatusCode.OK
+    ResendVerificationCodeResult.ALREADY_VERIFIED -> HTTPStatusCode.Conflict
+    ResendVerificationCodeResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }

@@ -1,30 +1,31 @@
 package eric.bitria.hexon.routes
 
-import eric.bitria.hexon.users.verify.UserVerificationService
-import eric.bitria.hexon.dtos.account.ChangePasswordRequest
-import eric.bitria.hexon.dtos.account.ResetPasswordRequest
+import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
+import eric.bitria.hexon.users.verify.AccountVerificationService
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.utils.toHttpStatus
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.delete
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
 fun Route.usersRoutes(
-    userVerificationService: UserVerificationService,
+    accountVerificationService: AccountVerificationService,
     //changePasswordService: ChangePasswordService,
 ) {
     route("/users") {
 
         post("/email/confirm") {
             val request = call.receive<VerifyEmailRequest>()
-            val response = userVerificationService.verifyEmail(request)
+            val response = accountVerificationService.verifyEmail(request)
             call.respond(response.result.toHttpStatus(),response)
+        }
+
+        post("/email/resend") {
+            val request = call.receive<ResendVerificationCodeRequest>()
+            val response = accountVerificationService.resendVerificationCode(request)
+            call.respond(response.result.toHttpStatus(), response)
         }
 
 //        post("/me/password") {

@@ -1,7 +1,7 @@
 package eric.bitria.hexon.email.verification
 
 import at.favre.lib.crypto.bcrypt.BCrypt
-import eric.bitria.hexon.database.tables.EmailVerificationType
+import eric.bitria.hexon.dtos.auth.EmailVerificationType
 import eric.bitria.hexon.email.repository.EmailVerificationRepository
 import eric.bitria.hexon.email.smtp.SmtpService
 import eric.bitria.hexon.users.repository.UserRepository

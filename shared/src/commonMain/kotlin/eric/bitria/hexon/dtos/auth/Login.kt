@@ -16,6 +16,7 @@ data class LoginResponse(
     val refreshToken: String? = null
 )
 
+@Serializable
 enum class LoginResult {
     SUCCESS,
     INVALID_CREDENTIALS,

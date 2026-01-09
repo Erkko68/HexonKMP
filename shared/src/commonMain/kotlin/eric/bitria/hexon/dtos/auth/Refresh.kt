@@ -15,6 +15,7 @@ data class RefreshResponse(
     val refreshToken: String? = null
 )
 
+@Serializable
 enum class RefreshResult {
     SUCCESS,
     INVALID_TOKEN,      // Token is malformed, expired, or JWT signature is wrong

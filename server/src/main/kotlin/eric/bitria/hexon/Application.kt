@@ -4,7 +4,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import eric.bitria.hexon.auth.login.LoginServiceImpl
 import eric.bitria.hexon.auth.refresh.RefreshServiceImpl
-import eric.bitria.hexon.users.verify.UserVerificationServiceImpl
+import eric.bitria.hexon.users.verify.AccountVerificationServiceImpl
 import eric.bitria.hexon.auth.register.RegisterServiceImpl
 import eric.bitria.hexon.auth.repository.ExposedAuthRepository
 import eric.bitria.hexon.auth.token.JwtConfig
@@ -47,6 +47,7 @@ fun Application.module() {
     configureSecurity(jwtConfig)
 
     // 5. Initialize services
+    val tokenService = JwtTokenService(jwtConfig)
     val emailService = SmtpServiceImp(smtpConfig)
     val emailVerificationService = EmailVerificationServiceImpl(
         verificationRepo = emailVerificationRepository,
@@ -57,17 +58,18 @@ fun Application.module() {
         authRepository = authRepository,
         emailVerificationService = emailVerificationService
     )
-    val accountVerificationService = UserVerificationServiceImpl(
+    val accountVerificationService = AccountVerificationServiceImpl(
         authRepository = authRepository,
-        emailVerificationService = emailVerificationService
+        emailVerificationService = emailVerificationService,
+        tokenService = tokenService
     )
     val loginService = LoginServiceImpl(
         authRepository = authRepository,
-        tokenService = JwtTokenService(jwtConfig)
+        tokenService = tokenService
     )
     val refreshService = RefreshServiceImpl(
         authRepository = authRepository,
-        tokenService = JwtTokenService(jwtConfig)
+        tokenService = tokenService
     )
 
     // Routes

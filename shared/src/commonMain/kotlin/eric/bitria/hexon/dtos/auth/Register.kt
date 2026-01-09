@@ -15,6 +15,7 @@ data class RegisterResponse(
     val message: String
 )
 
+@Serializable
 enum class RegisterResult {
     SUCCESS, // Represents "Verification Sent"
     EMAIL_ALREADY_EXISTS,
