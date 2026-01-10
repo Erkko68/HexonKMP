@@ -51,6 +51,7 @@ fun App(
     var isInitialNavigationDone by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(sessionState) {
+        if (navController.currentBackStackEntry == null) return@LaunchedEffect
         when (sessionState) {
             SessionState.LOGGED_IN -> {
                 if (!isInitialNavigationDone) {
