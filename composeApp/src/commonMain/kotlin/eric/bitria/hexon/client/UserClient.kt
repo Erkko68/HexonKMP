@@ -2,8 +2,11 @@ package eric.bitria.hexon.client
 
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResponse
+import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountRequest
+import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountResponse
 import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
 import eric.bitria.hexon.dtos.account.ForgotPasswordResponse
+import eric.bitria.hexon.dtos.account.RequestDeleteAccountResponse
 import eric.bitria.hexon.dtos.account.ResetPasswordRequest
 import eric.bitria.hexon.dtos.account.ResetPasswordResponse
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
@@ -19,4 +22,7 @@ interface UserClient {
     suspend fun forgotPassword(request: ForgotPasswordRequest): ForgotPasswordResponse
 
     suspend fun resetPassword(request: ResetPasswordRequest): ResetPasswordResponse
+
+    suspend fun initiateDeleteAccount(): RequestDeleteAccountResponse
+    suspend fun confirmDeleteAccount(request: ConfirmDeleteAccountRequest): ConfirmDeleteAccountResponse
 }

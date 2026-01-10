@@ -29,6 +29,7 @@ import eric.bitria.hexon.ui.screens.SettingsScreen
 import eric.bitria.hexon.ui.screens.account.ResetPasswordScreen
 import eric.bitria.hexon.ui.screens.account.ChangePasswordScreen
 import eric.bitria.hexon.ui.screens.account.ForgotPasswordScreen
+import eric.bitria.hexon.ui.screens.account.DeleteAccountScreen
 import eric.bitria.hexon.ui.screens.auth.LoginScreen
 import eric.bitria.hexon.ui.screens.auth.VerifyScreen
 import eric.bitria.hexon.ui.screens.social.FriendProfileScreen
@@ -162,9 +163,21 @@ fun App(
                 SettingsScreen(
                     onExitClicked = { navController.popBackStack() },
                     onChangePasswordClicked = { navController.navigate(Screens.ResetPassword) },
+                    onDeleteAccountClicked = { navController.navigate(Screens.DeleteAccount) },
                     onLogout = {
                         tokenManager.clearTokens()
                     }
+                )
+            }
+
+            composable<Screens.DeleteAccount> {
+                DeleteAccountScreen(
+                    onSuccess = {
+                        navController.navigate(Screens.Login) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 

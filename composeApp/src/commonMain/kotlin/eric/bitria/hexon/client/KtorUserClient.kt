@@ -2,8 +2,11 @@ package eric.bitria.hexon.client
 
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResponse
+import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountRequest
+import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountResponse
 import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
 import eric.bitria.hexon.dtos.account.ForgotPasswordResponse
+import eric.bitria.hexon.dtos.account.RequestDeleteAccountResponse
 import eric.bitria.hexon.dtos.account.ResetPasswordRequest
 import eric.bitria.hexon.dtos.account.ResetPasswordResponse
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
@@ -12,6 +15,7 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.delete
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -56,4 +60,14 @@ class KtorUserClient(
         }.body()
     }
 
+    override suspend fun initiateDeleteAccount(): RequestDeleteAccountResponse {
+        return client.post("/users/me/delete/initiate").body()
+    }
+
+    override suspend fun confirmDeleteAccount(request: ConfirmDeleteAccountRequest): ConfirmDeleteAccountResponse {
+        return client.delete("/users/me") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+    }
 }

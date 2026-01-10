@@ -12,6 +12,7 @@ import eric.bitria.hexon.viewmodel.SettingsViewModel
 import eric.bitria.hexon.viewmodel.account.ChangePasswordViewModel
 import eric.bitria.hexon.viewmodel.account.ResetPasswordViewModel
 import eric.bitria.hexon.viewmodel.account.ForgotPasswordViewModel
+import eric.bitria.hexon.viewmodel.account.DeleteAccountViewModel
 import eric.bitria.hexon.viewmodel.auth.LoginViewModel
 import eric.bitria.hexon.viewmodel.auth.VerifyViewModel
 import eric.bitria.hexon.viewmodel.social.FriendProfileViewModel
@@ -35,6 +36,7 @@ val viewModelsModule = module {
     viewModelOf(::ResetPasswordViewModel)
     viewModelOf(::ForgotPasswordViewModel)
     viewModelOf(::ChangePasswordViewModel)
+    viewModelOf(::DeleteAccountViewModel)
 }
 
 fun initKoin(config: KoinAppDeclaration? = null){

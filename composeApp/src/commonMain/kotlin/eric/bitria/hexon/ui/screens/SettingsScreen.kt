@@ -57,6 +57,7 @@ fun SettingsScreen(
     settingsViewModel: SettingsViewModel = koinViewModel(),
     onExitClicked: () -> Unit,
     onChangePasswordClicked: () -> Unit,
+    onDeleteAccountClicked: () -> Unit,
     onLogout: () -> Unit
 ) {
     val uiState by settingsViewModel.uiState.collectAsState()
@@ -275,7 +276,7 @@ fun SettingsScreen(
 
                             SettingsButton(
                                 text = "Delete Account",
-                                onClick = settingsViewModel::onDeleteAccountClicked,
+                                onClick = onDeleteAccountClicked,
                                 modifier = Modifier.fillMaxWidth(),
                                 isError = true,
                                 paddingScale = dimensions.paddingScale

@@ -35,5 +35,8 @@ sealed class Screens {
     object Settings : Screens()
 
     @Serializable
+    object DeleteAccount : Screens()
+
+    @Serializable
     data class FriendProfile(val username: String) : Screens()
 }
