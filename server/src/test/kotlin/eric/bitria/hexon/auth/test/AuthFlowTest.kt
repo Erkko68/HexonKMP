@@ -29,6 +29,7 @@ import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.routes.usersRoutes
 import eric.bitria.hexon.users.mock.MockAccountVerificationService
 import eric.bitria.hexon.users.mock.MockUserAccountService
+import eric.bitria.hexon.users.mock.MockUserProfileService
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.header
@@ -60,7 +61,7 @@ class AuthFlowTest {
         authRepository
     )
 
-    // Services - Important to pass emailVerificationService to RegisterService
+    // Services
     private val registerService = MockRegisterService(authRepository, emailVerificationService)
     private val loginService = MockLoginService(authRepository)
     private val refreshService = MockRefreshService(authRepository, tokenService)
@@ -68,6 +69,8 @@ class AuthFlowTest {
         authRepository, emailVerificationService, tokenService
     )
     private val passwordService = MockUserAccountService(authRepository, emailVerificationService)
+
+    private val userProfileService = MockUserProfileService()
 
     private fun testAuthApplication(block: suspend (HttpClient) -> Unit) = testApplication {
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
@@ -87,7 +90,7 @@ class AuthFlowTest {
         }
         routing {
             authRoutes(registerService, loginService, refreshService)
-            usersRoutes(accountVerificationService, passwordService)
+            usersRoutes(accountVerificationService, passwordService, userProfileService)
         }
         val client = createClient {
             install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {

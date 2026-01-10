@@ -16,6 +16,7 @@ import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.routes.usersRoutes
 import eric.bitria.hexon.users.mock.MockAccountVerificationService
 import eric.bitria.hexon.users.mock.MockUserAccountService
+import eric.bitria.hexon.users.mock.MockUserProfileService
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
@@ -52,6 +53,8 @@ class AccountVerificationRouteTest {
         tokenService
     )
 
+    private val userProfileService = MockUserProfileService()
+
     private fun testUsersApplication(block: suspend (HttpClient) -> Unit) = testApplication {
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
             json()
@@ -66,8 +69,9 @@ class AccountVerificationRouteTest {
                 accountVerificationService = accountVerificationService,
                 userAccountService = MockUserAccountService(
                     authRepository,
-                    emailService
-                )
+                    emailService,
+                ),
+                userProfileService = userProfileService
             )
         }
         val client = createClient {

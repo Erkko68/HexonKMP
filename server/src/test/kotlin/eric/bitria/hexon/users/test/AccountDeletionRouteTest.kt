@@ -16,6 +16,7 @@ import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.routes.usersRoutes
 import eric.bitria.hexon.users.mock.MockAccountVerificationService
 import eric.bitria.hexon.users.mock.MockUserAccountService
+import eric.bitria.hexon.users.mock.MockUserProfileService
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -50,6 +51,8 @@ class AccountDeletionRouteTest {
 
     private val accountService = MockUserAccountService(authRepository, emailService)
 
+    private val userProfileService = MockUserProfileService()
+
     private fun testAccountApplication(block: suspend (HttpClient) -> Unit) = testApplication {
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
             json()
@@ -69,7 +72,8 @@ class AccountDeletionRouteTest {
         routing {
             usersRoutes(
                 accountVerificationService = MockAccountVerificationService(authRepository, emailService, tokenService),
-                userAccountService = accountService
+                userAccountService = accountService,
+                userProfileService = userProfileService
             )
         }
         val client = createClient {
