@@ -16,6 +16,8 @@ import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.routes.usersRoutes
 import eric.bitria.hexon.users.account.UserAccountServiceImpl
+import eric.bitria.hexon.users.profile.ExposedProfileRepository
+import eric.bitria.hexon.users.profile.UserProfileServiceImpl
 import eric.bitria.hexon.users.verify.AccountVerificationServiceImpl
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -38,6 +40,7 @@ fun Application.module() {
     DatabaseFactory.init(environment.config)
     val emailVerificationRepository = ExposedEmailVerificationRepository()
     val authRepository = ExposedAuthRepository()
+    val profileRepository = ExposedProfileRepository()
 
     // 3. Install plugins
     install(ContentNegotiation) { json() }
@@ -57,7 +60,11 @@ fun Application.module() {
         authRepository = authRepository,
         emailVerificationService = emailVerificationService
     )
+    val userProfileService = UserProfileServiceImpl(
+        profileRepository = profileRepository
+    )
     val accountVerificationService = AccountVerificationServiceImpl(
+        profileRepository = profileRepository,
         authRepository = authRepository,
         emailVerificationService = emailVerificationService,
         tokenService = tokenService
@@ -84,7 +91,8 @@ fun Application.module() {
         )
         usersRoutes(
             accountVerificationService = accountVerificationService,
-            userAccountService = passwordService
+            userAccountService = passwordService,
+            userProfileService = userProfileService
         )
     }
 }

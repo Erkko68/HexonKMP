@@ -11,12 +11,14 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import eric.bitria.hexon.email.verification.EmailVerificationService
+import eric.bitria.hexon.users.profile.ProfileRepository
 import eric.bitria.hexon.utils.TokenHasher
 
 class AccountVerificationServiceImpl(
     private val authRepository: AuthRepository,
     private val emailVerificationService: EmailVerificationService,
-    private val tokenService: TokenService
+    private val tokenService: TokenService,
+    private val profileRepository: ProfileRepository
 ) : AccountVerificationService {
 
     override suspend fun verifyEmail(request: VerifyEmailRequest): VerifyEmailResponse {
@@ -63,6 +65,9 @@ class AccountVerificationServiceImpl(
         val refreshTokenHash = TokenHasher.hash(refreshToken)
 
         authRepository.updateRefreshToken(user.id, refreshTokenHash)
+
+        // 7. Create user profile
+        profileRepository.createProfile(user.id)
 
         return VerifyEmailResponse(
             VerifyEmailResult.SUCCESS,
