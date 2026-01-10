@@ -16,8 +16,11 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,6 +40,7 @@ import eric.bitria.hexon.ui.utils.toVividColor
 import eric.bitria.hexon.viewmodel.social.ProfileViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     profileViewModel: ProfileViewModel = koinViewModel(),
@@ -44,7 +48,9 @@ fun ProfileScreen(
     onExitClicked: () -> Unit
 ) {
     val uiState by profileViewModel.uiState.collectAsState()
+    val isLoading by profileViewModel.isLoading.collectAsState()
     val vividColor = uiState.username.toVividColor()
+    val pullToRefreshState = rememberPullToRefreshState()
 
     HexonTheme {
         val dimensions = HexonTheme.dimensions
@@ -83,11 +89,11 @@ fun ProfileScreen(
                         )
                     }
 
-                    if (uiState.isLoading) {
+                    if (isLoading && uiState.username.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator()
                         }
-                    } else if (uiState.error != null) {
+                    } else if (uiState.error != null && uiState.username.isEmpty()) {
                         Column(
                             modifier = Modifier.fillMaxSize().padding(spacing.large),
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -106,46 +112,54 @@ fun ProfileScreen(
                             )
                         }
                     } else {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth(if (isPortrait) 1f else 0.5f)
-                                .padding(horizontal = spacing.small),
-                            horizontalAlignment = Alignment.CenterHorizontally,
+                        PullToRefreshBox(
+                            isRefreshing = isLoading,
+                            onRefresh = { profileViewModel.retry() },
+                            state = pullToRefreshState,
+                            modifier = Modifier.fillMaxSize()
                         ) {
-                            item {
-                                if (isPortrait) {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth(if (isPortrait) 1f else 0.5f)
+                                    .padding(horizontal = spacing.small)
+                                    .align(Alignment.TopCenter),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                item {
+                                    if (isPortrait) {
+                                        Spacer(modifier = Modifier.height(spacing.medium))
+                                    }
+
+                                    UserInfoSection(
+                                        username = uiState.username,
+                                        avatarUrl = uiState.avatarUrl,
+                                        stats = uiState.stats
+                                    )
+
+                                    Spacer(modifier = Modifier.height(spacing.large))
+
+                                    Text(
+                                        text = "Game History",
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 1.sp
+                                        ),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Center
+                                    )
+
                                     Spacer(modifier = Modifier.height(spacing.medium))
                                 }
-
-                                UserInfoSection(
-                                    username = uiState.username,
-                                    avatarUrl = uiState.avatarUrl,
-                                    stats = uiState.stats
-                                )
-
-                                Spacer(modifier = Modifier.height(spacing.large))
-
-                                Text(
-                                    text = "Game History",
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 1.sp
-                                    ),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    textAlign = TextAlign.Center
-                                )
-
-                                Spacer(modifier = Modifier.height(spacing.medium))
-                            }
-                            items(uiState.gameHistory, key = { it.id }) { item ->
-                                GameHistoryCard(
-                                    item = item,
-                                    modifier = Modifier
-                                        .height(dimensions.listItemHeight)
-                                        .fillMaxWidth()
-                                )
-                                Spacer(modifier = Modifier.height(spacing.medium))
+                                items(uiState.gameHistory, key = { it.id }) { item ->
+                                    GameHistoryCard(
+                                        item = item,
+                                        modifier = Modifier
+                                            .height(dimensions.listItemHeight)
+                                            .fillMaxWidth()
+                                    )
+                                    Spacer(modifier = Modifier.height(spacing.medium))
+                                }
                             }
                         }
                     }

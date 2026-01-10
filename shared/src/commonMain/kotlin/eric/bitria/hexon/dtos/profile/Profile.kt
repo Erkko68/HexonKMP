@@ -20,6 +20,5 @@ data class PublicUserProfileResponse( // Public (For /users/{id})
 @Serializable
 data class UserStats(
     val wins: Int,
-    val losses: Int,
-    val winRate: Double
+    val losses: Int
 )

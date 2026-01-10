@@ -2,14 +2,14 @@ package eric.bitria.hexon.viewmodel.social
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.client.UserClient
+import eric.bitria.hexon.ui.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class ProfileViewModel(
-    private val userClient: UserClient
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val sampleHistory = listOf(
@@ -22,35 +22,60 @@ class ProfileViewModel(
     private val _uiState = MutableStateFlow(ProfileUiState(gameHistory = sampleHistory))
     val uiState = _uiState.asStateFlow()
 
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading = _isLoading.asStateFlow()
+
     init {
-        fetchProfile()
+        observeProfile()
+        fetchProfile(forceRefresh = false)
     }
 
-    private fun fetchProfile() {
+    private fun observeProfile() {
         viewModelScope.launch {
-            try {
-                val response = userClient.getMe()
-                _uiState.update { state ->
-                    state.copy(
-                        username = response.username,
-                        avatarUrl = null, // Backend doesn't provide avatarUrl yet
-                        stats = UserStats(
-                            wins = response.stats.wins.toString(),
-                            streak = "-", // Streak not available in getMe yet
-                            winRate = "${(response.stats.winRate * 100).toInt()}%"
-                        ),
-                        isLoading = false
-                    )
+            userRepository.profile.collect { profile ->
+                profile?.let { response ->
+                    _uiState.update { state ->
+                        state.copy(
+                            username = response.username,
+                            avatarUrl = null,
+                            stats = UserStats(
+                                wins = response.stats.wins.toString(),
+                                streak = "-",
+                                winRate = "${calculateWinRate(response.stats.wins, response.stats.losses).toInt()}%"
+                            ),
+                            error = null
+                        )
+                    }
                 }
+            }
+        }
+    }
+
+    private fun fetchProfile(forceRefresh: Boolean) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                userRepository.getProfile(forceRefresh = forceRefresh)
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = e.message) }
+                // Only show error if we don't have any cached data to display
+                if (_uiState.value.username.isEmpty()) {
+                    _uiState.update { it.copy(error = e.message) }
+                }
+            } finally {
+                _isLoading.value = false
             }
         }
     }
 
     fun retry() {
-        _uiState.update { it.copy(isLoading = true, error = null) }
-        fetchProfile()
+        _uiState.update { it.copy(error = null) }
+        fetchProfile(forceRefresh = true)
+    }
+
+    private fun calculateWinRate(won: Int, lost: Int): Double {
+        val total = won + lost
+        val rate = if (total > 0) (won.toDouble() / total) * 100 else 0.0
+        return rate
     }
 }
 
@@ -73,6 +98,5 @@ data class ProfileUiState(
     val avatarUrl: String? = null,
     val stats: UserStats = UserStats("0", "-", "0%"),
     val gameHistory: List<GameHistoryItem> = emptyList(),
-    val isLoading: Boolean = true,
     val error: String? = null
 )

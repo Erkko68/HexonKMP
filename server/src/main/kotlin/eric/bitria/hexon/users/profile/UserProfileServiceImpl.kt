@@ -16,7 +16,7 @@ class UserProfileServiceImpl(
             id = profile.userId,
             email = profile.email,
             username = profile.username,
-            stats = calculateStats(profile.gamesWon, profile.gamesLost)
+            stats = UserStats(profile.gamesWon, profile.gamesLost)
         )
     }
 
@@ -27,14 +27,7 @@ class UserProfileServiceImpl(
         return PublicUserProfileResponse(
             id = profile.userId,
             username = profile.username,
-            stats = calculateStats(profile.gamesWon, profile.gamesLost)
+            stats = UserStats(profile.gamesWon, profile.gamesLost)
         )
-    }
-
-    // Helper to keep math consistent
-    private fun calculateStats(won: Int, lost: Int): UserStats {
-        val total = won + lost
-        val rate = if (total > 0) (won.toDouble() / total) * 100 else 0.0
-        return UserStats(won, lost, rate)
     }
 }
