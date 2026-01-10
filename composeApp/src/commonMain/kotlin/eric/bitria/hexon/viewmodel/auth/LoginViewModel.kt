@@ -151,7 +151,7 @@ class LoginViewModel(
             errorMessage = null
             try {
                 withTimeout(10000L) { // 10 seconds timeout
-                    val response = authClient.register(RegisterRequest(name, email, password))
+                    val response = authClient.register(RegisterRequest(email, name, password))
                     when (response.result) {
                         RegisterResult.SUCCESS -> {
                             accountManager.saveEmail(email)
