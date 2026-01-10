@@ -51,25 +51,25 @@ fun App(
     var isInitialNavigationDone by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(sessionState) {
-        if (sessionState == SessionState.LOADING) return@LaunchedEffect
-
-        if (sessionState == SessionState.LOGGED_IN) {
-            if (!isInitialNavigationDone) {
-                navController.navigate(Screens.MainMenu) {
+        when (sessionState) {
+            SessionState.LOGGED_IN -> {
+                if (!isInitialNavigationDone) {
+                    navController.navigate(Screens.MainMenu) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                    isInitialNavigationDone = true
+                }
+            }
+            SessionState.LOGGED_OUT -> {
+                navController.navigate(Screens.Login) {
                     popUpTo(0) { inclusive = true }
                 }
-                isInitialNavigationDone = true
+                isInitialNavigationDone = false
             }
-            navController.navigate(Screens.Login) {
-                popUpTo(0) { inclusive = true }
+            SessionState.LOADING -> {
+                // Keep showing start destination or splash
             }
-        } else if (sessionState == SessionState.LOGGED_OUT) {
-            navController.navigate(Screens.Login) {
-                popUpTo(0) { inclusive = true }
-            }
-            isInitialNavigationDone = false
         }
-
     }
 
     HexonTheme {
@@ -116,32 +116,33 @@ fun App(
                         navController.navigate(Screens.Verify(email))
                     },
                     onNavigateToForgotPassword = {
-                        navController.navigate(Screens.SendPasswordResetCode)
+                        navController.navigate(Screens.ForgotPassword)
                     }
                 )
             }
 
-            composable<Screens.SendPasswordResetCode> {
+            composable<Screens.ForgotPassword> {
                 ForgotPasswordScreen(
                     onNavigateToReset = { email ->
-                        navController.navigate(Screens.ForgotPassword(email))
+                        navController.navigate(Screens.ResetPassword(email))
                     },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
 
-            composable<Screens.ForgotPassword> { backStackEntry ->
-                val forgot: Screens.ForgotPassword = backStackEntry.toRoute()
+            composable<Screens.ResetPassword> { backStackEntry ->
+                val reset: Screens.ResetPassword = backStackEntry.toRoute()
                 ResetPasswordScreen(
-                    email = forgot.email,
-                    onNavigateBack = { navController.popBackStack() }
+                    email = reset.email,
+                    onNavigateBack = { navController.popBackStack() },
+                    onSuccess = { navController.navigate(Screens.Login) { popUpTo(0) { inclusive = false } } }
                 )
             }
 
-            composable<Screens.ResetPassword> {
+            composable<Screens.ChangePassword> {
                 ChangePasswordScreen(
-                    onSuccess = { navController.popBackStack() },
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onForgotPassword = { navController.navigate(Screens.ForgotPassword) }
                 )
             }
 

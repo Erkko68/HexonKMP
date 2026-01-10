@@ -37,7 +37,8 @@ import org.koin.compose.viewmodel.koinViewModel
 fun ResetPasswordScreen(
     email: String,
     viewModel: ResetPasswordViewModel = koinViewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onSuccess: () -> Unit
 ) {
     HexonTheme {
         val dimensions = HexonTheme.dimensions
@@ -46,6 +47,13 @@ fun ResetPasswordScreen(
 
         LaunchedEffect(email) {
             viewModel.init(email)
+        }
+
+        // Redirect on success
+        LaunchedEffect(viewModel.state) {
+            if (viewModel.state == ResetPasswordStatus.SUCCESS) {
+                onSuccess()
+            }
         }
 
         BoxWithConstraints(
@@ -129,7 +137,7 @@ fun ResetPasswordScreen(
                         enabled = viewModel.state != ResetPasswordStatus.LOADING,
                         paddingScale = paddingScale
                     ) {
-                        if (viewModel.state == ResetPasswordStatus.LOADING) {
+                        if (viewModel.state == ResetPasswordStatus.LOADING || viewModel.state == ResetPasswordStatus.SUCCESS) {
                             CircularProgressIndicator(
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(paddingScale * 0.05f),

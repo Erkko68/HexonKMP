@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
 import eric.bitria.hexon.client.UserClient
+import eric.bitria.hexon.client.auth.SessionManager
 import eric.bitria.hexon.client.persistence.AccountManager
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
@@ -97,6 +98,7 @@ class ChangePasswordViewModel(
                     when (response.result) {
                         ChangePasswordResult.SUCCESS -> {
                             state = ResetPasswordStatus.SUCCESS
+                            SessionManager.logout()
                         }
                         else -> {
                             state = ResetPasswordStatus.ERROR
@@ -110,10 +112,6 @@ class ChangePasswordViewModel(
                 errorMessage = "Failed to update password: ${e.message}"
             }
         }
-    }
-
-    fun resetState() {
-        state = ResetPasswordStatus.IDLE
     }
 }
 

@@ -11,13 +11,13 @@ sealed class Screens {
     data class Verify(val email: String) : Screens()
 
     @Serializable
-    object SendPasswordResetCode : Screens()
+    object ForgotPassword : Screens()
 
     @Serializable
-    data class ForgotPassword(val email: String) : Screens()
+    data class ResetPassword(val email: String) : Screens()
 
     @Serializable
-    object ResetPassword : Screens()
+    object ChangePassword : Screens()
 
     @Serializable
     object MainMenu : Screens()

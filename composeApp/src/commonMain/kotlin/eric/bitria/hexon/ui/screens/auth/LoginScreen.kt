@@ -212,6 +212,7 @@ fun LoginScreen(
                             else loginViewModel.registerWithEmail()
                         },
                         modifier = Modifier.fillMaxWidth(),
+                        enabled = loginViewModel.loginState != LoginStatus.LOADING,
                         paddingScale = paddingScale
                     ) {
                         if (loginViewModel.loginState == LoginStatus.LOADING) {

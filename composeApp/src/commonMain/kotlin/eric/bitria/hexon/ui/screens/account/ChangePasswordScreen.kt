@@ -24,8 +24,8 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun ChangePasswordScreen(
     viewModel: ChangePasswordViewModel = koinViewModel(),
-    onSuccess: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onForgotPassword: () -> Unit
 ) {
     HexonTheme {
         val dimensions = HexonTheme.dimensions
@@ -34,13 +34,6 @@ fun ChangePasswordScreen(
 
         LaunchedEffect(Unit) {
             viewModel.init()
-        }
-
-        LaunchedEffect(viewModel.state) {
-            if (viewModel.state == ResetPasswordStatus.SUCCESS) {
-                onSuccess()
-                viewModel.resetState()
-            }
         }
 
         BoxWithConstraints(
@@ -144,6 +137,18 @@ fun ChangePasswordScreen(
                     TextButton(onClick = onNavigateBack) {
                         Text(
                             "Cancel",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
+
+                    Spacer(Modifier.height(spacing.mediumSmall))
+
+                    TextButton(onClick = onForgotPassword) {
+                        Text(
+                            "Forgot Password?",
                             style = MaterialTheme.typography.labelMedium.copy(
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold
