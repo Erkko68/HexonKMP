@@ -24,7 +24,6 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import eric.bitria.hexon.email.mock.MockEmailVerificationRepository
 import eric.bitria.hexon.email.mock.MockSmtpService
-import eric.bitria.hexon.email.mock.MockUserRepository
 import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.routes.usersRoutes
@@ -58,7 +57,7 @@ class AuthFlowTest {
     private val emailVerificationService = EmailVerificationServiceImpl(
         emailVerificationRepo,
         smtpService,
-        MockUserRepository()
+        authRepository
     )
 
     // Services - Important to pass emailVerificationService to RegisterService

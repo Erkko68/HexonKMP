@@ -47,4 +47,8 @@ class MockAuthRepository : AuthRepository {
         val user = users[userId] ?: return
         users[userId] = user.copy(password = newPasswordHash)
     }
+
+    override suspend fun deleteUser(userId: String) {
+        users.remove(userId)
+    }
 }

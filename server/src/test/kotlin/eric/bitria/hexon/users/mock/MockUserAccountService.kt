@@ -4,6 +4,9 @@ import eric.bitria.hexon.auth.repository.AuthRepository
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResponse
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
+import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountRequest
+import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountResponse
+import eric.bitria.hexon.dtos.account.DeleteAccountResult
 import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
 import eric.bitria.hexon.dtos.account.ForgotPasswordResponse
 import eric.bitria.hexon.dtos.account.ForgotPasswordResult
@@ -67,6 +70,51 @@ class MockUserAccountService(
     }
 
     override suspend fun requestAccountDeletion(userId: String): RequestDeleteAccountResponse {
-        // TODO
+        val user = authRepository.findUserById(userId)
+            ?: throw IllegalStateException("User does not exist.")
+
+        emailVerificationService.sendVerificationCodeByEmail(
+            email = user.email,
+            type = EmailVerificationType.ACCOUNT_DELETION
+        )
+
+        return RequestDeleteAccountResponse(
+            "A verification code has been sent to your email (${user.email})."
+        )
+    }
+
+    override suspend fun confirmAccountDeletion(
+        userId: String,
+        request: ConfirmDeleteAccountRequest
+    ): ConfirmDeleteAccountResponse {
+        val user = authRepository.findUserById(userId)
+            ?: return ConfirmDeleteAccountResponse(DeleteAccountResult.USER_NOT_FOUND, "User not found")
+
+        if (user.password != request.password) {
+            return ConfirmDeleteAccountResponse(
+                DeleteAccountResult.WRONG_PASSWORD,
+                "Incorrect password."
+            )
+        }
+
+        val isCodeValid = emailVerificationService.verifyCodeByEmail(
+            email = user.email,
+            code = request.code,
+            type = EmailVerificationType.ACCOUNT_DELETION
+        )
+
+        if (!isCodeValid) {
+            return ConfirmDeleteAccountResponse(
+                DeleteAccountResult.INVALID_CODE,
+                "Invalid or expired verification code."
+            )
+        }
+
+        authRepository.deleteUser(userId)
+
+        return ConfirmDeleteAccountResponse(
+            DeleteAccountResult.SUCCESS,
+            "Your account has been permanently deleted."
+        )
     }
 }

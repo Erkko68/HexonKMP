@@ -12,7 +12,6 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import eric.bitria.hexon.email.mock.MockEmailVerificationRepository
 import eric.bitria.hexon.email.mock.MockSmtpService
-import eric.bitria.hexon.email.mock.MockUserRepository
 import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.routes.usersRoutes
 import eric.bitria.hexon.users.mock.MockAccountVerificationService
@@ -44,7 +43,7 @@ class AccountVerificationRouteTest {
     private val emailService = EmailVerificationServiceImpl(
         emailVerificationRepo,
         smtpService,
-        MockUserRepository()
+        authRepository
     )
 
     private val accountVerificationService = MockAccountVerificationService(

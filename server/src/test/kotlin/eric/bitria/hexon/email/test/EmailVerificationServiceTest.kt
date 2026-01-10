@@ -1,9 +1,10 @@
 package eric.bitria.hexon.email.test
 
+import eric.bitria.hexon.auth.mock.MockAuthRepository
+import eric.bitria.hexon.auth.repository.AuthRepository
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
 import eric.bitria.hexon.email.mock.MockEmailVerificationRepository
 import eric.bitria.hexon.email.mock.MockSmtpService
-import eric.bitria.hexon.email.mock.MockUserRepository
 import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -20,20 +21,20 @@ class EmailVerificationServiceTest {
 
     private lateinit var verificationRepo: MockEmailVerificationRepository
     private lateinit var smtpService: MockSmtpService
-    private lateinit var userRepository: MockUserRepository
+    private lateinit var authRepository: AuthRepository
     private lateinit var service: EmailVerificationServiceImpl
 
     private val testEmail = "test@example.com"
-    private val testUserId = "user-123"
+    private lateinit var testUserId: String
 
     @BeforeEach
-    fun setup() {
+    fun setup() = runBlocking {
         verificationRepo = MockEmailVerificationRepository()
         smtpService = MockSmtpService()
-        userRepository = MockUserRepository()
-        service = EmailVerificationServiceImpl(verificationRepo, smtpService, userRepository)
-
-        userRepository.addUser(testUserId, testEmail)
+        authRepository = MockAuthRepository()
+        service = EmailVerificationServiceImpl(verificationRepo, smtpService, authRepository)
+        val user = authRepository.createUser(testEmail, "testuser", "password")
+        testUserId = user.id
     }
 
     @Test
