@@ -29,7 +29,7 @@ import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.routes.usersRoutes
 import eric.bitria.hexon.users.mock.MockAccountVerificationService
-import eric.bitria.hexon.users.mock.MockPasswordService
+import eric.bitria.hexon.users.mock.MockUserAccountService
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.header
@@ -68,7 +68,7 @@ class AuthFlowTest {
     private val accountVerificationService = MockAccountVerificationService(
         authRepository, emailVerificationService, tokenService
     )
-    private val passwordService = MockPasswordService(authRepository, emailVerificationService)
+    private val passwordService = MockUserAccountService(authRepository, emailVerificationService)
 
     private fun testAuthApplication(block: suspend (HttpClient) -> Unit) = testApplication {
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {

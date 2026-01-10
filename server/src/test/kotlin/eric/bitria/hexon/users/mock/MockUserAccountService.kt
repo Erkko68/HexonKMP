@@ -7,17 +7,18 @@ import eric.bitria.hexon.dtos.account.ChangePasswordResult
 import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
 import eric.bitria.hexon.dtos.account.ForgotPasswordResponse
 import eric.bitria.hexon.dtos.account.ForgotPasswordResult
+import eric.bitria.hexon.dtos.account.RequestDeleteAccountResponse
 import eric.bitria.hexon.dtos.account.ResetPasswordRequest
 import eric.bitria.hexon.dtos.account.ResetPasswordResponse
 import eric.bitria.hexon.dtos.account.ResetPasswordResult
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
 import eric.bitria.hexon.email.verification.EmailVerificationService
-import eric.bitria.hexon.users.password.PasswordService
+import eric.bitria.hexon.users.account.UserAccountService
 
-class MockPasswordService(
+class MockUserAccountService(
     private val authRepository: AuthRepository,
     private val emailVerificationService: EmailVerificationService
-) : PasswordService {
+) : UserAccountService {
 
     override suspend fun changePassword(userId: String, request: ChangePasswordRequest): ChangePasswordResponse {
         val user = authRepository.findUserById(userId)
@@ -63,5 +64,9 @@ class MockPasswordService(
         authRepository.updateRefreshToken(user.id, null)
 
         return ResetPasswordResponse(ResetPasswordResult.SUCCESS, "Success")
+    }
+
+    override suspend fun requestAccountDeletion(userId: String): RequestDeleteAccountResponse {
+        // TODO
     }
 }

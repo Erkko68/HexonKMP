@@ -2,22 +2,30 @@ package eric.bitria.hexon.dtos.account
 
 import kotlinx.serialization.Serializable
 
+// --- STEP 1: REQUEST ---
+// No request body needed, the JWT implies "Me"
 @Serializable
-data class DeleteAccountRequest(
+data class RequestDeleteAccountResponse(
+    val message: String
+)
+
+// --- STEP 2: CONFIRM ---
+@Serializable
+data class ConfirmDeleteAccountRequest(
     val password: String,
     val code: String
 )
 
 @Serializable
-data class DeleteAccountResponse(
+data class ConfirmDeleteAccountResponse(
     val result: DeleteAccountResult,
     val message: String
 )
 
-@Serializable
 enum class DeleteAccountResult {
     SUCCESS,
+    WRONG_PASSWORD,
     INVALID_CODE,
-    INVALID_PASSWORD,
+    USER_NOT_FOUND,
     UNKNOWN_ERROR
 }

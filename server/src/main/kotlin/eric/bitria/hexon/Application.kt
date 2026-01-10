@@ -4,7 +4,6 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import eric.bitria.hexon.auth.login.LoginServiceImpl
 import eric.bitria.hexon.auth.refresh.RefreshServiceImpl
-import eric.bitria.hexon.users.verify.AccountVerificationServiceImpl
 import eric.bitria.hexon.auth.register.RegisterServiceImpl
 import eric.bitria.hexon.auth.repository.ExposedAuthRepository
 import eric.bitria.hexon.auth.token.JwtConfig
@@ -16,8 +15,8 @@ import eric.bitria.hexon.email.smtp.SmtpServiceImp
 import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.routes.usersRoutes
-import eric.bitria.hexon.users.password.PasswordServiceImpl
-import eric.bitria.hexon.users.repository.ExposedUserRepository
+import eric.bitria.hexon.users.account.UserAccountServiceImpl
+import eric.bitria.hexon.users.verify.AccountVerificationServiceImpl
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -39,7 +38,6 @@ fun Application.module() {
     DatabaseFactory.init(environment.config)
     val emailVerificationRepository = ExposedEmailVerificationRepository()
     val authRepository = ExposedAuthRepository()
-    val userRepository = ExposedUserRepository()
 
     // 3. Install plugins
     install(ContentNegotiation) { json() }
@@ -53,7 +51,7 @@ fun Application.module() {
     val emailVerificationService = EmailVerificationServiceImpl(
         verificationRepo = emailVerificationRepository,
         smtpService = emailService,
-        userRepository = userRepository
+        authRepository = authRepository
     )
     val registerService = RegisterServiceImpl(
         authRepository = authRepository,
@@ -72,7 +70,7 @@ fun Application.module() {
         authRepository = authRepository,
         tokenService = tokenService
     )
-    val passwordService = PasswordServiceImpl(
+    val passwordService = UserAccountServiceImpl(
         emailVerificationService = emailVerificationService,
         authRepository = authRepository
     )
@@ -86,7 +84,7 @@ fun Application.module() {
         )
         usersRoutes(
             accountVerificationService = accountVerificationService,
-            passwordService = passwordService
+            userAccountService = passwordService
         )
     }
 }

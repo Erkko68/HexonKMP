@@ -4,6 +4,8 @@ import com.github.f4b6a3.uuid.UuidCreator
 import eric.bitria.hexon.database.DatabaseFactory.dbQuery
 import eric.bitria.hexon.database.tables.Users
 import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
@@ -83,6 +85,11 @@ class ExposedAuthRepository : AuthRepository {
         Users.update({ Users.id eq userId }) {
             it[password] = newPasswordHash
         }
+        Unit
+    }
+
+    override suspend fun deleteUser(userId: String) = dbQuery {
+        Users.deleteWhere { Users.id eq userId }
         Unit
     }
 

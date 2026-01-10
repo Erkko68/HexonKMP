@@ -16,7 +16,7 @@ import eric.bitria.hexon.email.mock.MockUserRepository
 import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.routes.usersRoutes
 import eric.bitria.hexon.users.mock.MockAccountVerificationService
-import eric.bitria.hexon.users.mock.MockPasswordService
+import eric.bitria.hexon.users.mock.MockUserAccountService
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
@@ -65,7 +65,7 @@ class AccountVerificationRouteTest {
         routing {
             usersRoutes(
                 accountVerificationService = accountVerificationService,
-                passwordService = MockPasswordService(
+                userAccountService = MockUserAccountService(
                     authRepository,
                     emailService
                 )

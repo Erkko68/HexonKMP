@@ -1,12 +1,13 @@
 package eric.bitria.hexon.routes
 
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
+import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountRequest
 import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
 import eric.bitria.hexon.dtos.account.ResetPasswordRequest
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.users.verify.AccountVerificationService
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
-import eric.bitria.hexon.users.password.PasswordService
+import eric.bitria.hexon.users.account.UserAccountService
 import eric.bitria.hexon.utils.toHttpStatus
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
@@ -15,12 +16,13 @@ import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
 fun Route.usersRoutes(
     accountVerificationService: AccountVerificationService,
-    passwordService: PasswordService
+    userAccountService: UserAccountService
 ) {
     route("/users") {
 
@@ -50,7 +52,7 @@ fun Route.usersRoutes(
 
                 // 2. Process Request
                 val request = call.receive<ChangePasswordRequest>()
-                val response = passwordService.changePassword(userId, request)
+                val response = userAccountService.changePassword(userId, request)
 
                 call.respond(response.result.toHttpStatus(), response)
             }
@@ -58,31 +60,35 @@ fun Route.usersRoutes(
 
         post("/password/forgot") {
             val request = call.receive<ForgotPasswordRequest>()
-            val response = passwordService.forgotPassword(request)
+            val response = userAccountService.forgotPassword(request)
             call.respond(response.result.toHttpStatus(), response)
         }
 
         // Step 2: Confirm Reset
         post("/password/reset") {
             val request = call.receive<ResetPasswordRequest>()
-            val response = passwordService.resetPassword(request)
+            val response = userAccountService.resetPassword(request)
             call.respond(response.result.toHttpStatus(), response)
         }
-//
-//        delete("/me") {
-//            val userId = call.principal<JWTPrincipal>()
-//                ?.payload
-//                ?.getClaim("id")
-//                ?.asString()
-//                ?: return@delete call.respond(
-//                    HttpStatusCode.Unauthorized,
-//                    "Access token must be provided"
-//                )
-//
-//            val request = call.receive<ChangePasswordRequest>()
-//            val response = changePasswordService.changeWithOldPassword(userId, request)
-//
-//            call.respond(response.result.toHttpStatus(), response)
-//        }
+
+        authenticate {
+            // Step 1: Initiate Deletion (Send Email)
+            post("/me/delete/initiate") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.subject ?: return@post
+
+                val response = userAccountService.requestAccountDeletion(userId)
+                call.respond(HttpStatusCode.OK, response)
+            }
+
+            // Step 2: Confirm Deletion (Execute)
+            delete("/me") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.subject ?: return@delete
+
+                val request = call.receive<ConfirmDeleteAccountRequest>()
+                val response = userAccountService.confirmAccountDeletion(userId, request)
+
+                call.respond(response.result.toHttpStatus(), response)
+            }
+        }
     }
 }

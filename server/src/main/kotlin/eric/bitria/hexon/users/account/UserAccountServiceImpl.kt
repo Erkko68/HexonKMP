@@ -1,13 +1,17 @@
-package eric.bitria.hexon.users.password
+package eric.bitria.hexon.users.account
 
 import at.favre.lib.crypto.bcrypt.BCrypt
 import eric.bitria.hexon.auth.repository.AuthRepository
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResponse
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
+import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountRequest
+import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountResponse
+import eric.bitria.hexon.dtos.account.DeleteAccountResult
 import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
 import eric.bitria.hexon.dtos.account.ForgotPasswordResponse
 import eric.bitria.hexon.dtos.account.ForgotPasswordResult
+import eric.bitria.hexon.dtos.account.RequestDeleteAccountResponse
 import eric.bitria.hexon.dtos.account.ResetPasswordRequest
 import eric.bitria.hexon.dtos.account.ResetPasswordResponse
 import eric.bitria.hexon.dtos.account.ResetPasswordResult
@@ -15,10 +19,10 @@ import eric.bitria.hexon.dtos.auth.EmailVerificationType
 import eric.bitria.hexon.email.verification.EmailVerificationService
 import eric.bitria.hexon.utils.Validators
 
-class PasswordServiceImpl(
+class UserAccountServiceImpl(
     private val authRepository: AuthRepository,
-    private val emailVerificationService: EmailVerificationService
-) : PasswordService {
+    private val emailVerificationService: EmailVerificationService,
+) : UserAccountService {
 
     override suspend fun changePassword(userId: String, request: ChangePasswordRequest): ChangePasswordResponse {
         if (!Validators.isValidPassword(request.newPassword)) {
@@ -141,6 +145,67 @@ class PasswordServiceImpl(
         return ResetPasswordResponse(
             ResetPasswordResult.SUCCESS,
             "Your password has been reset successfully. Please log in."
+        )
+    }
+
+    override suspend fun requestAccountDeletion(userId: String): RequestDeleteAccountResponse {
+        // 1. Get User Email (We need it to send the code)
+        val user = authRepository.findUserById(userId)
+            ?: throw IllegalStateException("User does not exist.")
+
+        // 2. Send Verification Code (Type: DELETE_ACCOUNT)
+        emailVerificationService.sendVerificationCodeByEmail(
+            email = user.email,
+            type = EmailVerificationType.ACCOUNT_DELETION
+        )
+
+        return RequestDeleteAccountResponse(
+            "A verification code has been sent to your email (${user.email})."
+        )
+    }
+
+    override suspend fun confirmAccountDeletion(
+        userId: String,
+        request: ConfirmDeleteAccountRequest
+    ): ConfirmDeleteAccountResponse {
+
+        // 1. Fetch User
+        val user = authRepository.findUserById(userId)
+            ?: return ConfirmDeleteAccountResponse(DeleteAccountResult.USER_NOT_FOUND, "User not found")
+
+        // 2. Verify Password (First Layer of Defense)
+        val isPasswordCorrect = BCrypt.verifyer().verify(
+            request.password.toCharArray(),
+            user.password
+        ).verified
+
+        if (!isPasswordCorrect) {
+            return ConfirmDeleteAccountResponse(
+                DeleteAccountResult.WRONG_PASSWORD,
+                "Incorrect password."
+            )
+        }
+
+        // 3. Verify Email Code (Second Layer of Defense)
+        val isCodeValid = emailVerificationService.verifyCodeByEmail(
+            email = user.email,
+            code = request.code,
+            type = EmailVerificationType.ACCOUNT_DELETION
+        )
+
+        if (!isCodeValid) {
+            return ConfirmDeleteAccountResponse(
+                DeleteAccountResult.INVALID_CODE,
+                "Invalid or expired verification code."
+            )
+        }
+
+        // 4. Delete Account
+        authRepository.deleteUser(userId)
+
+        return ConfirmDeleteAccountResponse(
+            DeleteAccountResult.SUCCESS,
+            "Your account has been permanently deleted."
         )
     }
 }

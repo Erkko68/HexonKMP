@@ -56,4 +56,10 @@ interface AuthRepository {
      * Used by ChangePasswordService.
      */
     suspend fun updatePassword(userId: String, newPasswordHash: String)
+
+    /**
+     * Deletes a user from the database.
+     * Used by AccountDeletionService.
+     */
+    suspend fun deleteUser(userId: String)
 }
