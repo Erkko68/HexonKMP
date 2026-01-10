@@ -1,6 +1,8 @@
 package eric.bitria.hexon.routes
 
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
+import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
+import eric.bitria.hexon.dtos.account.ResetPasswordRequest
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.users.verify.AccountVerificationService
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
@@ -49,12 +51,19 @@ fun Route.usersRoutes(
 
             call.respond(response.result.toHttpStatus(), response)
         }
-//
-//        post("/password/reset") {
-//            val request = call.receive<ResetPasswordRequest>()
-//            val response = changePasswordService.resetPassword(request)
-//            call.respond(response.result.toHttpStatus(), response)
-//        }
+
+        post("/password/forgot") {
+            val request = call.receive<ForgotPasswordRequest>()
+            val response = passwordService.forgotPassword(request)
+            call.respond(response.result.toHttpStatus(), response)
+        }
+
+        // Step 2: Confirm Reset
+        post("/password/reset") {
+            val request = call.receive<ResetPasswordRequest>()
+            val response = passwordService.resetPassword(request)
+            call.respond(response.result.toHttpStatus(), response)
+        }
 //
 //        delete("/me") {
 //            val userId = call.principal<JWTPrincipal>()

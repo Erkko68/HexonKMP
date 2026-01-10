@@ -9,10 +9,9 @@ import eric.bitria.hexon.viewmodel.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.GameUIViewModel
 import eric.bitria.hexon.viewmodel.MainMenuViewModel
 import eric.bitria.hexon.viewmodel.SettingsViewModel
-import eric.bitria.hexon.viewmodel.account.ForgotPasswordViewModel
-import eric.bitria.hexon.viewmodel.account.SendPasswordResetCodeViewModel
-import eric.bitria.hexon.viewmodel.auth.LoginViewModel
 import eric.bitria.hexon.viewmodel.account.ResetPasswordViewModel
+import eric.bitria.hexon.viewmodel.account.ForgotPasswordViewModel
+import eric.bitria.hexon.viewmodel.auth.LoginViewModel
 import eric.bitria.hexon.viewmodel.auth.VerifyViewModel
 import eric.bitria.hexon.viewmodel.social.FriendProfileViewModel
 import eric.bitria.hexon.viewmodel.social.FriendsViewModel
@@ -32,8 +31,8 @@ val viewModelsModule = module {
     viewModelOf(::VerifyViewModel)
     viewModelOf(::FriendsViewModel)
     viewModelOf(::FriendProfileViewModel)
+    viewModelOf(::ResetPasswordViewModel)
     viewModelOf(::ForgotPasswordViewModel)
-    viewModelOf(::SendPasswordResetCodeViewModel)
     viewModelOf(::ResetPasswordViewModel)
 }
 

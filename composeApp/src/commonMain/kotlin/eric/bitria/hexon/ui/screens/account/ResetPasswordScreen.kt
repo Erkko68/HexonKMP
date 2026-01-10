@@ -17,14 +17,15 @@ import androidx.compose.foundation.verticalScroll
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
 import eric.bitria.hexon.ui.screens.auth.LoginInputField
-import eric.bitria.hexon.viewmodel.account.ResetPasswordStatus
 import eric.bitria.hexon.viewmodel.account.ResetPasswordViewModel
+import eric.bitria.hexon.viewmodel.account.ResetPasswordStatus
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ResetPasswordScreen(
+    email: String,
     viewModel: ResetPasswordViewModel = koinViewModel(),
-    onSuccess: () -> Unit,
+    onResetSuccess: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
     HexonTheme {
@@ -32,13 +33,13 @@ fun ResetPasswordScreen(
         val spacing = dimensions.spacing
         val paddingScale = dimensions.paddingScale
 
-        LaunchedEffect(Unit) {
-            viewModel.init()
+        LaunchedEffect(email) {
+            viewModel.init(email)
         }
 
         LaunchedEffect(viewModel.state) {
             if (viewModel.state == ResetPasswordStatus.SUCCESS) {
-                onSuccess()
+                onResetSuccess()
                 viewModel.resetState()
             }
         }
@@ -60,7 +61,7 @@ fun ResetPasswordScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    "Change Password",
+                    "Reset Password",
                     style = MaterialTheme.typography.displaySmall.copy(
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
@@ -71,7 +72,7 @@ fun ResetPasswordScreen(
                 Spacer(Modifier.height(spacing.small))
 
                 Text(
-                    "Enter your current password and your new password.",
+                    "Enter the code sent to your email and your new password.",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                     ),
@@ -86,12 +87,11 @@ fun ResetPasswordScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     LoginInputField(
-                        value = viewModel.oldPassword,
-                        onValueChange = { viewModel.onOldPasswordChange(it) },
-                        placeholder = "Current Password",
-                        error = viewModel.oldPasswordError,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                        value = viewModel.resetCode,
+                        onValueChange = { viewModel.onResetCodeChange(it) },
+                        placeholder = "6-digit Code",
+                        error = viewModel.resetCodeError,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
 
                     Spacer(Modifier.height(spacing.small))
@@ -119,8 +119,8 @@ fun ResetPasswordScreen(
                     Spacer(Modifier.height(spacing.mediumLarge))
 
                     HexonPrimaryButton(
-                        text = "Update Password",
-                        onClick = { viewModel.changePassword() },
+                        text = "Reset Password",
+                        onClick = { viewModel.resetPassword() },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = viewModel.state != ResetPasswordStatus.LOADING,
                         paddingScale = paddingScale
@@ -133,7 +133,7 @@ fun ResetPasswordScreen(
                             )
                         } else {
                             Text(
-                                "Update Password",
+                                "Reset Password",
                                 style = MaterialTheme.typography.labelLarge
                             )
                         }

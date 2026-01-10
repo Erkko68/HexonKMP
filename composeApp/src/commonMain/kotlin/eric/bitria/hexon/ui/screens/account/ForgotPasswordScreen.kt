@@ -1,31 +1,41 @@
 package eric.bitria.hexon.ui.screens.account
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.verticalScroll
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
 import eric.bitria.hexon.ui.screens.auth.LoginInputField
+import eric.bitria.hexon.viewmodel.account.ForgotPasswordStatus
 import eric.bitria.hexon.viewmodel.account.ForgotPasswordViewModel
-import eric.bitria.hexon.viewmodel.account.ResetPasswordStatus
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ForgotPasswordScreen(
-    email: String,
     viewModel: ForgotPasswordViewModel = koinViewModel(),
-    onResetSuccess: () -> Unit,
+    onNavigateToReset: (String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     HexonTheme {
@@ -33,13 +43,9 @@ fun ForgotPasswordScreen(
         val spacing = dimensions.spacing
         val paddingScale = dimensions.paddingScale
 
-        LaunchedEffect(email) {
-            viewModel.init(email)
-        }
-
         LaunchedEffect(viewModel.state) {
-            if (viewModel.state == ResetPasswordStatus.SUCCESS) {
-                onResetSuccess()
+            if (viewModel.state == ForgotPasswordStatus.SUCCESS) {
+                onNavigateToReset(viewModel.email)
                 viewModel.resetState()
             }
         }
@@ -61,7 +67,7 @@ fun ForgotPasswordScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    "Reset Password",
+                    "Forgot Password",
                     style = MaterialTheme.typography.displaySmall.copy(
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
@@ -72,7 +78,7 @@ fun ForgotPasswordScreen(
                 Spacer(Modifier.height(spacing.small))
 
                 Text(
-                    "Enter the code sent to your email and your new password.",
+                    "Enter your email to receive a password reset code.",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                     ),
@@ -87,45 +93,23 @@ fun ForgotPasswordScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     LoginInputField(
-                        value = viewModel.resetCode,
-                        onValueChange = { viewModel.onResetCodeChange(it) },
-                        placeholder = "6-digit Code",
-                        error = viewModel.resetCodeError,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
-
-                    Spacer(Modifier.height(spacing.small))
-
-                    LoginInputField(
-                        value = viewModel.password,
-                        onValueChange = { viewModel.onPasswordChange(it) },
-                        placeholder = "New Password",
-                        error = viewModel.passwordError,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-                    )
-
-                    Spacer(Modifier.height(spacing.small))
-
-                    LoginInputField(
-                        value = viewModel.confirmPassword,
-                        onValueChange = { viewModel.onConfirmPasswordChange(it) },
-                        placeholder = "Confirm New Password",
-                        error = viewModel.confirmPasswordError,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                        value = viewModel.email,
+                        onValueChange = { viewModel.onEmailChange(it) },
+                        placeholder = "Email",
+                        error = viewModel.emailError,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
 
                     Spacer(Modifier.height(spacing.mediumLarge))
 
                     HexonPrimaryButton(
-                        text = "Reset Password",
-                        onClick = { viewModel.resetPassword() },
+                        text = "Send Reset Code",
+                        onClick = { viewModel.forgotPassword() },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = viewModel.state != ResetPasswordStatus.LOADING,
+                        enabled = viewModel.state != ForgotPasswordStatus.LOADING,
                         paddingScale = paddingScale
                     ) {
-                        if (viewModel.state == ResetPasswordStatus.LOADING) {
+                        if (viewModel.state == ForgotPasswordStatus.LOADING) {
                             CircularProgressIndicator(
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(paddingScale * 0.05f),
@@ -133,7 +117,7 @@ fun ForgotPasswordScreen(
                             )
                         } else {
                             Text(
-                                "Reset Password",
+                                "Send Reset Code",
                                 style = MaterialTheme.typography.labelLarge
                             )
                         }
@@ -143,7 +127,7 @@ fun ForgotPasswordScreen(
 
                     TextButton(onClick = onNavigateBack) {
                         Text(
-                            "Cancel",
+                            "Back to Login",
                             style = MaterialTheme.typography.labelMedium.copy(
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold
@@ -151,7 +135,7 @@ fun ForgotPasswordScreen(
                         )
                     }
 
-                    if (viewModel.state == ResetPasswordStatus.ERROR) {
+                    if (viewModel.state == ForgotPasswordStatus.ERROR) {
                         Spacer(Modifier.height(spacing.mediumSmall))
                         Text(
                             text = viewModel.errorMessage ?: "Unknown error occurred",

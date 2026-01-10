@@ -1,6 +1,8 @@
 package eric.bitria.hexon.utils
 
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
+import eric.bitria.hexon.dtos.account.ForgotPasswordResult
+import eric.bitria.hexon.dtos.account.ResetPasswordResult
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.dtos.auth.RegisterResult
@@ -57,4 +59,19 @@ fun ChangePasswordResult.toHttpStatus() = when (this) {
     ChangePasswordResult.INVALID_PASSWORD -> HTTPStatusCode.BadRequest
     ChangePasswordResult.USER_NOT_FOUND -> HTTPStatusCode.NotFound
     ChangePasswordResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
+}
+
+fun ForgotPasswordResult.toHttpStatus() = when (this) {
+    ForgotPasswordResult.SUCCESS -> HTTPStatusCode.OK
+    ForgotPasswordResult.INVALID_EMAIL -> HTTPStatusCode.BadRequest
+    ForgotPasswordResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
+}
+
+fun ResetPasswordResult.toHttpStatus() = when (this) {
+    ResetPasswordResult.SUCCESS -> HTTPStatusCode.OK
+    ResetPasswordResult.INVALID_CODE,
+    ResetPasswordResult.INVALID_EMAIL,
+    ResetPasswordResult.INVALID_PASSWORD -> HTTPStatusCode.BadRequest
+    ResetPasswordResult.USER_NOT_FOUND -> HTTPStatusCode.NotFound
+    ResetPasswordResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }

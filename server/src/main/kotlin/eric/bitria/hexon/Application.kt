@@ -72,7 +72,10 @@ fun Application.module() {
         authRepository = authRepository,
         tokenService = tokenService
     )
-    val passwordService = PasswordServiceImpl(authRepository)
+    val passwordService = PasswordServiceImpl(
+        emailVerificationService = emailVerificationService,
+        authRepository = authRepository
+    )
 
     // Routes
     routing {

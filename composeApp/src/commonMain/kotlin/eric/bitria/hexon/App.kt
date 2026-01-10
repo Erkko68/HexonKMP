@@ -26,9 +26,9 @@ import eric.bitria.hexon.ui.screens.GameScreen
 import eric.bitria.hexon.ui.screens.MainMenuScreen
 import eric.bitria.hexon.ui.screens.Screens
 import eric.bitria.hexon.ui.screens.SettingsScreen
-import eric.bitria.hexon.ui.screens.account.ForgotPasswordScreen
 import eric.bitria.hexon.ui.screens.account.ResetPasswordScreen
-import eric.bitria.hexon.ui.screens.account.SendPasswordResetCodeScreen
+import eric.bitria.hexon.ui.screens.account.ChangePasswordScreen
+import eric.bitria.hexon.ui.screens.account.ForgotPasswordScreen
 import eric.bitria.hexon.ui.screens.auth.LoginScreen
 import eric.bitria.hexon.ui.screens.auth.VerifyScreen
 import eric.bitria.hexon.ui.screens.social.FriendProfileScreen
@@ -94,7 +94,7 @@ fun App(
             }
 
             composable<Screens.SendPasswordResetCode> {
-                SendPasswordResetCodeScreen(
+                ForgotPasswordScreen(
                     onNavigateToReset = { email ->
                         navController.navigate(Screens.ForgotPassword(email))
                     },
@@ -104,7 +104,7 @@ fun App(
 
             composable<Screens.ForgotPassword> { backStackEntry ->
                 val forgot: Screens.ForgotPassword = backStackEntry.toRoute()
-                ForgotPasswordScreen(
+                ResetPasswordScreen(
                     email = forgot.email,
                     onResetSuccess = {
                         navController.navigate(Screens.Login) {
@@ -116,7 +116,7 @@ fun App(
             }
 
             composable<Screens.ResetPassword> {
-                ResetPasswordScreen(
+                ChangePasswordScreen(
                     onSuccess = { navController.popBackStack() },
                     onNavigateBack = { navController.popBackStack() }
                 )
