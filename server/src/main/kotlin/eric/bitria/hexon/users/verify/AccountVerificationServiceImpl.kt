@@ -11,6 +11,7 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import eric.bitria.hexon.email.verification.EmailVerificationService
+import eric.bitria.hexon.utils.TokenHasher
 
 class AccountVerificationServiceImpl(
     private val authRepository: AuthRepository,
@@ -59,8 +60,7 @@ class AccountVerificationServiceImpl(
         val refreshToken = tokenService.generateRefreshToken(user.id)
 
         // 6. Securely Store Refresh Token Session
-        val refreshTokenHash = BCrypt.withDefaults()
-            .hashToString(10, refreshToken.toCharArray())
+        val refreshTokenHash = TokenHasher.hash(refreshToken)
 
         authRepository.updateRefreshToken(user.id, refreshTokenHash)
 

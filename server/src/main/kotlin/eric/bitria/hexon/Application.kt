@@ -93,7 +93,7 @@ fun Application.module() {
 
 fun Application.configureSecurity(jwtConfig: JwtConfig) {
     authentication {
-        jwt("auth-jwt") {
+        jwt {
             realm = jwtConfig.realm
 
             verifier(

@@ -15,6 +15,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
@@ -80,18 +81,17 @@ val networkModule = module {
                         }
                     }
 
-                    // 5. SMART SEND LOGIC
-                    // Return 'true' to send the token immediately.
-                    // Return 'false' to NOT send the token (unless server challenges with 401).
                     sendWithoutRequest { request ->
-                        val path = request.url.pathSegments
+                        val path = request.url.encodedPath
 
-                        // Define public paths that NEVER need a token
-                        val isPublic = path.contains("/auth") ||
-                                path.contains("/users/email") // Verification/Resend endpoints
+                        // Returns true if it starts with /auth (e.g. /auth/login)
+                        val isAuth = path.startsWith("/auth")
 
-                        // Send token proactively for everything else
-                        !isPublic
+                        // Returns true if it is a verification endpoint
+                        val isVerification = path.startsWith("/users/email")
+
+                        // If it is NOT public, we send the token
+                        !(isAuth || isVerification)
                     }
                 }
             }

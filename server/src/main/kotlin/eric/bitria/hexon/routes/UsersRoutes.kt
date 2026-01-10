@@ -9,6 +9,7 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.users.password.PasswordService
 import eric.bitria.hexon.utils.toHttpStatus
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
@@ -35,21 +36,24 @@ fun Route.usersRoutes(
             call.respond(response.result.toHttpStatus(), response)
         }
 
-        post("/password/change") {
-            // 1. Extract User ID from the Token Subject
-            val principal = call.principal<JWTPrincipal>()
-            val userId = principal?.payload?.subject
+        authenticate {
 
-            if (userId == null) {
-                call.respond(HttpStatusCode.Unauthorized, "Invalid token claims")
-                return@post
+            post("/password/change") {
+                // 1. Extract User ID from the Token Subject
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.subject
+
+                if (userId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, "Invalid token claims")
+                    return@post
+                }
+
+                // 2. Process Request
+                val request = call.receive<ChangePasswordRequest>()
+                val response = passwordService.changePassword(userId, request)
+
+                call.respond(response.result.toHttpStatus(), response)
             }
-
-            // 2. Process Request
-            val request = call.receive<ChangePasswordRequest>()
-            val response = passwordService.changePassword(userId, request)
-
-            call.respond(response.result.toHttpStatus(), response)
         }
 
         post("/password/forgot") {

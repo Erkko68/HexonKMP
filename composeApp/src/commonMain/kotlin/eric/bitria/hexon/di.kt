@@ -9,6 +9,7 @@ import eric.bitria.hexon.viewmodel.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.GameUIViewModel
 import eric.bitria.hexon.viewmodel.MainMenuViewModel
 import eric.bitria.hexon.viewmodel.SettingsViewModel
+import eric.bitria.hexon.viewmodel.account.ChangePasswordViewModel
 import eric.bitria.hexon.viewmodel.account.ResetPasswordViewModel
 import eric.bitria.hexon.viewmodel.account.ForgotPasswordViewModel
 import eric.bitria.hexon.viewmodel.auth.LoginViewModel
@@ -33,7 +34,7 @@ val viewModelsModule = module {
     viewModelOf(::FriendProfileViewModel)
     viewModelOf(::ResetPasswordViewModel)
     viewModelOf(::ForgotPasswordViewModel)
-    viewModelOf(::ResetPasswordViewModel)
+    viewModelOf(::ChangePasswordViewModel)
 }
 
 fun initKoin(config: KoinAppDeclaration? = null){

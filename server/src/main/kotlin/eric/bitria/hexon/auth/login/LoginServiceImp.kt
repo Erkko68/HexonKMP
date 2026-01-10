@@ -6,6 +6,7 @@ import eric.bitria.hexon.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResponse
 import eric.bitria.hexon.dtos.auth.LoginResult
+import eric.bitria.hexon.utils.TokenHasher
 import eric.bitria.hexon.utils.Validators
 
 class LoginServiceImpl(
@@ -46,8 +47,7 @@ class LoginServiceImpl(
         val refreshToken = tokenService.generateRefreshToken(user.id)
 
         // 5. Securely Store Refresh Token Session
-        val refreshTokenHash = BCrypt.withDefaults()
-            .hashToString(10, refreshToken.toCharArray())
+        val refreshTokenHash = TokenHasher.hash(refreshToken)
 
         authRepository.updateRefreshToken(user.id, refreshTokenHash)
 

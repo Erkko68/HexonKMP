@@ -100,6 +100,7 @@ class ChangePasswordViewModel(
                         }
                         else -> {
                             state = ResetPasswordStatus.ERROR
+                            println(response.message)
                             errorMessage = response.message
                         }
                     }

@@ -1,11 +1,11 @@
 package eric.bitria.hexon.auth.refresh
 
-import at.favre.lib.crypto.bcrypt.BCrypt
 import eric.bitria.hexon.auth.repository.AuthRepository
 import eric.bitria.hexon.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RefreshResult
+import eric.bitria.hexon.utils.TokenHasher
 
 class RefreshServiceImpl(
     private val authRepository: AuthRepository,
@@ -34,11 +34,7 @@ class RefreshServiceImpl(
         // 3. Verify Token against DB Hash
         // This prevents "Token Reuse". If the user (or attacker) tries to use
         // an old refresh token that we already rotated out, this check will fail.
-        val isMatch = BCrypt.verifyer().verify(
-            request.refreshToken.toCharArray(),
-            storedHash
-        ).verified
-
+        val isMatch = TokenHasher.verify(request.refreshToken, storedHash)
         if (!isMatch) {
             // SECURITY ALERT: Token Reuse Detected.
             authRepository.updateRefreshToken(userId, null)
@@ -51,10 +47,9 @@ class RefreshServiceImpl(
         val newRefreshToken = tokenService.generateRefreshToken(user.id)
 
         // 5. Update DB with New Hash
-        val newHash = BCrypt.withDefaults()
-            .hashToString(10, newRefreshToken.toCharArray())
+        val newRefreshTokenHash = TokenHasher.hash(newRefreshToken)
 
-        authRepository.updateRefreshToken(user.id, newHash)
+        authRepository.updateRefreshToken(user.id, newRefreshTokenHash)
 
         // 6. Return Success
         return RefreshResponse(
