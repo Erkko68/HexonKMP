@@ -19,7 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,7 +40,6 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun DeleteAccountScreen(
     viewModel: DeleteAccountViewModel = koinViewModel(),
-    onSuccess: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
     HexonTheme {
@@ -50,13 +48,6 @@ fun DeleteAccountScreen(
         val paddingScale = dimensions.paddingScale
 
         var showConfirmDialog by remember { mutableStateOf(false) }
-
-        LaunchedEffect(viewModel.state) {
-            if (viewModel.state == DeleteAccountStatus.SUCCESS) {
-                onSuccess()
-                viewModel.resetState()
-            }
-        }
 
         if (showConfirmDialog) {
             AlertDialog(

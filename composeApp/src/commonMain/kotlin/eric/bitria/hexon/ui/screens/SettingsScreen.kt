@@ -57,8 +57,7 @@ fun SettingsScreen(
     settingsViewModel: SettingsViewModel = koinViewModel(),
     onExitClicked: () -> Unit,
     onChangePasswordClicked: () -> Unit,
-    onDeleteAccountClicked: () -> Unit,
-    onLogout: () -> Unit
+    onDeleteAccountClicked: () -> Unit
 ) {
     val uiState by settingsViewModel.uiState.collectAsState()
     var showLogoutConfirmation by remember { mutableStateOf(false) }
@@ -92,7 +91,6 @@ fun SettingsScreen(
                         onClick = {
                             showLogoutConfirmation = false
                             settingsViewModel.logout()
-                            onLogout()
                         }
                     ) {
                         Text(

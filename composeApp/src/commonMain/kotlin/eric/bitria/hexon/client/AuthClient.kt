@@ -11,10 +11,4 @@ interface AuthClient {
     suspend fun register(request: RegisterRequest): RegisterResponse
     suspend fun login(request: LoginRequest): LoginResponse
     suspend fun refresh(request: RefreshRequest): RefreshResponse
-
-    /**
-     * Checks if a valid session exists.
-     * Tries to refresh the token if an old one is found.
-     */
-    suspend fun autoLogin(): Boolean
 }

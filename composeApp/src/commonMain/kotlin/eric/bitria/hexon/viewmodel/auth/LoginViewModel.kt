@@ -11,6 +11,7 @@ import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.client.AuthClient
 import eric.bitria.hexon.client.UserClient
+import eric.bitria.hexon.client.auth.SessionManager
 import eric.bitria.hexon.client.persistence.AccountManager
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.utils.Validators
@@ -99,33 +100,19 @@ class LoginViewModel(
         return nameError == null && emailError == null && passwordError == null && confirmPasswordError == null
     }
 
-    // --- Flows Triggers ---
-
-    fun attemptAutoLogin() {
-        viewModelScope.launch {
-            loginState = LoginStatus.LOADING
-            val success = authClient.autoLogin()
-            loginState = if (success) {
-                LoginStatus.SUCCESS
-            } else {
-                LoginStatus.IDLE
-            }
-        }
-    }
-
     fun loginWithEmail() {
         if (!validateLoginForm()) return
-        
+
         viewModelScope.launch {
             loginState = LoginStatus.LOADING
             errorMessage = null
             try {
-                withTimeout(10000L) { // 10 seconds timeout
+                withTimeout(10000L) {
                     val response = authClient.login(LoginRequest(email, password))
                     when (response.result) {
                         LoginResult.SUCCESS -> {
                             accountManager.saveEmail(email)
-                            loginState = LoginStatus.SUCCESS
+                            SessionManager.login()
                         }
                         LoginResult.NOT_VERIFIED -> {
                             userClient.resendVerificationCode(ResendVerificationCodeRequest(email))

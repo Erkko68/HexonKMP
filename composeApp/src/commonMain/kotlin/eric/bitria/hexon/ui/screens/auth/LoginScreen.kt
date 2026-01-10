@@ -59,7 +59,6 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun LoginScreen(
     loginViewModel: LoginViewModel = koinViewModel(),
-    onLoginSuccess: () -> Unit,
     onNavigateToVerify: (String) -> Unit,
     onNavigateToForgotPassword: () -> Unit
 ) {
@@ -71,13 +70,9 @@ fun LoginScreen(
 
         var selectedTab by remember { mutableStateOf("Login") }
 
-        LaunchedEffect(Unit) {
-            loginViewModel.attemptAutoLogin()
-        }
-
+        // UPDATED LaunchedEffect
         LaunchedEffect(loginViewModel.loginState) {
             when (loginViewModel.loginState) {
-                LoginStatus.SUCCESS -> onLoginSuccess()
                 LoginStatus.VERIFICATION_SENT -> {
                     onNavigateToVerify(loginViewModel.email)
                     loginViewModel.resetState()
@@ -219,7 +214,7 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth(),
                         paddingScale = paddingScale
                     ) {
-                        if (loginViewModel.loginState == LoginStatus.LOADING || loginViewModel.loginState == LoginStatus.SUCCESS) {
+                        if (loginViewModel.loginState == LoginStatus.LOADING) {
                             CircularProgressIndicator(
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(paddingScale * 0.05f),

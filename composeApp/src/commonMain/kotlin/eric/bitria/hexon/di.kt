@@ -5,6 +5,7 @@ import eric.bitria.hexon.client.di.platformModule
 import eric.bitria.hexon.client.di.platformStorageModule
 import eric.bitria.hexon.client.di.repositoryModule
 import eric.bitria.hexon.client.di.storageModule
+import eric.bitria.hexon.viewmodel.AppViewModel
 import eric.bitria.hexon.viewmodel.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.GameUIViewModel
 import eric.bitria.hexon.viewmodel.MainMenuViewModel
@@ -37,6 +38,7 @@ val viewModelsModule = module {
     viewModelOf(::ForgotPasswordViewModel)
     viewModelOf(::ChangePasswordViewModel)
     viewModelOf(::DeleteAccountViewModel)
+    viewModelOf(::AppViewModel)
 }
 
 fun initKoin(config: KoinAppDeclaration? = null){

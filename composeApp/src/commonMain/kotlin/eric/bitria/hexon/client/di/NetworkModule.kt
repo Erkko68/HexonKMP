@@ -1,5 +1,6 @@
 package eric.bitria.hexon.client.di
 
+import eric.bitria.hexon.client.auth.SessionManager
 import eric.bitria.hexon.client.persistence.token.TokenManager
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
@@ -63,20 +64,23 @@ val networkModule = module {
                     refreshTokens {
                         val refreshToken = tokenManager.getRefreshToken() ?: return@refreshTokens null
 
-                        val response = client.post("/auth/refresh") {
-                            markAsRefreshTokenRequest()
-                            setBody(RefreshRequest(refreshToken))
-                        }.body<RefreshResponse>()
+                        try {
+                            val response = client.post("/auth/refresh") {
+                                markAsRefreshTokenRequest()
+                                setBody(RefreshRequest(refreshToken))
+                            }.body<RefreshResponse>()
 
-                        if (response.result == RefreshResult.SUCCESS) {
-                            val newAccess = response.accessToken!!
-                            val newRefresh = response.refreshToken!!
+                            if (response.result == RefreshResult.SUCCESS) {
+                                val newAccess = response.accessToken!!
+                                val newRefresh = response.refreshToken!!
 
-                            tokenManager.saveTokens(newAccess, newRefresh)
-                            BearerTokens(newAccess, newRefresh)
-                        } else {
-                            // If refresh failed (e.g., session expired), clear local data
-                            tokenManager.clearTokens()
+                                tokenManager.saveTokens(newAccess, newRefresh)
+                                BearerTokens(newAccess, newRefresh)
+                            } else {
+                                SessionManager.logout()
+                                null
+                            }
+                        } catch (e: Exception) {
                             null
                         }
                     }

@@ -35,8 +35,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun VerifyScreen(
     email: String,
-    verifyViewModel: VerifyViewModel = koinViewModel(),
-    onVerifySuccess: () -> Unit
+    verifyViewModel: VerifyViewModel = koinViewModel()
 ) {
     HexonTheme {
         val dimensions = HexonTheme.dimensions
@@ -45,10 +44,6 @@ fun VerifyScreen(
 
         LaunchedEffect(email) {
             verifyViewModel.updateEmail(email)
-        }
-
-        LaunchedEffect(verifyViewModel.verifyStatus) {
-            if (verifyViewModel.verifyStatus == VerifyStatus.SUCCESS) onVerifySuccess()
         }
 
         BoxWithConstraints(

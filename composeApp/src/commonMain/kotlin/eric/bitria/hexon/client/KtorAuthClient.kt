@@ -54,14 +54,4 @@ class KtorAuthClient(
 
         return response
     }
-
-    override suspend fun autoLogin(): Boolean {
-        val refreshToken = tokenManager.getRefreshToken() ?: return false
-        return try {
-            val response = refresh(RefreshRequest(refreshToken))
-            response.result == RefreshResult.SUCCESS
-        } catch (e: Exception) {
-            false
-        }
-    }
 }

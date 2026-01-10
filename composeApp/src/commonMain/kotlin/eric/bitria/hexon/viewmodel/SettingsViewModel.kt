@@ -1,6 +1,7 @@
 package eric.bitria.hexon.viewmodel
 
 import androidx.lifecycle.ViewModel
+import eric.bitria.hexon.client.auth.SessionManager
 import eric.bitria.hexon.client.persistence.AccountManager
 import eric.bitria.hexon.client.persistence.SettingsManager
 import eric.bitria.hexon.client.persistence.token.TokenManager
@@ -75,12 +76,6 @@ class SettingsViewModel(
     }
 
     fun logout() {
-        tokenManager.clearTokens()
-        accountManager.clear()
-        settingsManager.clear()
-    }
-
-    fun onDeleteAccountClicked() {
-        // Handle account deletion logic
+        SessionManager.logout()
     }
 }

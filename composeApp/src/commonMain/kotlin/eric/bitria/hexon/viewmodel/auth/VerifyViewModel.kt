@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.client.UserClient
+import eric.bitria.hexon.client.auth.SessionManager
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
@@ -54,6 +55,7 @@ class VerifyViewModel(
                     when (response.result) {
                         VerifyEmailResult.SUCCESS -> {
                             verifyStatus = VerifyStatus.SUCCESS
+                            SessionManager.login()
                         }
                         else -> {
                             verifyStatus = VerifyStatus.ERROR

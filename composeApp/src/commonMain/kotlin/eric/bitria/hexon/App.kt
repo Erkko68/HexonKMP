@@ -14,42 +14,62 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import eric.bitria.hexon.client.persistence.token.TokenManager
+import eric.bitria.hexon.client.auth.SessionState
 import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.screens.GameScreen
 import eric.bitria.hexon.ui.screens.MainMenuScreen
 import eric.bitria.hexon.ui.screens.Screens
 import eric.bitria.hexon.ui.screens.SettingsScreen
-import eric.bitria.hexon.ui.screens.account.ResetPasswordScreen
 import eric.bitria.hexon.ui.screens.account.ChangePasswordScreen
-import eric.bitria.hexon.ui.screens.account.ForgotPasswordScreen
 import eric.bitria.hexon.ui.screens.account.DeleteAccountScreen
+import eric.bitria.hexon.ui.screens.account.ForgotPasswordScreen
+import eric.bitria.hexon.ui.screens.account.ResetPasswordScreen
 import eric.bitria.hexon.ui.screens.auth.LoginScreen
 import eric.bitria.hexon.ui.screens.auth.VerifyScreen
 import eric.bitria.hexon.ui.screens.social.FriendProfileScreen
 import eric.bitria.hexon.ui.screens.social.FriendsScreen
 import eric.bitria.hexon.ui.screens.social.ProfileScreen
-import org.koin.compose.koinInject
+import eric.bitria.hexon.viewmodel.AppViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun App(
     navController: NavHostController = rememberNavController(),
-    tokenManager: TokenManager = koinInject()
+    viewModel: AppViewModel = koinViewModel()
 ) {
-    val isSessionValid by tokenManager.isSessionValid.collectAsState()
+    val sessionState by viewModel.sessionState.collectAsState()
 
-    LaunchedEffect(isSessionValid) {
-        if (!isSessionValid) {
+    var isInitialNavigationDone by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(sessionState) {
+        if (sessionState == SessionState.LOADING) return@LaunchedEffect
+
+        if (sessionState == SessionState.LOGGED_IN) {
+            if (!isInitialNavigationDone) {
+                navController.navigate(Screens.MainMenu) {
+                    popUpTo(0) { inclusive = true }
+                }
+                isInitialNavigationDone = true
+            }
             navController.navigate(Screens.Login) {
                 popUpTo(0) { inclusive = true }
             }
+        } else if (sessionState == SessionState.LOGGED_OUT) {
+            navController.navigate(Screens.Login) {
+                popUpTo(0) { inclusive = true }
+            }
+            isInitialNavigationDone = false
         }
+
     }
 
     HexonTheme {
@@ -62,29 +82,36 @@ fun App(
             // Modern Shared Z-Axis transitions
             enterTransition = {
                 fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
-                        scaleIn(initialScale = 0.92f, animationSpec = tween(300, easing = LinearOutSlowInEasing))
+                        scaleIn(
+                            initialScale = 0.92f,
+                            animationSpec = tween(300, easing = LinearOutSlowInEasing)
+                        )
             },
             exitTransition = {
                 fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
-                        scaleOut(targetScale = 1.08f, animationSpec = tween(300, easing = FastOutLinearInEasing))
+                        scaleOut(
+                            targetScale = 1.08f,
+                            animationSpec = tween(300, easing = FastOutLinearInEasing)
+                        )
             },
             popEnterTransition = {
                 fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
-                        scaleIn(initialScale = 1.08f, animationSpec = tween(300, easing = LinearOutSlowInEasing))
+                        scaleIn(
+                            initialScale = 1.08f,
+                            animationSpec = tween(300, easing = LinearOutSlowInEasing)
+                        )
             },
             popExitTransition = {
                 fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
-                        scaleOut(targetScale = 0.92f, animationSpec = tween(300, easing = FastOutLinearInEasing))
+                        scaleOut(
+                            targetScale = 0.92f,
+                            animationSpec = tween(300, easing = FastOutLinearInEasing)
+                        )
             }
         ) {
 
             composable<Screens.Login> {
                 LoginScreen(
-                    onLoginSuccess = {
-                        navController.navigate(Screens.MainMenu) {
-                            popUpTo(Screens.Login) { inclusive = true }
-                        }
-                    },
                     onNavigateToVerify = { email ->
                         navController.navigate(Screens.Verify(email))
                     },
@@ -107,11 +134,6 @@ fun App(
                 val forgot: Screens.ForgotPassword = backStackEntry.toRoute()
                 ResetPasswordScreen(
                     email = forgot.email,
-                    onResetSuccess = {
-                        navController.navigate(Screens.Login) {
-                            popUpTo(Screens.Login) { inclusive = true }
-                        }
-                    },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -126,12 +148,7 @@ fun App(
             composable<Screens.Verify> { backStackEntry ->
                 val verify: Screens.Verify = backStackEntry.toRoute()
                 VerifyScreen(
-                    email = verify.email,
-                    onVerifySuccess = {
-                        navController.navigate(Screens.MainMenu) {
-                            popUpTo(Screens.Login) { inclusive = true }
-                        }
-                    }
+                    email = verify.email
                 )
             }
 
@@ -163,20 +180,12 @@ fun App(
                 SettingsScreen(
                     onExitClicked = { navController.popBackStack() },
                     onChangePasswordClicked = { navController.navigate(Screens.ResetPassword) },
-                    onDeleteAccountClicked = { navController.navigate(Screens.DeleteAccount) },
-                    onLogout = {
-                        tokenManager.clearTokens()
-                    }
+                    onDeleteAccountClicked = { navController.navigate(Screens.DeleteAccount) }
                 )
             }
 
             composable<Screens.DeleteAccount> {
                 DeleteAccountScreen(
-                    onSuccess = {
-                        navController.navigate(Screens.Login) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

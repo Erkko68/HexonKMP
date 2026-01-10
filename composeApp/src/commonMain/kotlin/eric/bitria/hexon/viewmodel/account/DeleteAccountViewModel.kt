@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.client.UserClient
+import eric.bitria.hexon.client.auth.SessionManager
 import eric.bitria.hexon.client.persistence.AccountManager
 import eric.bitria.hexon.client.persistence.SettingsManager
 import eric.bitria.hexon.client.persistence.token.TokenManager
@@ -96,6 +97,7 @@ class DeleteAccountViewModel(
                         DeleteAccountResult.SUCCESS -> {
                             clearUserData()
                             state = DeleteAccountStatus.SUCCESS
+                            SessionManager.logout()
                         }
                         else -> {
                             state = DeleteAccountStatus.ERROR
@@ -118,13 +120,6 @@ class DeleteAccountViewModel(
         tokenManager.clearTokens()
         accountManager.clear()
         settingsManager.clear()
-    }
-
-    fun resetState() {
-        state = DeleteAccountStatus.IDLE
-        errorMessage = null
-        passwordError = null
-        codeError = null
     }
 }
 
