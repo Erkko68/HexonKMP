@@ -43,7 +43,7 @@ class RefreshServiceImpl(
         }
 
         // 4. Rotate Tokens
-        val newAccessToken = tokenService.generateAccessToken(user.id, user.email)
+        val newAccessToken = tokenService.generateAccessToken(user.id)
         val newRefreshToken = tokenService.generateRefreshToken(user.id)
 
         // 5. Update DB with New Hash

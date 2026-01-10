@@ -10,10 +10,9 @@ class MockTokenService : TokenService {
     private val secret = "secret"
     private val algorithm = Algorithm.HMAC256(secret)
 
-    override fun generateAccessToken(userId: String, email: String): String {
+    override fun generateAccessToken(userId: String): String {
         return JWT.create()
             .withSubject(userId)
-            .withClaim("email", email)
             .withExpiresAt(Date(System.currentTimeMillis() + 3600000))
             .sign(algorithm)
     }

@@ -1,6 +1,5 @@
 package eric.bitria.hexon.users.verify
 
-import at.favre.lib.crypto.bcrypt.BCrypt
 import eric.bitria.hexon.auth.repository.AuthRepository
 import eric.bitria.hexon.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
@@ -58,7 +57,7 @@ class AccountVerificationServiceImpl(
         authRepository.verifyUser(user.id)
 
         // 5. Generate Tokens
-        val accessToken = tokenService.generateAccessToken(user.id, user.email)
+        val accessToken = tokenService.generateAccessToken(user.id)
         val refreshToken = tokenService.generateRefreshToken(user.id)
 
         // 6. Securely Store Refresh Token Session

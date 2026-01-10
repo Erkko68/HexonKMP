@@ -104,20 +104,22 @@ fun Route.usersRoutes(
 
         authenticate {
             get("/me") {
-                // 1. Extract User ID from Token
-                val principal = call.principal<JWTPrincipal>()
-                val userId = principal?.payload?.subject
+                val userId = call.principal<JWTPrincipal>()?.payload?.subject ?: return@get
 
-                if (userId.isNullOrBlank()) {
-                    call.respond(HttpStatusCode.Unauthorized, "Invalid token claims")
-                    return@get
-                }
-
-                // 2. Call Service
-                val response = userProfileService.getProfile(userId)
-
-                // 3. Respond
+                val response = userProfileService.getMyProfile(userId)
                 call.respond(HttpStatusCode.OK, response)
+            }
+
+            get("/{id}") {
+                val id = call.parameters["id"] ?: return@get
+
+                val response = userProfileService.getPublicProfile(id)
+
+                if (response != null) {
+                    call.respond(HttpStatusCode.OK, response)
+                } else {
+                    call.respond(HttpStatusCode.NotFound, "User not found")
+                }
             }
         }
     }

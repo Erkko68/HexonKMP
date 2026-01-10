@@ -10,8 +10,7 @@ interface TokenService {
      * @return A signed JWT string valid for a short duration (e.g., 15 mins).
      */
     fun generateAccessToken(
-        userId: String,
-        email: String
+        userId: String
     ): String
 
     /**

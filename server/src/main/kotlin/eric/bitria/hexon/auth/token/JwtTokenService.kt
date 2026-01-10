@@ -16,8 +16,7 @@ class JwtTokenService(
         .build()
 
     override fun generateAccessToken(
-        userId: String,
-        email: String
+        userId: String
     ): String {
         val now = System.currentTimeMillis()
 
@@ -25,7 +24,6 @@ class JwtTokenService(
             .withIssuer(config.issuer)
             .withAudience(config.audience)
             .withSubject(userId)
-            .withClaim("email", email)
             .withIssuedAt(Date(now))
             .withExpiresAt(Date(now + config.accessTokenTtlMillis))
             .sign(algorithm)

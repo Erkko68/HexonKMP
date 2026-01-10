@@ -43,7 +43,7 @@ class LoginServiceImpl(
         }
 
         // 4. Generate Tokens
-        val accessToken = tokenService.generateAccessToken(user.id, user.email)
+        val accessToken = tokenService.generateAccessToken(user.id)
         val refreshToken = tokenService.generateRefreshToken(user.id)
 
         // 5. Securely Store Refresh Token Session

@@ -1,12 +1,12 @@
 package eric.bitria.hexon.users.profile
 
+import eric.bitria.hexon.dtos.profile.PublicUserProfileResponse
 import eric.bitria.hexon.dtos.profile.UserProfileResponse
 
 interface UserProfileService {
+    // Throws exception if not found (because /me should always exist)
+    suspend fun getMyProfile(userId: String): UserProfileResponse
 
-    /**
-     * Fetches the user's profile, calculates statistics, and maps it to the API response.
-     * @param userId The ID extracted from the JWT token.
-     */
-    suspend fun getProfile(userId: String): UserProfileResponse
+    // Returns null if not found
+    suspend fun getPublicProfile(userId: String): PublicUserProfileResponse?
 }
