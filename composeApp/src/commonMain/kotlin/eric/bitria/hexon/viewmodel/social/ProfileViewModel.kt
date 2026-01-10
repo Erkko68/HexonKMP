@@ -1,15 +1,16 @@
 package eric.bitria.hexon.viewmodel.social
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import eric.bitria.hexon.client.UserClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-class ProfileViewModel : ViewModel() {
-    private val sampleStats = UserStats(
-        wins = "128",
-        streak = "7",
-        winRate = "72%"
-    )
+class ProfileViewModel(
+    private val userClient: UserClient
+) : ViewModel() {
 
     private val sampleHistory = listOf(
         GameHistoryItem(1, true, "vs. Zoe, Marcus", "2 days ago", 15),
@@ -18,17 +19,40 @@ class ProfileViewModel : ViewModel() {
         GameHistoryItem(4, true, "vs. Marcus, Zoe", "1 week ago", 18)
     )
 
-    private val initialState = ProfileUiState(
-        username = "Alexi",
-        avatarUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuC51H-gMNn1Saq065BCzCz7XsqWFREXkvi1xyGWbypQ8_Phf363LDOL0aHUf3KpdnKzf0Mjh9UTNYoJulg5EeEGjZOmCWo84VA1grdl2AMF6j97vYkyyF7vJ6T3o8yUfEPgYIZ40ruu2S0PRNrVpR5IBsgkeBD0Wae02QU79FCZoglqNAsj6hBpsBg8CQTvDO1FTzwyT_9jIXjA8HANwa4pNqod3CW-H35vU-as9HXnMX6OfuUyOmelWs7yzHg_um5Ije3fMBFXD0c",
-        stats = sampleStats,
-        gameHistory = sampleHistory
-    )
-
-    private val _uiState = MutableStateFlow(initialState)
+    private val _uiState = MutableStateFlow(ProfileUiState(gameHistory = sampleHistory))
     val uiState = _uiState.asStateFlow()
-}
 
+    init {
+        fetchProfile()
+    }
+
+    private fun fetchProfile() {
+        viewModelScope.launch {
+            try {
+                val response = userClient.getMe()
+                _uiState.update { state ->
+                    state.copy(
+                        username = response.username,
+                        avatarUrl = null, // Backend doesn't provide avatarUrl yet
+                        stats = UserStats(
+                            wins = response.stats.wins.toString(),
+                            streak = "-", // Streak not available in getMe yet
+                            winRate = "${(response.stats.winRate * 100).toInt()}%"
+                        ),
+                        isLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    fun retry() {
+        _uiState.update { it.copy(isLoading = true, error = null) }
+        fetchProfile()
+    }
+}
 
 data class GameHistoryItem(
     val id: Int,
@@ -45,8 +69,10 @@ data class UserStats(
 )
 
 data class ProfileUiState(
-    val username: String,
-    val avatarUrl: String?,
-    val stats: UserStats,
-    val gameHistory: List<GameHistoryItem>
+    val username: String = "",
+    val avatarUrl: String? = null,
+    val stats: UserStats = UserStats("0", "-", "0%"),
+    val gameHistory: List<GameHistoryItem> = emptyList(),
+    val isLoading: Boolean = true,
+    val error: String? = null
 )

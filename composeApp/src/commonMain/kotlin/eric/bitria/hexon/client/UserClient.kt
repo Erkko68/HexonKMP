@@ -13,6 +13,7 @@ import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
+import eric.bitria.hexon.dtos.profile.UserProfileResponse
 
 interface UserClient {
     suspend fun verifyEmail(request: VerifyEmailRequest): VerifyEmailResponse
@@ -25,4 +26,6 @@ interface UserClient {
 
     suspend fun initiateDeleteAccount(): RequestDeleteAccountResponse
     suspend fun confirmDeleteAccount(request: ConfirmDeleteAccountRequest): ConfirmDeleteAccountResponse
+
+    suspend fun getMe(): UserProfileResponse
 }

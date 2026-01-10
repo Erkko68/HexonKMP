@@ -13,7 +13,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -81,46 +83,70 @@ fun ProfileScreen(
                         )
                     }
 
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth(if (isPortrait) 1f else 0.5f)
-                            .padding(horizontal = spacing.small),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ){
-                        item {
-                            if (isPortrait){
-                                Spacer(modifier = Modifier.height(spacing.medium))
-                            }
-
-                            UserInfoSection(
-                                username = uiState.username,
-                                avatarUrl = uiState.avatarUrl,
-                                stats = uiState.stats
-                            )
-
-                            Spacer(modifier = Modifier.height(spacing.large))
-
+                    if (uiState.isLoading) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    } else if (uiState.error != null) {
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(spacing.large),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+                        ) {
                             Text(
-                                text = "Game History",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.sp
-                                ),
-                                modifier = Modifier.fillMaxWidth(),
+                                text = "Error: ${uiState.error}",
+                                color = MaterialTheme.colorScheme.error,
                                 textAlign = TextAlign.Center
                             )
-
                             Spacer(modifier = Modifier.height(spacing.medium))
-                        }
-                        items(uiState.gameHistory, key = { it.id }) { item ->
-                            GameHistoryCard(
-                                item = item,
-                                modifier = Modifier
-                                    .height(dimensions.listItemHeight)
-                                    .fillMaxWidth()
+                            HexonIconButton.Transparent(
+                                onClick = { profileViewModel.retry() },
+                                icon = Icons.Default.Refresh,
+                                contentDescription = "Retry"
                             )
-                            Spacer(modifier = Modifier.height(spacing.medium))
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth(if (isPortrait) 1f else 0.5f)
+                                .padding(horizontal = spacing.small),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            item {
+                                if (isPortrait) {
+                                    Spacer(modifier = Modifier.height(spacing.medium))
+                                }
+
+                                UserInfoSection(
+                                    username = uiState.username,
+                                    avatarUrl = uiState.avatarUrl,
+                                    stats = uiState.stats
+                                )
+
+                                Spacer(modifier = Modifier.height(spacing.large))
+
+                                Text(
+                                    text = "Game History",
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 1.sp
+                                    ),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
+
+                                Spacer(modifier = Modifier.height(spacing.medium))
+                            }
+                            items(uiState.gameHistory, key = { it.id }) { item ->
+                                GameHistoryCard(
+                                    item = item,
+                                    modifier = Modifier
+                                        .height(dimensions.listItemHeight)
+                                        .fillMaxWidth()
+                                )
+                                Spacer(modifier = Modifier.height(spacing.medium))
+                            }
                         }
                     }
                 }

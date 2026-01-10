@@ -8,5 +8,5 @@ import org.koin.dsl.module
 
 val repositoryModule = module {
     single<AuthClient> { KtorAuthClient(get(), get()) }
-    single<UserClient> { KtorUserClient(get()) }
+    single<UserClient> { KtorUserClient(get(), get()) }
 }
