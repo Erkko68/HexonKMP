@@ -1,7 +1,6 @@
 package eric.bitria.hexon.client
 
-import eric.bitria.hexon.client.persistence.AccountManager
-import eric.bitria.hexon.client.persistence.SettingsManager
+import com.russhwolf.settings.Settings
 import eric.bitria.hexon.client.persistence.EncryptedData
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResult
@@ -16,8 +15,7 @@ enum class SessionState {
 
 class SessionManager(
     private val authClientProvider: () -> AuthClient, // Break circular dependency
-    private val accountManager: AccountManager,
-    private val settingsManager: SettingsManager,
+    private val settings: Settings,
     private val encryptedData: EncryptedData
 ) {
     private val _sessionState = MutableStateFlow(SessionState.LOADING)
@@ -29,11 +27,11 @@ class SessionManager(
     }
 
     fun saveTokens(accessToken: String, refreshToken: String) {
-        settingsManager.putString(ACCESS_TOKEN_KEY, accessToken)
+        settings.putString(ACCESS_TOKEN_KEY, accessToken)
         encryptedData.putString(REFRESH_TOKEN_KEY, refreshToken)
     }
 
-    fun getAccessToken(): String? = settingsManager.getString(ACCESS_TOKEN_KEY)
+    fun getAccessToken(): String = settings.getString(ACCESS_TOKEN_KEY,"")
     fun getRefreshToken(): String? = encryptedData.getString(REFRESH_TOKEN_KEY)
 
     suspend fun initSession() {
@@ -63,9 +61,8 @@ class SessionManager(
     }
 
     fun logout() {
-        accountManager.clear()
-        settingsManager.clear()
-        settingsManager.remove(ACCESS_TOKEN_KEY)
+        settings.clear()
+        settings.remove(ACCESS_TOKEN_KEY)
         encryptedData.remove(REFRESH_TOKEN_KEY)
         _sessionState.value = SessionState.LOGGED_OUT
     }

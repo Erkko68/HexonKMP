@@ -9,7 +9,7 @@ import eric.bitria.hexon.ui.repository.UserRepository
 import org.koin.dsl.module
 
 val repositoryModule = module {
-    single { SessionManager({ get<AuthClient>() }, get(), get(), get()) }
+    single { SessionManager({ get<AuthClient>() }, get(), get()) }
     single<AuthClient> { KtorAuthClient(get(), get()) }
     single<UserClient> { KtorUserClient(get(), get()) }
     single { UserRepository(get()) }

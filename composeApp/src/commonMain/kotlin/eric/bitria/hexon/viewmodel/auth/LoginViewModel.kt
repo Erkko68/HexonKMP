@@ -12,7 +12,6 @@ import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.client.AuthClient
 import eric.bitria.hexon.client.UserClient
 import eric.bitria.hexon.client.SessionManager
-import eric.bitria.hexon.client.persistence.AccountManager
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.TimeoutCancellationException

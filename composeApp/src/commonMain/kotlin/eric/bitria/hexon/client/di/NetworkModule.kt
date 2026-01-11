@@ -1,5 +1,6 @@
 package eric.bitria.hexon.client.di
 
+import eric.bitria.hexon.BuildKonfig
 import eric.bitria.hexon.client.SessionManager
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
@@ -22,11 +23,10 @@ import org.koin.dsl.module
 
 val networkModule = module {
     single {
-        val platform = get<TargetPlatform>()
         
         HttpClient {
             install(DefaultRequest) {
-                url(platform.baseUrl)
+                url(BuildKonfig.BASE_URL)
                 contentType(ContentType.Application.Json)
             }
 
@@ -45,11 +45,7 @@ val networkModule = module {
                         val sessionManager = get<SessionManager>()
                         val accessToken = sessionManager.getAccessToken()
                         val refreshToken = sessionManager.getRefreshToken()
-                        if (accessToken != null && refreshToken != null) {
-                            BearerTokens(accessToken, refreshToken)
-                        } else {
-                            null
-                        }
+                        BearerTokens(accessToken, refreshToken)
                     }
 
                     refreshTokens {

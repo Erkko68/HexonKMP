@@ -1,7 +1,6 @@
 package eric.bitria.hexon
 
 import eric.bitria.hexon.client.di.networkModule
-import eric.bitria.hexon.client.di.platformModule
 import eric.bitria.hexon.client.di.platformStorageModule
 import eric.bitria.hexon.client.di.repositoryModule
 import eric.bitria.hexon.client.di.storageModule
@@ -45,7 +44,6 @@ fun initKoin(config: KoinAppDeclaration? = null){
         config?.invoke(this)
         modules(
             repositoryModule,
-            platformModule,
             platformStorageModule,
             storageModule,
             networkModule,

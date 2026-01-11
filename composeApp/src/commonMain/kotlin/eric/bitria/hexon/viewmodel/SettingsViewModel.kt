@@ -1,8 +1,8 @@
 package eric.bitria.hexon.viewmodel
 
 import androidx.lifecycle.ViewModel
+import com.russhwolf.settings.Settings
 import eric.bitria.hexon.client.SessionManager
-import eric.bitria.hexon.client.persistence.SettingsManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +18,7 @@ data class SettingsUiState(
 )
 
 class SettingsViewModel(
-    private val settingsManager: SettingsManager,
+    private val settingsManager: Settings,
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
