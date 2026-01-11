@@ -1,7 +1,12 @@
 package eric.bitria.hexon.navigation
 
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -24,10 +29,34 @@ fun MainNavigation() {
     NavHost(
         navController = navController,
         startDestination = Screens.MainMenu,
-        enterTransition = { slideInHorizontally { it } },
-        exitTransition = { slideOutHorizontally { -it } },
-        popEnterTransition = { slideInHorizontally { -it } },
-        popExitTransition = { slideOutHorizontally { it } }
+        enterTransition = {
+            fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
+                    scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(300, easing = LinearOutSlowInEasing)
+                    )
+        },
+        exitTransition = {
+            fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
+                    scaleOut(
+                        targetScale = 1.08f,
+                        animationSpec = tween(300, easing = FastOutLinearInEasing)
+                    )
+        },
+        popEnterTransition = {
+            fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
+                    scaleIn(
+                        initialScale = 1.08f,
+                        animationSpec = tween(300, easing = LinearOutSlowInEasing)
+                    )
+        },
+        popExitTransition = {
+            fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
+                    scaleOut(
+                        targetScale = 0.92f,
+                        animationSpec = tween(300, easing = FastOutLinearInEasing)
+                    )
+        }
     ) {
         composable<Screens.MainMenu> {
             MainMenuScreen(
