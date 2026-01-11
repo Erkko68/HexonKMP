@@ -1,6 +1,7 @@
 package eric.bitria.hexon.ui.screens.social
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -31,7 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
-import eric.bitria.hexon.theme.HexonTheme
+import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.components.profile.GameHistoryCard
 import eric.bitria.hexon.ui.components.profile.UserInfoSection
 import eric.bitria.hexon.ui.components.shared.HexonHeader
@@ -97,7 +98,7 @@ fun ProfileScreen(
                         Column(
                             modifier = Modifier.fillMaxSize().padding(spacing.large),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+                            verticalArrangement = Arrangement.Center
                         ) {
                             Text(
                                 text = "Error: ${uiState.error}",

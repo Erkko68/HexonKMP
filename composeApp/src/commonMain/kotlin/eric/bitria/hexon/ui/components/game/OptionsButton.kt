@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.window.PopupProperties
-import eric.bitria.hexon.theme.HexonTheme
+import eric.bitria.hexon.ui.theme.HexonTheme
 
 @Composable
 fun OptionsButton(

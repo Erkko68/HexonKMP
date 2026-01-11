@@ -30,7 +30,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import eric.bitria.hexon.theme.HexonTheme
+import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
 import eric.bitria.hexon.ui.screens.auth.LoginInputField
 import eric.bitria.hexon.viewmodel.account.DeleteAccountStatus

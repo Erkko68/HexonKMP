@@ -1,10 +1,8 @@
 package eric.bitria.hexon.viewmodel
 
 import androidx.lifecycle.ViewModel
-import eric.bitria.hexon.client.auth.SessionManager
-import eric.bitria.hexon.client.persistence.AccountManager
+import eric.bitria.hexon.client.SessionManager
 import eric.bitria.hexon.client.persistence.SettingsManager
-import eric.bitria.hexon.client.persistence.token.TokenManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,8 +19,7 @@ data class SettingsUiState(
 
 class SettingsViewModel(
     private val settingsManager: SettingsManager,
-    private val tokenManager: TokenManager,
-    private val accountManager: AccountManager
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -76,6 +73,6 @@ class SettingsViewModel(
     }
 
     fun logout() {
-        SessionManager.logout()
+        sessionManager.logout()
     }
 }

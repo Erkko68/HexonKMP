@@ -1,7 +1,6 @@
 package eric.bitria.hexon.client.di
 
-import eric.bitria.hexon.client.auth.SessionManager
-import eric.bitria.hexon.client.persistence.token.TokenManager
+import eric.bitria.hexon.client.SessionManager
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RefreshResult
@@ -23,23 +22,14 @@ import org.koin.dsl.module
 
 val networkModule = module {
     single {
-        val tokenManager = get<TokenManager>()
         val platform = get<TargetPlatform>()
-
+        
         HttpClient {
-            // 1. Defaults: Set the Base URL so you don't repeat it everywhere
             install(DefaultRequest) {
                 url(platform.baseUrl)
-                contentType(ContentType.Application.Json) // Default to JSON
+                contentType(ContentType.Application.Json)
             }
 
-            // 2. Logging: For debugging Auth flows
-            //install(Logging) {
-            //    logger = Logger.SIMPLE
-            //    level = LogLevel.ALL // Switch to INFO or HEADERS in production
-            //}
-
-            // 3. Serialization
             install(ContentNegotiation) {
                 json(Json {
                     ignoreUnknownKeys = true
@@ -48,12 +38,13 @@ val networkModule = module {
                 })
             }
 
-            // 4. Authentication
             install(Auth) {
                 bearer {
                     loadTokens {
-                        val accessToken = tokenManager.getAccessToken()
-                        val refreshToken = tokenManager.getRefreshToken()
+                        // Resolve sessionManager lazily inside the lambda
+                        val sessionManager = get<SessionManager>()
+                        val accessToken = sessionManager.getAccessToken()
+                        val refreshToken = sessionManager.getRefreshToken()
                         if (accessToken != null && refreshToken != null) {
                             BearerTokens(accessToken, refreshToken)
                         } else {
@@ -62,7 +53,8 @@ val networkModule = module {
                     }
 
                     refreshTokens {
-                        val refreshToken = tokenManager.getRefreshToken() ?: return@refreshTokens null
+                        val sessionManager = get<SessionManager>()
+                        val refreshToken = sessionManager.getRefreshToken() ?: return@refreshTokens null
 
                         try {
                             val response = client.post("/auth/refresh") {
@@ -74,10 +66,10 @@ val networkModule = module {
                                 val newAccess = response.accessToken!!
                                 val newRefresh = response.refreshToken!!
 
-                                tokenManager.saveTokens(newAccess, newRefresh)
+                                sessionManager.saveTokens(newAccess, newRefresh)
                                 BearerTokens(newAccess, newRefresh)
                             } else {
-                                SessionManager.logout()
+                                sessionManager.logout()
                                 null
                             }
                         } catch (e: Exception) {
@@ -87,14 +79,8 @@ val networkModule = module {
 
                     sendWithoutRequest { request ->
                         val path = request.url.encodedPath
-
-                        // Returns true if it starts with /auth (e.g. /auth/login)
                         val isAuth = path.startsWith("/auth")
-
-                        // Returns true if it is a verification endpoint
                         val isVerification = path.startsWith("/users/email")
-
-                        // If it is NOT public, we send the token
                         !(isAuth || isVerification)
                     }
                 }

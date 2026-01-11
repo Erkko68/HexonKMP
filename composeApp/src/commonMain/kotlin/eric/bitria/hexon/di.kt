@@ -5,7 +5,7 @@ import eric.bitria.hexon.client.di.platformModule
 import eric.bitria.hexon.client.di.platformStorageModule
 import eric.bitria.hexon.client.di.repositoryModule
 import eric.bitria.hexon.client.di.storageModule
-import eric.bitria.hexon.viewmodel.AppViewModel
+import eric.bitria.hexon.AppViewModel
 import eric.bitria.hexon.viewmodel.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.GameUIViewModel
 import eric.bitria.hexon.viewmodel.MainMenuViewModel
@@ -45,11 +45,11 @@ fun initKoin(config: KoinAppDeclaration? = null){
     startKoin {
         config?.invoke(this)
         modules(
+            repositoryModule,
             platformModule,
             platformStorageModule,
             storageModule,
             networkModule,
-            repositoryModule,
             viewModelsModule
         )
     }

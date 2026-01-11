@@ -6,7 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.client.UserClient
-import eric.bitria.hexon.client.auth.SessionManager
+import eric.bitria.hexon.client.SessionManager
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
@@ -15,7 +15,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
 class VerifyViewModel(
-    private val userClient: UserClient
+    private val userClient: UserClient,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     var email by mutableStateOf("")
@@ -55,7 +56,7 @@ class VerifyViewModel(
                     when (response.result) {
                         VerifyEmailResult.SUCCESS -> {
                             verifyStatus = VerifyStatus.SUCCESS
-                            SessionManager.login()
+                            sessionManager.login()
                         }
                         else -> {
                             verifyStatus = VerifyStatus.ERROR

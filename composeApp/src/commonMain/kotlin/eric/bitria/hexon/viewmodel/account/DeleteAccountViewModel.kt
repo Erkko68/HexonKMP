@@ -5,11 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import eric.bitria.hexon.client.SessionManager
 import eric.bitria.hexon.client.UserClient
-import eric.bitria.hexon.client.auth.SessionManager
-import eric.bitria.hexon.client.persistence.AccountManager
-import eric.bitria.hexon.client.persistence.SettingsManager
-import eric.bitria.hexon.client.persistence.token.TokenManager
 import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountRequest
 import eric.bitria.hexon.dtos.account.DeleteAccountResult
 import eric.bitria.hexon.utils.Validators
@@ -18,9 +15,7 @@ import kotlinx.coroutines.withTimeout
 
 class DeleteAccountViewModel(
     private val userClient: UserClient,
-    private val tokenManager: TokenManager,
-    private val accountManager: AccountManager,
-    private val settingsManager: SettingsManager
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     var password by mutableStateOf("")
@@ -95,9 +90,8 @@ class DeleteAccountViewModel(
                     )
                     when (response.result) {
                         DeleteAccountResult.SUCCESS -> {
-                            clearUserData()
                             state = DeleteAccountStatus.SUCCESS
-                            SessionManager.logout()
+                            sessionManager.logout()
                         }
                         else -> {
                             state = DeleteAccountStatus.ERROR
@@ -114,12 +108,6 @@ class DeleteAccountViewModel(
 
     fun resendCode() {
         initiateDelete()
-    }
-
-    private fun clearUserData() {
-        tokenManager.clearTokens()
-        accountManager.clear()
-        settingsManager.clear()
     }
 }
 

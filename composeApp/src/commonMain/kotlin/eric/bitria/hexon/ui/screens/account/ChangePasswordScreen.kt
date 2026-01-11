@@ -1,11 +1,23 @@
 package eric.bitria.hexon.ui.screens.account
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -13,12 +25,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.verticalScroll
-import eric.bitria.hexon.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
 import eric.bitria.hexon.ui.screens.auth.LoginInputField
+import eric.bitria.hexon.ui.theme.HexonTheme
+import eric.bitria.hexon.viewmodel.account.ChangePasswordStatus
 import eric.bitria.hexon.viewmodel.account.ChangePasswordViewModel
-import eric.bitria.hexon.viewmodel.account.ResetPasswordStatus
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -31,10 +42,6 @@ fun ChangePasswordScreen(
         val dimensions = HexonTheme.dimensions
         val spacing = dimensions.spacing
         val paddingScale = dimensions.paddingScale
-
-        LaunchedEffect(Unit) {
-            viewModel.init()
-        }
 
         BoxWithConstraints(
             modifier = Modifier
@@ -115,10 +122,10 @@ fun ChangePasswordScreen(
                         text = "Update Password",
                         onClick = { viewModel.changePassword() },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = viewModel.state != ResetPasswordStatus.LOADING,
+                        enabled = viewModel.state != ChangePasswordStatus.LOADING,
                         paddingScale = paddingScale
                     ) {
-                        if (viewModel.state == ResetPasswordStatus.LOADING) {
+                        if (viewModel.state == ChangePasswordStatus.LOADING) {
                             CircularProgressIndicator(
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(paddingScale * 0.05f),
@@ -156,7 +163,7 @@ fun ChangePasswordScreen(
                         )
                     }
 
-                    if (viewModel.state == ResetPasswordStatus.ERROR) {
+                    if (viewModel.state == ChangePasswordStatus.ERROR) {
                         Spacer(Modifier.height(spacing.mediumSmall))
                         Text(
                             text = viewModel.errorMessage ?: "Unknown error occurred",

@@ -50,7 +50,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import eric.bitria.hexon.theme.HexonTheme
+import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
 import eric.bitria.hexon.viewmodel.auth.LoginStatus
 import eric.bitria.hexon.viewmodel.auth.LoginViewModel

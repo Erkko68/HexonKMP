@@ -25,16 +25,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import eric.bitria.hexon.theme.HexonTheme
+import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
 import eric.bitria.hexon.ui.screens.auth.LoginInputField
 import eric.bitria.hexon.viewmodel.account.ForgotPasswordStatus
 import eric.bitria.hexon.viewmodel.account.ForgotPasswordViewModel
-import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ForgotPasswordScreen(
-    viewModel: ForgotPasswordViewModel = koinViewModel(),
+    viewModel: ForgotPasswordViewModel,
     onNavigateToReset: (String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -127,7 +126,7 @@ fun ForgotPasswordScreen(
 
                     TextButton(onClick = onNavigateBack) {
                         Text(
-                            "Back to Login",
+                            "Cancel",
                             style = MaterialTheme.typography.labelMedium.copy(
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold

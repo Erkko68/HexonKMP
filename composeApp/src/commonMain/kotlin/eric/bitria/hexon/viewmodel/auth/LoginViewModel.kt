@@ -11,7 +11,7 @@ import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.client.AuthClient
 import eric.bitria.hexon.client.UserClient
-import eric.bitria.hexon.client.auth.SessionManager
+import eric.bitria.hexon.client.SessionManager
 import eric.bitria.hexon.client.persistence.AccountManager
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.utils.Validators
@@ -22,7 +22,7 @@ import kotlinx.coroutines.withTimeout
 class LoginViewModel(
     private val authClient: AuthClient,
     private val userClient: UserClient,
-    private val accountManager: AccountManager
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     // --- Fields ---
@@ -111,8 +111,7 @@ class LoginViewModel(
                     val response = authClient.login(LoginRequest(email, password))
                     when (response.result) {
                         LoginResult.SUCCESS -> {
-                            accountManager.saveEmail(email)
-                            SessionManager.login()
+                            sessionManager.login()
                         }
                         LoginResult.NOT_VERIFIED -> {
                             userClient.resendVerificationCode(ResendVerificationCodeRequest(email))
@@ -145,7 +144,6 @@ class LoginViewModel(
                     val response = authClient.register(RegisterRequest(email, name, password))
                     when (response.result) {
                         RegisterResult.SUCCESS -> {
-                            accountManager.saveEmail(email)
                             loginState = LoginStatus.VERIFICATION_SENT
                         }
                         else -> {

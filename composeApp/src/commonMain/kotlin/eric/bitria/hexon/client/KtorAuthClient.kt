@@ -1,6 +1,5 @@
 package eric.bitria.hexon.client
 
-import eric.bitria.hexon.client.persistence.token.TokenManager
 import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResponse
 import eric.bitria.hexon.dtos.auth.LoginResult
@@ -18,7 +17,7 @@ import io.ktor.http.contentType
 
 class KtorAuthClient(
     private val client: HttpClient,
-    private val tokenManager: TokenManager
+    private val sessionManager: SessionManager
 ) : AuthClient {
 
     override suspend fun register(request: RegisterRequest): RegisterResponse {
@@ -36,7 +35,7 @@ class KtorAuthClient(
 
         // Side Effect: Save tokens automatically on success
         if (response.result == LoginResult.SUCCESS) {
-            tokenManager.saveTokens(response.accessToken!!, response.refreshToken!!)
+            sessionManager.saveTokens(response.accessToken!!, response.refreshToken!!)
         }
 
         return response
@@ -49,7 +48,7 @@ class KtorAuthClient(
         }.body<RefreshResponse>()
 
         if (response.result == RefreshResult.SUCCESS) {
-            tokenManager.saveTokens(response.accessToken!!, response.refreshToken!!)
+            sessionManager.saveTokens(response.accessToken!!, response.refreshToken!!)
         }
 
         return response

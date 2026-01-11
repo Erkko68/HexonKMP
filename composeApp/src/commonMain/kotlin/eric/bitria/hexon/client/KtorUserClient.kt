@@ -1,6 +1,5 @@
 package eric.bitria.hexon.client
 
-import eric.bitria.hexon.client.persistence.token.TokenManager
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResponse
 import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountRequest
@@ -29,7 +28,7 @@ import io.ktor.http.contentType
 
 class KtorUserClient(
     private val client: HttpClient,
-    private val tokenManager: TokenManager
+    private val sessionManager: SessionManager
 ) : UserClient {
 
     override suspend fun verifyEmail(request: VerifyEmailRequest): VerifyEmailResponse {
@@ -39,7 +38,7 @@ class KtorUserClient(
         }.body<VerifyEmailResponse>()
 
         if (response.result == VerifyEmailResult.SUCCESS) {
-            tokenManager.saveTokens(response.accessToken!!, response.refreshToken!!)
+            sessionManager.saveTokens(response.accessToken!!, response.refreshToken!!)
         }
 
         return response

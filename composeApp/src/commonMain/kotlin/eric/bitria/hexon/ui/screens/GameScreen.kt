@@ -26,7 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import eric.bitria.hexon.render.GameLayer
-import eric.bitria.hexon.theme.HexonTheme
+import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.components.game.ControlButton
 import eric.bitria.hexon.ui.components.game.ItemCard
 import eric.bitria.hexon.ui.components.game.OptionsButton

@@ -1,210 +1,52 @@
 package eric.bitria.hexon
 
-import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
-import eric.bitria.hexon.client.auth.SessionState
-import eric.bitria.hexon.theme.HexonTheme
-import eric.bitria.hexon.ui.screens.GameScreen
-import eric.bitria.hexon.ui.screens.MainMenuScreen
-import eric.bitria.hexon.ui.screens.Screens
-import eric.bitria.hexon.ui.screens.SettingsScreen
-import eric.bitria.hexon.ui.screens.account.ChangePasswordScreen
-import eric.bitria.hexon.ui.screens.account.DeleteAccountScreen
-import eric.bitria.hexon.ui.screens.account.ForgotPasswordScreen
-import eric.bitria.hexon.ui.screens.account.ResetPasswordScreen
-import eric.bitria.hexon.ui.screens.auth.LoginScreen
-import eric.bitria.hexon.ui.screens.auth.VerifyScreen
-import eric.bitria.hexon.ui.screens.social.FriendProfileScreen
-import eric.bitria.hexon.ui.screens.social.FriendsScreen
-import eric.bitria.hexon.ui.screens.social.ProfileScreen
-import eric.bitria.hexon.viewmodel.AppViewModel
+import eric.bitria.hexon.client.SessionState
+import eric.bitria.hexon.navigation.AuthNavigation
+import eric.bitria.hexon.navigation.MainNavigation
+import eric.bitria.hexon.ui.theme.HexonTheme
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun App(
-    navController: NavHostController = rememberNavController(),
     viewModel: AppViewModel = koinViewModel()
 ) {
     val sessionState by viewModel.sessionState.collectAsState()
 
-    var isInitialNavigationDone by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(sessionState) {
-        if (navController.currentBackStackEntry == null) return@LaunchedEffect
-        when (sessionState) {
-            SessionState.LOGGED_IN -> {
-                if (!isInitialNavigationDone) {
-                    navController.navigate(Screens.MainMenu) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                    isInitialNavigationDone = true
-                }
-            }
-            SessionState.LOGGED_OUT -> {
-                navController.navigate(Screens.Login) {
-                    popUpTo(0) { inclusive = true }
-                }
-                isInitialNavigationDone = false
-            }
-            SessionState.LOADING -> {
-                // Keep showing start destination or splash
-            }
-        }
-    }
-
     HexonTheme {
-        NavHost(
-            navController = navController,
-            startDestination = Screens.Login,
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-            // Modern Shared Z-Axis transitions
-            enterTransition = {
-                fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
-                        scaleIn(
-                            initialScale = 0.92f,
-                            animationSpec = tween(300, easing = LinearOutSlowInEasing)
-                        )
-            },
-            exitTransition = {
-                fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
-                        scaleOut(
-                            targetScale = 1.08f,
-                            animationSpec = tween(300, easing = FastOutLinearInEasing)
-                        )
-            },
-            popEnterTransition = {
-                fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
-                        scaleIn(
-                            initialScale = 1.08f,
-                            animationSpec = tween(300, easing = LinearOutSlowInEasing)
-                        )
-            },
-            popExitTransition = {
-                fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
-                        scaleOut(
-                            targetScale = 0.92f,
-                            animationSpec = tween(300, easing = FastOutLinearInEasing)
-                        )
-            }
+                .background(MaterialTheme.colorScheme.background)
         ) {
-
-            composable<Screens.Login> {
-                LoginScreen(
-                    onNavigateToVerify = { email ->
-                        navController.navigate(Screens.Verify(email))
-                    },
-                    onNavigateToForgotPassword = {
-                        navController.navigate(Screens.ForgotPassword)
+            AnimatedContent(
+                targetState = sessionState,
+                transitionSpec = {
+                    fadeIn() togetherWith fadeOut()
+                }
+            ) { state ->
+                when (state) {
+                    SessionState.LOADING -> {
+                        // Optional: Splash screen or Loading indicator
                     }
-                )
-            }
-
-            composable<Screens.ForgotPassword> {
-                ForgotPasswordScreen(
-                    onNavigateToReset = { email ->
-                        navController.navigate(Screens.ResetPassword(email))
-                    },
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-
-            composable<Screens.ResetPassword> { backStackEntry ->
-                val reset: Screens.ResetPassword = backStackEntry.toRoute()
-                ResetPasswordScreen(
-                    email = reset.email,
-                    onNavigateBack = { navController.popBackStack() },
-                    onSuccess = { navController.navigate(Screens.Login) { popUpTo(0) { inclusive = false } } }
-                )
-            }
-
-            composable<Screens.ChangePassword> {
-                ChangePasswordScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onForgotPassword = { navController.navigate(Screens.ForgotPassword) }
-                )
-            }
-
-            composable<Screens.Verify> { backStackEntry ->
-                val verify: Screens.Verify = backStackEntry.toRoute()
-                VerifyScreen(
-                    email = verify.email
-                )
-            }
-
-            composable<Screens.MainMenu> {
-                MainMenuScreen(
-                    onFriendsClicked = { navController.navigate(Screens.Friends) },
-                    onProfileClicked = { navController.navigate(Screens.Profile) },
-                    onStartGameClicked = { navController.navigate(Screens.Game) }
-                )
-            }
-
-            composable<Screens.Profile> {
-                ProfileScreen(
-                    onExitClicked = { navController.popBackStack() },
-                    onSettingsClicked = { navController.navigate(Screens.Settings) }
-                )
-            }
-
-            composable<Screens.Friends> {
-                FriendsScreen(
-                    onExitClicked = { navController.popBackStack() },
-                    onViewProfileClicked = { username ->
-                        navController.navigate(Screens.FriendProfile(username = username))
+                    SessionState.LOGGED_IN -> {
+                        MainNavigation()
                     }
-                )
-            }
-
-            composable<Screens.Settings> {
-                SettingsScreen(
-                    onExitClicked = { navController.popBackStack() },
-                    onChangePasswordClicked = { navController.navigate(Screens.ResetPassword) },
-                    onDeleteAccountClicked = { navController.navigate(Screens.DeleteAccount) }
-                )
-            }
-
-            composable<Screens.DeleteAccount> {
-                DeleteAccountScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-
-            composable<Screens.Game> {
-                GameScreen(
-                    onExitClicked = { navController.popBackStack() },
-                    onAboutClicked = { /*navController.navigate(Screens.About)*/ }
-                )
-            }
-
-            composable<Screens.FriendProfile> { backStackEntry ->
-                val friendProfile: Screens.FriendProfile = backStackEntry.toRoute()
-                FriendProfileScreen(
-                    username = friendProfile.username,
-                    onExitClicked = { navController.popBackStack() }
-                )
+                    SessionState.LOGGED_OUT -> {
+                        AuthNavigation()
+                    }
+                }
             }
         }
     }

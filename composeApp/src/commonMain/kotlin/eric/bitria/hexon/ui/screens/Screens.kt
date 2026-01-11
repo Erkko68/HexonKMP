@@ -5,6 +5,15 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed class Screens {
     @Serializable
+    object AuthGraph : Screens()
+
+    @Serializable
+    object MainGraph : Screens()
+
+    @Serializable
+    object ForgotPasswordGraph : Screens()
+
+    @Serializable
     object Login : Screens()
 
     @Serializable
@@ -14,7 +23,7 @@ sealed class Screens {
     object ForgotPassword : Screens()
 
     @Serializable
-    data class ResetPassword(val email: String) : Screens()
+    data class ResetPassword(val email: String? = null) : Screens()
 
     @Serializable
     object ChangePassword : Screens()

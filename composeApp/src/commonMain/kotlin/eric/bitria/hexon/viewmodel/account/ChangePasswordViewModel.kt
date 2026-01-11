@@ -8,7 +8,7 @@ import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
 import eric.bitria.hexon.client.UserClient
-import eric.bitria.hexon.client.auth.SessionManager
+import eric.bitria.hexon.client.SessionManager
 import eric.bitria.hexon.client.persistence.AccountManager
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
@@ -16,7 +16,7 @@ import kotlinx.coroutines.withTimeout
 
 class ChangePasswordViewModel(
     private val userClient: UserClient,
-    private val accountManager: AccountManager
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     var email by mutableStateOf("")
@@ -31,7 +31,7 @@ class ChangePasswordViewModel(
     var confirmPassword by mutableStateOf("")
         private set
 
-    var state by mutableStateOf(ResetPasswordStatus.IDLE)
+    var state by mutableStateOf(ChangePasswordStatus.IDLE)
         private set
 
     var errorMessage by mutableStateOf<String?>(null)
@@ -45,10 +45,6 @@ class ChangePasswordViewModel(
 
     var confirmPasswordError by mutableStateOf<String?>(null)
         private set
-
-    fun init() {
-        this.email = accountManager.getEmail() ?: ""
-    }
 
     fun onOldPasswordChange(newPassword: String) {
         oldPassword = newPassword
@@ -85,7 +81,7 @@ class ChangePasswordViewModel(
         if (!validateForm()) return
 
         viewModelScope.launch {
-            state = ResetPasswordStatus.LOADING
+            state = ChangePasswordStatus.LOADING
             errorMessage = null
             try {
                 withTimeout(10000L) {
@@ -97,24 +93,24 @@ class ChangePasswordViewModel(
                     )
                     when (response.result) {
                         ChangePasswordResult.SUCCESS -> {
-                            state = ResetPasswordStatus.SUCCESS
-                            SessionManager.logout()
+                            state = ChangePasswordStatus.SUCCESS
+                            sessionManager.logout()
                         }
                         else -> {
-                            state = ResetPasswordStatus.ERROR
+                            state = ChangePasswordStatus.ERROR
                             println(response.message)
                             errorMessage = response.message
                         }
                     }
                 }
             } catch (e: Exception) {
-                state = ResetPasswordStatus.ERROR
+                state = ChangePasswordStatus.ERROR
                 errorMessage = "Failed to update password: ${e.message}"
             }
         }
     }
 }
 
-enum class ResetPasswordStatus {
+enum class ChangePasswordStatus {
     IDLE, LOADING, SUCCESS, ERROR
 }

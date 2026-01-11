@@ -26,10 +26,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import eric.bitria.hexon.theme.HexonTheme
+import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.data.Player
 import eric.bitria.hexon.viewmodel.enums.TradeStatus
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun TradePanel(
