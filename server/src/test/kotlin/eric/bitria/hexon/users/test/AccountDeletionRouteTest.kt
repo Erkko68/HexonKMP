@@ -9,13 +9,14 @@ import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountRequest
 import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountResponse
 import eric.bitria.hexon.dtos.account.DeleteAccountResult
 import eric.bitria.hexon.dtos.account.RequestDeleteAccountResponse
-import eric.bitria.hexon.email.mock.MockEmailVerificationRepository
-import eric.bitria.hexon.email.mock.MockSmtpService
-import eric.bitria.hexon.services.email.verification.EmailVerificationServiceImpl
+import eric.bitria.hexon.email.mock.MockEmailVerificationService
 import eric.bitria.hexon.routes.usersRoutes
+import eric.bitria.hexon.services.users.account.UserAccountService
 import eric.bitria.hexon.users.mock.MockAccountVerificationService
 import eric.bitria.hexon.users.mock.MockUserAccountService
 import eric.bitria.hexon.users.mock.MockUserProfileService
+import eric.bitria.hexon.services.users.profile.UserProfileService
+import eric.bitria.hexon.services.users.verify.AccountVerificationService
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -34,25 +35,26 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import org.koin.dsl.module
+import org.koin.ktor.plugin.Koin
 
 class AccountDeletionRouteTest {
 
     private val authRepository = MockAuthRepository()
     private val tokenService = MockTokenService()
-
-    private val smtpService = MockSmtpService()
-    private val emailVerificationRepo = MockEmailVerificationRepository()
-    private val emailService = EmailVerificationServiceImpl(
-        emailVerificationRepo,
-        smtpService,
-        authRepository
-    )
+    private val emailService = MockEmailVerificationService()
 
     private val accountService = MockUserAccountService(authRepository, emailService)
-
     private val userProfileService = MockUserProfileService()
 
     private fun testAccountApplication(block: suspend (HttpClient) -> Unit) = testApplication {
+        install(Koin) {
+            modules(module {
+                single<AccountVerificationService> { MockAccountVerificationService(authRepository, emailService, tokenService) }
+                single<UserAccountService> { accountService }
+                single<UserProfileService> { userProfileService }
+            })
+        }
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
             json()
         }
@@ -69,11 +71,7 @@ class AccountDeletionRouteTest {
             }
         }
         routing {
-            usersRoutes(
-                accountVerificationService = MockAccountVerificationService(authRepository, emailService, tokenService),
-                userAccountService = accountService,
-                userProfileService = userProfileService
-            )
+            usersRoutes()
         }
         val client = createClient {
             install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
@@ -100,7 +98,7 @@ class AccountDeletionRouteTest {
         }.body()
 
         assertNotNull(response.message)
-        assertNotNull(smtpService.getLastEmailTo(email))
+        assertNotNull(emailService.getSmtpService().getLastEmailTo(email))
     }
 
     @Test
@@ -114,7 +112,7 @@ class AccountDeletionRouteTest {
         client.post("/users/me/delete/initiate") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
         }
-        val code = smtpService.getLastEmailTo(email)!!.body.substringAfter(": ").trim()
+        val code = emailService.getSmtpService().getLastEmailTo(email)!!.body.substringAfter(": ").trim()
 
         val response: ConfirmDeleteAccountResponse = client.delete("/users/me") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
@@ -135,7 +133,7 @@ class AccountDeletionRouteTest {
         client.post("/users/me/delete/initiate") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
         }
-        val code = smtpService.getLastEmailTo(email)!!.body.substringAfter(": ").trim()
+        val code = emailService.getSmtpService().getLastEmailTo(email)!!.body.substringAfter(": ").trim()
 
         val response: ConfirmDeleteAccountResponse = client.delete("/users/me") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")

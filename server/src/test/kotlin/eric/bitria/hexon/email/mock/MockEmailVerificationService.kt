@@ -5,15 +5,20 @@ import eric.bitria.hexon.services.email.verification.EmailVerificationService
 
 class MockEmailVerificationService : EmailVerificationService {
     private val sentCodes = mutableListOf<SentCode>()
+    private val smtpService = MockSmtpService()
 
-    data class SentCode(val email: String, val type: EmailVerificationType, val userId: String? = null)
+    data class SentCode(val email: String, val type: EmailVerificationType, val userId: String? = null, val code: String)
 
     override suspend fun sendVerificationCodeByEmail(email: String, type: EmailVerificationType) {
-        sentCodes.add(SentCode(email, type))
+        val code = "123456"
+        sentCodes.add(SentCode(email, type, code = code))
+        smtpService.sendEmail(email, "Verification Code", "Your verification code is: $code")
     }
 
     override suspend fun sendVerificationCodeByUserId(userId: String, type: EmailVerificationType) {
-        sentCodes.add(SentCode("", type, userId))
+        val code = "123456"
+        sentCodes.add(SentCode("", type, userId, code = code))
+        // Note: in a real mock we'd need the email here, but for simple tests we just track it.
     }
 
     override suspend fun verifyCodeByEmail(email: String, code: String, type: EmailVerificationType): Boolean {
@@ -25,4 +30,5 @@ class MockEmailVerificationService : EmailVerificationService {
     }
 
     fun getSentCodes() = sentCodes
+    fun getSmtpService() = smtpService
 }

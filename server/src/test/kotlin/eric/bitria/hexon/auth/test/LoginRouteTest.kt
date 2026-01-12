@@ -5,11 +5,16 @@ import eric.bitria.hexon.auth.mock.MockLoginService
 import eric.bitria.hexon.auth.mock.MockRefreshService
 import eric.bitria.hexon.auth.mock.MockRegisterService
 import eric.bitria.hexon.auth.mock.MockTokenService
-import eric.bitria.hexon.services.auth.repository.User
 import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResponse
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.routes.authRoutes
+import eric.bitria.hexon.services.auth.login.LoginService
+import eric.bitria.hexon.services.auth.refresh.RefreshService
+import eric.bitria.hexon.services.auth.register.RegisterService
+import eric.bitria.hexon.services.auth.repository.AuthRepository
+import eric.bitria.hexon.services.auth.repository.User
+import eric.bitria.hexon.services.auth.token.TokenService
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
@@ -18,10 +23,14 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.server.testing.testApplication
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
+import org.koin.dsl.module
+import org.koin.ktor.plugin.Koin
 
 class LoginRouteTest {
 
@@ -30,18 +39,23 @@ class LoginRouteTest {
     private val loginService = MockLoginService(authRepository)
 
     private fun testAuthApplication(block: suspend (HttpClient) -> Unit) = testApplication {
-        install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
+        install(Koin) {
+            modules(module {
+                single<AuthRepository> { authRepository }
+                single<TokenService> { tokenService }
+                single<RegisterService> { MockRegisterService(authRepository) }
+                single<LoginService> { loginService }
+                single<RefreshService> { MockRefreshService(authRepository, tokenService) }
+            })
+        }
+        install(ContentNegotiation) {
             json()
         }
         routing {
-            authRoutes(
-                registerService = MockRegisterService(authRepository),
-                loginService = loginService,
-                refreshService = MockRefreshService(authRepository, tokenService)
-            )
+            authRoutes()
         }
         val client = createClient {
-            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+            install(ClientContentNegotiation) {
                 json()
             }
         }
@@ -118,15 +132,18 @@ class LoginRouteTest {
 
     @Test
     fun `login fails with malformed json`() = testApplication {
+        install(Koin) {
+            modules(module {
+                single<RegisterService> { MockRegisterService(MockAuthRepository()) }
+                single<LoginService> { MockLoginService(MockAuthRepository()) }
+                single<RefreshService> { MockRefreshService(MockAuthRepository(), MockTokenService()) }
+            })
+        }
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
             json()
         }
         routing {
-            authRoutes(
-                MockRegisterService(MockAuthRepository()),
-                MockLoginService(MockAuthRepository()),
-                MockRefreshService(MockAuthRepository(), MockTokenService())
-            )
+            authRoutes()
         }
         val response = client.post("/auth/login") {
             contentType(ContentType.Application.Json)
@@ -137,15 +154,18 @@ class LoginRouteTest {
 
     @Test
     fun `login fails with missing password field in json`() = testApplication {
+        install(Koin) {
+            modules(module {
+                single<RegisterService> { MockRegisterService(MockAuthRepository()) }
+                single<LoginService> { MockLoginService(MockAuthRepository()) }
+                single<RefreshService> { MockRefreshService(MockAuthRepository(), MockTokenService()) }
+            })
+        }
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
             json()
         }
         routing {
-            authRoutes(
-                MockRegisterService(MockAuthRepository()),
-                MockLoginService(MockAuthRepository()),
-                MockRefreshService(MockAuthRepository(), MockTokenService())
-            )
+            authRoutes()
         }
         val response = client.post("/auth/login") {
             contentType(ContentType.Application.Json)

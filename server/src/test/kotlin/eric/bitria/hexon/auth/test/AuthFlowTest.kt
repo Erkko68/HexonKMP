@@ -22,11 +22,16 @@ import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
-import eric.bitria.hexon.email.mock.MockEmailVerificationRepository
-import eric.bitria.hexon.email.mock.MockSmtpService
-import eric.bitria.hexon.services.email.verification.EmailVerificationServiceImpl
+import eric.bitria.hexon.email.mock.MockEmailVerificationService
 import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.routes.usersRoutes
+import eric.bitria.hexon.services.auth.login.LoginService
+import eric.bitria.hexon.services.auth.refresh.RefreshService
+import eric.bitria.hexon.services.auth.register.RegisterService
+import eric.bitria.hexon.services.email.verification.EmailVerificationService
+import eric.bitria.hexon.services.users.account.UserAccountService
+import eric.bitria.hexon.services.users.profile.UserProfileService
+import eric.bitria.hexon.services.users.verify.AccountVerificationService
 import eric.bitria.hexon.users.mock.MockAccountVerificationService
 import eric.bitria.hexon.users.mock.MockUserAccountService
 import eric.bitria.hexon.users.mock.MockUserProfileService
@@ -46,20 +51,16 @@ import io.ktor.server.testing.testApplication
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
+import org.koin.dsl.module
+import org.koin.ktor.plugin.Koin
 
 class AuthFlowTest {
 
     private val authRepository = MockAuthRepository()
     private val tokenService = MockTokenService()
     
-    // Email infrastructure
-    private val smtpService = MockSmtpService()
-    private val emailVerificationRepo = MockEmailVerificationRepository()
-    private val emailVerificationService = EmailVerificationServiceImpl(
-        emailVerificationRepo,
-        smtpService,
-        authRepository
-    )
+    // Email infrastructure (Using Mock)
+    private val emailVerificationService = MockEmailVerificationService()
 
     // Services
     private val registerService = MockRegisterService(authRepository, emailVerificationService)
@@ -69,10 +70,20 @@ class AuthFlowTest {
         authRepository, emailVerificationService, tokenService
     )
     private val passwordService = MockUserAccountService(authRepository, emailVerificationService)
-
     private val userProfileService = MockUserProfileService()
 
     private fun testAuthApplication(block: suspend (HttpClient) -> Unit) = testApplication {
+        install(Koin) {
+            modules(module {
+                single<RegisterService> { registerService }
+                single<LoginService> { loginService }
+                single<RefreshService> { refreshService }
+                single<AccountVerificationService> { accountVerificationService }
+                single<UserAccountService> { passwordService }
+                single<UserProfileService> { userProfileService }
+                single<EmailVerificationService> { emailVerificationService }
+            })
+        }
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
             json()
         }
@@ -89,8 +100,8 @@ class AuthFlowTest {
             }
         }
         routing {
-            authRoutes(registerService, loginService, refreshService)
-            usersRoutes(accountVerificationService, passwordService, userProfileService)
+            authRoutes()
+            usersRoutes()
         }
         val client = createClient {
             install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
@@ -121,7 +132,7 @@ class AuthFlowTest {
         assertEquals(LoginResult.NOT_VERIFIED, loginRespFail.result)
 
         // 3. Verify Email
-        val sentEmail = smtpService.getLastEmailTo(email)
+        val sentEmail = emailVerificationService.getSmtpService().getLastEmailTo(email)
         assertNotNull(sentEmail, "Email was not sent during registration")
         val code = sentEmail!!.body.substringAfter(": ").trim()
 
@@ -196,7 +207,7 @@ class AuthFlowTest {
         }.body()
         assertEquals(RegisterResult.SUCCESS, regResp.result)
         
-        val sentEmail = smtpService.getLastEmailTo(email)
+        val sentEmail = emailVerificationService.getSmtpService().getLastEmailTo(email)
         assertNotNull(sentEmail, "Email was not sent for safety test")
         val code = sentEmail!!.body.substringAfter(": ").trim()
         

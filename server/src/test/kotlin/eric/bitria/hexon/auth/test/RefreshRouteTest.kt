@@ -10,6 +10,9 @@ import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.routes.authRoutes
+import eric.bitria.hexon.services.auth.login.LoginService
+import eric.bitria.hexon.services.auth.refresh.RefreshService
+import eric.bitria.hexon.services.auth.register.RegisterService
 import eric.bitria.hexon.utils.TokenHasher
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -26,6 +29,8 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.koin.dsl.module
+import org.koin.ktor.plugin.Koin
 
 class RefreshRouteTest {
 
@@ -34,15 +39,18 @@ class RefreshRouteTest {
     private val refreshService = MockRefreshService(authRepository, tokenService)
 
     private fun testAuthApplication(block: suspend (HttpClient) -> Unit) = testApplication {
+        install(Koin) {
+            modules(module {
+                single<RegisterService> { MockRegisterService(authRepository) }
+                single<LoginService> { MockLoginService(authRepository) }
+                single<RefreshService> { refreshService }
+            })
+        }
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
             json()
         }
         routing {
-            authRoutes(
-                registerService = MockRegisterService(authRepository),
-                loginService = MockLoginService(authRepository),
-                refreshService = refreshService
-            )
+            authRoutes()
         }
         val client = createClient {
             install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
@@ -126,11 +134,18 @@ class RefreshRouteTest {
 
     @Test
     fun `refresh fails with malformed json`() = testApplication {
+        install(Koin) {
+            modules(module {
+                single<RegisterService> { MockRegisterService(MockAuthRepository()) }
+                single<LoginService> { MockLoginService(MockAuthRepository()) }
+                single<RefreshService> { MockRefreshService(MockAuthRepository(), MockTokenService()) }
+            })
+        }
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
             json()
         }
         routing {
-            authRoutes(MockRegisterService(MockAuthRepository()), MockLoginService(MockAuthRepository()), refreshService)
+            authRoutes()
         }
         val response = client.post("/auth/refresh") {
             contentType(ContentType.Application.Json)

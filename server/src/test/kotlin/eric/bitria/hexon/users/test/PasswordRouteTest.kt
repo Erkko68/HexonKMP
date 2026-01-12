@@ -15,10 +15,11 @@ import eric.bitria.hexon.dtos.account.ResetPasswordRequest
 import eric.bitria.hexon.dtos.account.ResetPasswordResponse
 import eric.bitria.hexon.dtos.account.ResetPasswordResult
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
-import eric.bitria.hexon.email.mock.MockEmailVerificationRepository
-import eric.bitria.hexon.email.mock.MockSmtpService
-import eric.bitria.hexon.services.email.verification.EmailVerificationServiceImpl
+import eric.bitria.hexon.email.mock.MockEmailVerificationService
 import eric.bitria.hexon.routes.usersRoutes
+import eric.bitria.hexon.services.users.account.UserAccountService
+import eric.bitria.hexon.services.users.profile.UserProfileService
+import eric.bitria.hexon.services.users.verify.AccountVerificationService
 import eric.bitria.hexon.users.mock.MockAccountVerificationService
 import eric.bitria.hexon.users.mock.MockUserAccountService
 import eric.bitria.hexon.users.mock.MockUserProfileService
@@ -40,24 +41,27 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import org.koin.dsl.module
+import org.koin.ktor.plugin.Koin
 
 class PasswordRouteTest {
 
     private val authRepository = MockAuthRepository()
     private val tokenService = MockTokenService()
     
-    private val smtpService = MockSmtpService()
-    private val emailVerificationRepo = MockEmailVerificationRepository()
-    private val emailService = EmailVerificationServiceImpl(
-        emailVerificationRepo,
-        smtpService,
-        authRepository
-    )
+    private val emailService = MockEmailVerificationService()
 
     private val passwordService = MockUserAccountService(authRepository, emailService)
     private val userProfileService = MockUserProfileService()
 
     private fun testPasswordApplication(block: suspend (HttpClient) -> Unit) = testApplication {
+        install(Koin) {
+            modules(module {
+                single<AccountVerificationService> { MockAccountVerificationService(authRepository, emailService, tokenService) }
+                single<UserAccountService> { passwordService }
+                single<UserProfileService> { userProfileService }
+            })
+        }
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
             json()
         }
@@ -74,11 +78,7 @@ class PasswordRouteTest {
             }
         }
         routing {
-            usersRoutes(
-                accountVerificationService = MockAccountVerificationService(authRepository, emailService, tokenService),
-                userAccountService = passwordService,
-                userProfileService = userProfileService
-            )
+            usersRoutes()
         }
         val client = createClient {
             install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
@@ -173,7 +173,7 @@ class PasswordRouteTest {
         }.body()
 
         assertEquals(ForgotPasswordResult.SUCCESS, response.result)
-        assertNotNull(smtpService.getLastEmailTo(email))
+        assertNotNull(emailService.getSmtpService().getLastEmailTo(email))
     }
 
     @Test
@@ -184,7 +184,7 @@ class PasswordRouteTest {
         }.body()
 
         assertEquals(ForgotPasswordResult.SUCCESS, response.result)
-        assertNull(smtpService.getLastEmailTo("ghost@example.com"))
+        assertNull(emailService.getSmtpService().getLastEmailTo("ghost@example.com"))
     }
 
     // --- RESET PASSWORD ---
@@ -196,7 +196,7 @@ class PasswordRouteTest {
         authRepository.addUser(User(userId, email, "user", "OldPass", true, "active-session"))
 
         emailService.sendVerificationCodeByEmail(email, EmailVerificationType.PASSWORD_RESET)
-        val code = smtpService.getLastEmailTo(email)!!.body.substringAfter(": ").trim()
+        val code = emailService.getSmtpService().getLastEmailTo(email)!!.body.substringAfter(": ").trim()
 
         val response: ResetPasswordResponse = client.post("/users/password/reset") {
             contentType(ContentType.Application.Json)
@@ -225,7 +225,7 @@ class PasswordRouteTest {
     fun `reset password fails if user disappeared`() = testPasswordApplication { client ->
         val email = "vanish@example.com"
         emailService.sendVerificationCodeByEmail(email, EmailVerificationType.PASSWORD_RESET)
-        val code = smtpService.getLastEmailTo(email)!!.body.substringAfter(": ").trim()
+        val code = emailService.getSmtpService().getLastEmailTo(email)!!.body.substringAfter(": ").trim()
 
         val response: ResetPasswordResponse = client.post("/users/password/reset") {
             contentType(ContentType.Application.Json)
