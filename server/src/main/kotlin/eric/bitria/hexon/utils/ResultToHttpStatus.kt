@@ -10,6 +10,7 @@ import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResult
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import eric.bitria.hexon.dtos.social.AddFriendResult
+import eric.bitria.hexon.dtos.social.GetFriendRequestsResult
 import eric.bitria.hexon.dtos.social.GetFriendsResult
 import eric.bitria.hexon.dtos.social.RespondFriendResult
 import io.ktor.http.HttpStatusCode as HTTPStatusCode
@@ -93,7 +94,7 @@ fun GetFriendsResult.toHttpStatus() = when (this) {
     GetFriendsResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }
 
-// --- Feature 2: Add Friend ---
+
 fun AddFriendResult.toHttpStatus() = when (this) {
     AddFriendResult.SUCCESS -> HTTPStatusCode.OK // or Created (201)
     AddFriendResult.USER_NOT_FOUND -> HTTPStatusCode.NotFound
@@ -103,9 +104,14 @@ fun AddFriendResult.toHttpStatus() = when (this) {
     AddFriendResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }
 
-// --- Feature 3: Respond to Request ---
+
 fun RespondFriendResult.toHttpStatus() = when (this) {
     RespondFriendResult.SUCCESS -> HTTPStatusCode.OK
     RespondFriendResult.REQUEST_NOT_FOUND -> HTTPStatusCode.NotFound
     RespondFriendResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
+}
+
+fun GetFriendRequestsResult.toHttpStatus() = when (this) {
+    GetFriendRequestsResult.SUCCESS -> HTTPStatusCode.OK
+    GetFriendRequestsResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }

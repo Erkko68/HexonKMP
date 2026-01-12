@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Gamepad
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,7 +36,9 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 fun FriendListItem(
     friend: Friend,
-    onInvite: (String) -> Unit,
+    onInvite: ((String) -> Unit)? = null,
+    onAccept: ((String) -> Unit)? = null,
+    onDecline: ((String) -> Unit)? = null,
     onViewProfile: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -74,20 +78,59 @@ fun FriendListItem(
                 )
             }
 
-            IconButton(
-                onClick = { onInvite(friend.username) },
-                modifier = Modifier
-                    .padding(end = spacing.medium)
-                    .size(paddingScale * 0.06f) // Slightly larger button
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Gamepad,
-                    contentDescription = "Invite Friend to Play",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(paddingScale * 0.055f) // Slightly larger icon
-                )
+            if (onInvite != null) {
+                IconButton(
+                    onClick = { onInvite(friend.username) },
+                    modifier = Modifier
+                        .padding(end = spacing.medium)
+                        .size(paddingScale * 0.06f)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Gamepad,
+                        contentDescription = "Invite Friend to Play",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(paddingScale * 0.055f)
+                    )
+                }
+            }
+
+            if (onAccept != null && onDecline != null) {
+                Row(
+                    modifier = Modifier.padding(end = spacing.medium),
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    IconButton(
+                        onClick = { onAccept(friend.username) },
+                        modifier = Modifier
+                            .size(paddingScale * 0.06f)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Accept Friend Request",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(paddingScale * 0.055f)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { onDecline(friend.username) },
+                        modifier = Modifier
+                            .size(paddingScale * 0.06f)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.error)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Decline Friend Request",
+                            tint = MaterialTheme.colorScheme.onError,
+                            modifier = Modifier.size(paddingScale * 0.055f)
+                        )
+                    }
+                }
             }
         }
     }
@@ -98,7 +141,7 @@ fun FriendListItem(
 fun FriendListItemPreview(){
     HexonTheme {
         FriendListItem(
-            friend = Friend(1,"Pato",true,),
+            friend = Friend("1","Pato",true,),
             onInvite = {  },
             onViewProfile = {  },
             modifier = Modifier

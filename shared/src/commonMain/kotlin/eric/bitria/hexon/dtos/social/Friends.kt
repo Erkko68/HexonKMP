@@ -22,3 +22,16 @@ enum class GetFriendsResult {
     SUCCESS,
     UNKNOWN_ERROR
 }
+
+@Serializable
+data class GetFriendRequestsResponse(
+    val result: GetFriendRequestsResult,
+    val requests: List<FriendDto> = emptyList(),
+    val message: String? = null
+)
+
+@Serializable
+enum class GetFriendRequestsResult {
+    SUCCESS,
+    UNKNOWN_ERROR
+}

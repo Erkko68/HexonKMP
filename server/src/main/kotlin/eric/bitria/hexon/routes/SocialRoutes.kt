@@ -13,49 +13,61 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
 fun Route.socialRoutes() {
     val socialService by inject<SocialService>()
 
     authenticate {
+        route("/friends") {
+            // 1. Get Friends - GET /friends
+            get {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.subject
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, "Invalid token claims")
 
-        // 1. Get Friends
-        get("/friends") {
-            val principal = call.principal<JWTPrincipal>()
-            val userId = principal?.payload?.getClaim("userId")?.asString()
-                ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val response = socialService.getFriends(userId)
+                call.respond(response.result.toHttpStatus(), response)
+            }
 
-            val response = socialService.getFriends(userId)
-            call.respond(response.result.toHttpStatus(), response)
-        }
+            // 2. Get Friend Requests - GET /friends/requests
+            get("/requests") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.subject
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, "Invalid token claims")
 
-        // 2. Add Friend
-        post("/friends/add") {
-            val principal = call.principal<JWTPrincipal>()
-            val userId = principal?.payload?.getClaim("userId")?.asString()
-                ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                val response = socialService.getFriendRequests(userId)
+                call.respond(response.result.toHttpStatus(), response)
+            }
 
-            val request = call.receive<AddFriendRequest>()
-            val response = socialService.sendFriendRequest(userId, request.targetUsername)
+            // 3. Add Friend - POST /friends/add
+            post("/add") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.subject
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, "Invalid token claims")
 
-            call.respond(response.result.toHttpStatus(), response)
-        }
+                val request = call.receive<AddFriendRequest>()
+                val response = socialService.sendFriendRequest(userId, request.targetUsername)
 
-        // 3. Respond (Accept/Decline)
-        post("/friends/respond") {
-            val principal = call.principal<JWTPrincipal>()
-            val userId = principal?.payload?.getClaim("userId")?.asString()
-                ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                call.respond(response.result.toHttpStatus(), response)
+            }
 
-            val request = call.receive<RespondFriendRequest>()
-            val response = socialService.respondToRequest(
-                userId = userId,
-                requesterUsername = request.requesterUsername,
-                action = request.action
-            )
+            // 4. Respond (Accept/Decline) - POST /friends/respond
+            post("/respond") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.subject
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, "Invalid token claims")
 
-            call.respond(response.result.toHttpStatus(), response)
+                val request = call.receive<RespondFriendRequest>()
+                val response = socialService.respondToRequest(
+                    userId = userId,
+                    requesterUsername = request.requesterUsername,
+                    action = request.action
+                )
+
+                call.respond(response.result.toHttpStatus(), response)
+            }
         }
     }
 }

@@ -1,33 +1,129 @@
 package eric.bitria.hexon.viewmodel.social
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import eric.bitria.hexon.client.SocialClient
+import eric.bitria.hexon.dtos.social.AddFriendRequest
+import eric.bitria.hexon.dtos.social.AddFriendResult
+import eric.bitria.hexon.dtos.social.FriendRequestAction
+import eric.bitria.hexon.dtos.social.GetFriendRequestsResult
+import eric.bitria.hexon.dtos.social.GetFriendsResult
+import eric.bitria.hexon.dtos.social.RespondFriendRequest
 import eric.bitria.hexon.viewmodel.data.Friend
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-class FriendsViewModel : ViewModel() {
-    private val _friendsList = MutableStateFlow<List<Friend>>(emptyList())
+data class FriendsUiState(
+    val friends: List<Friend> = emptyList(),
+    val friendRequests: List<Friend> = emptyList(),
+    val isLoading: Boolean = false,
+    val addFriendMessage: String? = null,
+    val friendsError: String? = null,
+    val requestsError: String? = null
+)
 
-    val friendsList: StateFlow<List<Friend>> = _friendsList.asStateFlow()
+class FriendsViewModel(
+    private val socialClient: SocialClient
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(FriendsUiState())
+    val uiState: StateFlow<FriendsUiState> = _uiState.asStateFlow()
 
     init {
-        val sampleData = listOf(
-            Friend(id = 1, username = "Alexi", isOnline = true, avatarUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuC51H-gMNn1Saq065BCzCz7XsqWFREXkvi1xyGWbypQ8_Phf363LDOL0aHUf3KpdnKzf0Mjh9UTNYoJulg5EeEGjZOmCWo84VA1grdl2AMF6j97vYkyyF7vJ6T3o8yUfEPgYIZ40ruu2S0PRNrVpR5IBsgkeBD0Wae02QU79FCZoglqNAsj6hBpsBg8CQTvDO1FTzwyT_9jIXjA8HANwa4pNqod3CW-H35vU-as9HXnMX6OfuUyOmelWs7yzHg_um5Ije3fMBFXD0c"),
-            Friend(id = 2, username = "Zoe", isOnline = false, avatarUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuDIULC6J4SDUP2lmURMnmOX47KUh3wGGRkQBbsCAgnV-bTO66-WjG9RsdBd1tMMw3x1hrYB2rUycwAhUKd4-a6gPztM9THtXh3yoL901Qnm-HaYH-bAr0unh7jJo2Az--a39Ng283u4baHbk0Nq1ApVsFEF5nmGYVxS7CVa9LKFPpl1e4XljesXgREwzhdhmjDmwgNZoTVFPuKHbMf8osrASwDrLWGvCW4w5gY3zkni9BX9JqTdtqs7w4kQpwx4kb8sGQ1015VmzoM"),
-            Friend(id = 3, username = "Marcus", isOnline = true, avatarUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuAwgCCe0Uw5rd6HFCr5iMhXy2JGKzZkc2tynb7Wtfc8MdbksHfDSDCB_PTTtv0hBj5o17lKflfGsOeWW1YdoccJd5Mtkv84cpyFwpYWCsJWqBQjnCwjHFhFbzcsxZzRNdqam_Z5uH6H49V-de-aP54C8fR3W7Q_2n4Kg1eyUmg9szZZVE2FEKKQvawH-Klf3BXkoTQq-TN1NpgupR1oUbTVWlqKDspZbrkwsi_1CYBYOEFAE-2HcLDAZicbHvPBq4sRyb7BDlS_dvU"),
-            Friend(id = 4, username = "Samira", isOnline = true, avatarUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuDauh3PIflslHSjCplf8TnCluMEf9RSpJCGsUuxcbFAmRqBp0efHL3revH5FipqYhrc2bk-vUbCRPi03T51CjzZyjjDyZVAwpc6DlcW6lFrSK1wbkmfqZYjKmgkn9Q0UUmvdGvGWe02J3eb6uOZ-nyjRuxFxXm01sMFZbvjzEyeOQAzFeqeTaTkqjm8bcMeP_odr1-Gz5wWB68dQAls05R7gEIjJWX1b8wazDiLgeb9ztJe7_h2fcxK9gG2i0CT_6hR7_waQZiABb0"),
-            Friend(id = 5, username = "Leo", isOnline = false, avatarUrl = null)
-        )
-
-        _friendsList.value = sampleData
+        refresh()
     }
 
-    fun onInviteClicked(username: String){
-
+    fun refresh() {
+        refreshFriends()
+        refreshRequests()
     }
 
-    fun onAddFriendClicked(username: String){
+    fun refreshFriends() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, friendsError = null) }
+            try {
+                val response = socialClient.getFriends()
+                if (response.result == GetFriendsResult.SUCCESS) {
+                    _uiState.update { it.copy(
+                        friends = response.friends.map { Friend(it.id, it.username, it.isOnline) }
+                    ) }
+                } else {
+                    _uiState.update { it.copy(friendsError = response.message ?: "Failed to load friends") }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(friendsError = "Connection error") }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
+    }
 
+    fun refreshRequests() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, requestsError = null) }
+            try {
+                val response = socialClient.getFriendRequests()
+                if (response.result == GetFriendRequestsResult.SUCCESS) {
+                    _uiState.update { it.copy(
+                        friendRequests = response.requests.map { Friend(it.id, it.username, it.isOnline) }
+                    ) }
+                } else {
+                    _uiState.update { it.copy(requestsError = response.message ?: "Failed to load requests") }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(requestsError = "Connection error") }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
+    }
+
+    fun onAddFriendClicked(username: String) {
+        viewModelScope.launch {
+            // We clear it only when starting a new request to show fresh status
+            _uiState.update { it.copy(addFriendMessage = null) }
+            try {
+                val response = socialClient.addFriend(AddFriendRequest(username))
+                val message = when (response.result) {
+                    AddFriendResult.SUCCESS -> "Request sent!"
+                    AddFriendResult.USER_NOT_FOUND -> "User not found"
+                    AddFriendResult.ALREADY_FRIENDS -> "Already friends"
+                    AddFriendResult.REQUEST_ALREADY_SENT -> "Request already sent"
+                    AddFriendResult.CANNOT_ADD_SELF -> "Cannot add yourself"
+                    AddFriendResult.UNKNOWN_ERROR -> response.message ?: "Something went wrong"
+                }
+                _uiState.update { it.copy(addFriendMessage = message) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(addFriendMessage = "Error sending request") }
+            }
+        }
+    }
+
+    fun onAcceptRequest(username: String) {
+        viewModelScope.launch {
+            try {
+                socialClient.respondToFriendRequest(
+                    RespondFriendRequest(username, FriendRequestAction.ACCEPT)
+                )
+                refresh()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(requestsError = "Failed to accept request") }
+            }
+        }
+    }
+
+    fun onDeclineRequest(username: String) {
+        viewModelScope.launch {
+            try {
+                socialClient.respondToFriendRequest(
+                    RespondFriendRequest(username, FriendRequestAction.DECLINE)
+                )
+                refreshRequests()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(requestsError = "Failed to decline request") }
+            }
+        }
     }
 }

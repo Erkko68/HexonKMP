@@ -18,7 +18,7 @@ class ExposedFriendRequestRepository : FriendRequestRepository {
     }
 
     override suspend fun getIncomingRequests(receiverId: String): List<Friend> = dbQuery {
-        (Users innerJoin FriendRequests)
+        Users.join(FriendRequests, JoinType.INNER, onColumn = Users.id, otherColumn = FriendRequests.requesterId)
             .select(Users.id, Users.username)
             .where { FriendRequests.receiverId eq receiverId }
             .map { row ->

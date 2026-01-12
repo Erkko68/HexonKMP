@@ -3,6 +3,7 @@ package eric.bitria.hexon.services.social
 import eric.bitria.hexon.dtos.social.AddFriendResponse
 import eric.bitria.hexon.dtos.social.FriendRequestAction
 import eric.bitria.hexon.dtos.social.GetFriendsResponse
+import eric.bitria.hexon.dtos.social.GetFriendRequestsResponse
 import eric.bitria.hexon.dtos.social.RespondFriendResponse
 
 
@@ -15,6 +16,14 @@ interface SocialService {
      * @return [GetFriendsResponse] containing the list of [FriendDto] or an error status.
      */
     suspend fun getFriends(userId: String): GetFriendsResponse
+
+    /**
+     * Retrieves the list of incoming friend requests for a specific user.
+     *
+     * @param userId The unique ID of the user requesting their friend requests.
+     * @return [GetFriendRequestsResponse] containing the list of [FriendDto] or an error status.
+     */
+    suspend fun getFriendRequests(userId: String): GetFriendRequestsResponse
 
     /**
      * Processes a request to add a new friend.

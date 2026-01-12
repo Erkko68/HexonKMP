@@ -2,6 +2,8 @@ package eric.bitria.hexon.ui.components.friends
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,6 +36,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 fun AddFriendInput(
     onAddFriend: (String) -> Unit,
+    message: String? = null,
     modifier: Modifier = Modifier
 ) {
     var text by remember { mutableStateOf("") }
@@ -42,62 +45,90 @@ fun AddFriendInput(
     val dimensions = HexonTheme.dimensions
     val spacing = dimensions.spacing
     val shapes = dimensions.shapes
-    val paddingScale = dimensions.paddingScale
 
-    Row(
-        modifier = modifier
-            .onFocusChanged { isFocused = it.isFocused }
-            .border(
-                width = 2.dp,
-                color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                shape = shapes.medium
-            ),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BasicTextField(
-            value = text,
-            onValueChange = { text = it },
+    Column(modifier = modifier) {
+        Row(
             modifier = Modifier
-                .weight(1f)
-                .padding(start = spacing.large),
-            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold
-            ),
-            singleLine = true,
-            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            decorationBox = { innerTextField ->
+                .fillMaxWidth()
+                .height(dimensions.listItemHeight)
+                .onFocusChanged { isFocused = it.isFocused }
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    shape = shapes.medium
+                )
+                .border(
+                    width = 2.dp,
+                    color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    shape = shapes.medium
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = spacing.large),
+                contentAlignment = Alignment.CenterStart
+            ) {
                 if (text.isEmpty()) {
                     Text(
                         text = "Add friend by username",
                         style = MaterialTheme.typography.bodyLarge.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             fontWeight = FontWeight.Bold
-                        )
+                        ),
+                        maxLines = 1
                     )
                 }
-                innerTextField()
+                
+                BasicTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    singleLine = true,
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary)
+                )
             }
-        )
 
-        IconButton(
-            onClick = {
-                if (text.isNotBlank()) {
-                    onAddFriend(text)
-                    text = ""
-                }
-            },
-            modifier = Modifier
-                .padding(end = spacing.medium)
-                .size(paddingScale * 0.09f)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.secondary)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Add Friend",
-                tint = MaterialTheme.colorScheme.onSecondary,
-                modifier = Modifier.size(paddingScale * 0.055f)
+            IconButton(
+                onClick = {
+                    if (text.isNotBlank()) {
+                        onAddFriend(text)
+                        text = ""
+                    }
+                },
+                modifier = Modifier
+                    .padding(end = spacing.medium)
+                    .size(dimensions.listItemHeight * 0.7f)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondary)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Friend",
+                    tint = MaterialTheme.colorScheme.onSecondary,
+                    modifier = Modifier.size(dimensions.listItemHeight * 0.4f)
+                )
+            }
+        }
+
+        // Supporting text for feedback (Success/Error)
+        if (message != null) {
+            Text(
+                text = message,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = spacing.medium, vertical = spacing.extraSmall),
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = if (message.contains("sent", ignoreCase = true)) 
+                        MaterialTheme.colorScheme.primary 
+                    else 
+                        MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Bold
+                )
             )
         }
     }
@@ -109,11 +140,8 @@ fun AddFriendInputPreview() {
     HexonTheme {
         AddFriendInput(
             onAddFriend = {},
-            modifier = Modifier
-                .clip(HexonTheme.dimensions.shapes.medium)
-                .fillMaxWidth()
-                .height(48.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            message = "User not found",
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
         )
     }
 }
