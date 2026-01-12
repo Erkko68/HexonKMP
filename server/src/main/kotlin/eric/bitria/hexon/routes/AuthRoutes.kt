@@ -11,20 +11,20 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
+import org.koin.ktor.ext.inject
 
 /**
  * Defines the routes for registration, email verification, and resending codes.
  */
-fun Route.authRoutes(
-    registerService: RegisterService,
-    loginService: LoginService,
-    refreshService: RefreshService
-) {
+fun Route.authRoutes() {
+    val registerService by inject<RegisterService>()
+    val loginService by inject<LoginService>()
+    val refreshService by inject<RefreshService>()
 
     post("/auth/register") {
         val request = call.receive<RegisterRequest>()
         val response = registerService.register(request)
-        call.respond(response.result.toHttpStatus(),response)
+        call.respond(response.result.toHttpStatus(), response)
     }
 
     post("/auth/login") {
@@ -38,5 +38,4 @@ fun Route.authRoutes(
         val response = refreshService.refresh(request)
         call.respond(response.result.toHttpStatus(), response)
     }
-
 }

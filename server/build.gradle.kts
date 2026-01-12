@@ -27,6 +27,11 @@ dependencies {
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)
 
+    // Koin
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.ktor)
+    implementation(libs.koin.logger.slf4j)
+
     testImplementation(libs.ktor.serverTestHost)
 
     // SMTP

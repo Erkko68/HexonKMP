@@ -21,12 +21,13 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import org.koin.ktor.ext.inject
 
-fun Route.usersRoutes(
-    accountVerificationService: AccountVerificationService,
-    userAccountService: UserAccountService,
-    userProfileService: UserProfileService
-) {
+fun Route.usersRoutes() {
+    val accountVerificationService by inject<AccountVerificationService>()
+    val userAccountService by inject<UserAccountService>()
+    val userProfileService by inject<UserProfileService>()
+
     route("/users") {
 
         // Email Confirmation

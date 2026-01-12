@@ -3,6 +3,7 @@ package eric.bitria.hexon.database
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import eric.bitria.hexon.database.tables.EmailVerificationCodes
+import eric.bitria.hexon.database.tables.FriendRequests
 import eric.bitria.hexon.database.tables.Friends
 import eric.bitria.hexon.database.tables.Profiles
 import eric.bitria.hexon.database.tables.Users
@@ -31,7 +32,7 @@ object DatabaseFactory {
         database = Database.connect(dataSource)
 
         transaction(database) {
-            SchemaUtils.create(Users, EmailVerificationCodes, Friends, Profiles)
+            SchemaUtils.create(Users, EmailVerificationCodes, Friends, Profiles, FriendRequests)
         }
     }
 
