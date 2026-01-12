@@ -47,5 +47,5 @@ sealed class Screens {
     object DeleteAccount : Screens()
 
     @Serializable
-    data class FriendProfile(val username: String) : Screens()
+    data class FriendProfile(val userId: String) : Screens()
 }

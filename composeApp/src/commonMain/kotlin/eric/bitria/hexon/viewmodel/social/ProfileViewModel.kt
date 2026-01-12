@@ -37,7 +37,6 @@ class ProfileViewModel(
                     _uiState.update { state ->
                         state.copy(
                             username = response.username,
-                            avatarUrl = null,
                             stats = UserStats(
                                 wins = response.stats.wins.toString(),
                                 streak = "-",
@@ -78,25 +77,3 @@ class ProfileViewModel(
         return rate
     }
 }
-
-data class GameHistoryItem(
-    val id: Int,
-    val isWin: Boolean,
-    val opponents: String,
-    val date: String,
-    val lpChange: Int
-)
-
-data class UserStats(
-    val wins: String,
-    val streak: String,
-    val winRate: String
-)
-
-data class ProfileUiState(
-    val username: String = "",
-    val avatarUrl: String? = null,
-    val stats: UserStats = UserStats("0", "-", "0%"),
-    val gameHistory: List<GameHistoryItem> = emptyList(),
-    val error: String? = null
-)

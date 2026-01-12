@@ -76,7 +76,7 @@ fun FriendListItem(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clickable { onViewProfile(friend.username) }
+                        .clickable { onViewProfile(friend.id) }
                         .padding(start = spacing.large),
                     verticalAlignment = Alignment.CenterVertically
                 ) {

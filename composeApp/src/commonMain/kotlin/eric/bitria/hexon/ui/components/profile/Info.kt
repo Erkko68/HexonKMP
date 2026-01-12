@@ -21,7 +21,6 @@ import eric.bitria.hexon.viewmodel.social.UserStats
 @Composable
 fun UserInfoSection(
     username: String,
-    avatarUrl: String?,
     stats: UserStats
 ) {
     Column(

@@ -76,8 +76,8 @@ fun MainNavigation() {
         composable<Screens.Friends> {
             FriendsScreen(
                 onExitClicked = { navController.popBackStack() },
-                onViewProfileClicked = { username ->
-                    navController.navigate(Screens.FriendProfile(username = username))
+                onViewProfileClicked = { userId ->
+                    navController.navigate(Screens.FriendProfile(userId = userId))
                 }
             )
         }
@@ -121,7 +121,7 @@ fun MainNavigation() {
         composable<Screens.FriendProfile> { backStackEntry ->
             val friendProfile: Screens.FriendProfile = backStackEntry.toRoute()
             FriendProfileScreen(
-                username = friendProfile.username,
+                userId = friendProfile.userId,
                 onExitClicked = { navController.popBackStack() }
             )
         }

@@ -133,7 +133,6 @@ fun ProfileScreen(
 
                                     UserInfoSection(
                                         username = uiState.username,
-                                        avatarUrl = uiState.avatarUrl,
                                         stats = uiState.stats
                                     )
 

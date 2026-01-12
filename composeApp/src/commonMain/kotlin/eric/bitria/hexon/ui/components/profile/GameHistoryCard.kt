@@ -46,15 +46,15 @@ fun GameHistoryCard(
                 horizontalArrangement = Arrangement.spacedBy(spacing.medium)
             ) {
                 Text(
-                    text = if (item.isWin) "WIN" else "LOSS",
-                    color = if (item.isWin) Color(0xFF4ADE80) else MaterialTheme.colorScheme.error,
+                    text = if (item.won) "WIN" else "LOSS",
+                    color = if (item.won) Color(0xFF4ADE80) else MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     )
                 )
                 Column {
                     Text(
-                        text = item.opponents,
+                        text = item.opponent,
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.Bold
@@ -70,7 +70,7 @@ fun GameHistoryCard(
 
             // Right Side: LP
             Text(
-                text = if (item.lpChange > 0) "+${item.lpChange} LP" else "${item.lpChange} LP",
+                text = if (item.points > 0) "+${item.points} LP" else "${item.points} LP",
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold

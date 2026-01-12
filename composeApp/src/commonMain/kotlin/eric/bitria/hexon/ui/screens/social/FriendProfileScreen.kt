@@ -37,15 +37,15 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun FriendProfileScreen(
-    username: String = "Guest",
+    userId: String = "Guest",
     profileViewModel: FriendProfileViewModel = koinViewModel(),
     onExitClicked: () -> Unit
 ) {
     val uiState by profileViewModel.uiState.collectAsState()
     val vividColor = uiState.username.toVividColor()
 
-    LaunchedEffect(username) {
-        profileViewModel.loadFriendProfile(username)
+    LaunchedEffect(userId) {
+        profileViewModel.loadFriendProfile(userId)
     }
 
     HexonTheme {
@@ -94,7 +94,6 @@ fun FriendProfileScreen(
 
                             UserInfoSection(
                                 username = uiState.username,
-                                avatarUrl = uiState.avatarUrl,
                                 stats = uiState.stats
                             )
 
