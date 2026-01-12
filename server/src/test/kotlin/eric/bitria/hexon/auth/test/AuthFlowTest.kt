@@ -24,7 +24,7 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import eric.bitria.hexon.email.mock.MockEmailVerificationRepository
 import eric.bitria.hexon.email.mock.MockSmtpService
-import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
+import eric.bitria.hexon.services.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.routes.usersRoutes
 import eric.bitria.hexon.users.mock.MockAccountVerificationService

@@ -1,6 +1,6 @@
 package eric.bitria.hexon.email.mock
 
-import eric.bitria.hexon.email.smtp.SmtpService
+import eric.bitria.hexon.services.email.smtp.SmtpService
 
 class MockSmtpService : SmtpService {
     private val sentEmails = mutableListOf<SentEmail>()

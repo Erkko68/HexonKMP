@@ -1,8 +1,8 @@
 package eric.bitria.hexon.auth.mock
 
-import eric.bitria.hexon.auth.refresh.RefreshService
-import eric.bitria.hexon.auth.repository.AuthRepository
-import eric.bitria.hexon.auth.token.TokenService
+import eric.bitria.hexon.services.auth.refresh.RefreshService
+import eric.bitria.hexon.services.auth.repository.AuthRepository
+import eric.bitria.hexon.services.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RefreshResult

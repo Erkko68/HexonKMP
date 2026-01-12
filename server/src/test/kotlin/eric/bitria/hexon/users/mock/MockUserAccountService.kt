@@ -1,6 +1,6 @@
 package eric.bitria.hexon.users.mock
 
-import eric.bitria.hexon.auth.repository.AuthRepository
+import eric.bitria.hexon.services.auth.repository.AuthRepository
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResponse
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
@@ -15,8 +15,8 @@ import eric.bitria.hexon.dtos.account.ResetPasswordRequest
 import eric.bitria.hexon.dtos.account.ResetPasswordResponse
 import eric.bitria.hexon.dtos.account.ResetPasswordResult
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
-import eric.bitria.hexon.email.verification.EmailVerificationService
-import eric.bitria.hexon.users.account.UserAccountService
+import eric.bitria.hexon.services.email.verification.EmailVerificationService
+import eric.bitria.hexon.services.users.account.UserAccountService
 
 class MockUserAccountService(
     private val authRepository: AuthRepository,

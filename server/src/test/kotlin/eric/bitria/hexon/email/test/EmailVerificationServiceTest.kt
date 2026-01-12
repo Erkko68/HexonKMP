@@ -1,11 +1,11 @@
 package eric.bitria.hexon.email.test
 
 import eric.bitria.hexon.auth.mock.MockAuthRepository
-import eric.bitria.hexon.auth.repository.AuthRepository
+import eric.bitria.hexon.services.auth.repository.AuthRepository
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
 import eric.bitria.hexon.email.mock.MockEmailVerificationRepository
 import eric.bitria.hexon.email.mock.MockSmtpService
-import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
+import eric.bitria.hexon.services.email.verification.EmailVerificationServiceImpl
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse

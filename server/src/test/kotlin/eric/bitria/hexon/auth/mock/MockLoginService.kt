@@ -1,7 +1,7 @@
 package eric.bitria.hexon.auth.mock
 
-import eric.bitria.hexon.auth.login.LoginService
-import eric.bitria.hexon.auth.repository.AuthRepository
+import eric.bitria.hexon.services.auth.login.LoginService
+import eric.bitria.hexon.services.auth.repository.AuthRepository
 import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResponse
 import eric.bitria.hexon.dtos.auth.LoginResult

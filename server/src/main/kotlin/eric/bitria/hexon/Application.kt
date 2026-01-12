@@ -2,7 +2,7 @@ package eric.bitria.hexon
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import eric.bitria.hexon.auth.token.JwtConfig
+import eric.bitria.hexon.services.auth.token.JwtConfig
 import eric.bitria.hexon.database.DatabaseFactory
 import eric.bitria.hexon.di.appModule
 import eric.bitria.hexon.routes.authRoutes

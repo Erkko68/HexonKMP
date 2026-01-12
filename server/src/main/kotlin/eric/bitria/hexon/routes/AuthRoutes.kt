@@ -1,8 +1,8 @@
 package eric.bitria.hexon.routes
 
-import eric.bitria.hexon.auth.login.LoginService
-import eric.bitria.hexon.auth.refresh.RefreshService
-import eric.bitria.hexon.auth.register.RegisterService
+import eric.bitria.hexon.services.auth.login.LoginService
+import eric.bitria.hexon.services.auth.refresh.RefreshService
+import eric.bitria.hexon.services.auth.register.RegisterService
 import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RegisterRequest

@@ -2,7 +2,7 @@ package eric.bitria.hexon.auth.mock
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import eric.bitria.hexon.auth.token.TokenService
+import eric.bitria.hexon.services.auth.token.TokenService
 import java.util.Date
 import kotlin.random.Random
 

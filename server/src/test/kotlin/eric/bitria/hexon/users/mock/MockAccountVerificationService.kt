@@ -1,7 +1,7 @@
 package eric.bitria.hexon.users.mock
 
-import eric.bitria.hexon.auth.repository.AuthRepository
-import eric.bitria.hexon.auth.token.TokenService
+import eric.bitria.hexon.services.auth.repository.AuthRepository
+import eric.bitria.hexon.services.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResponse
@@ -9,8 +9,8 @@ import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResult
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
-import eric.bitria.hexon.email.verification.EmailVerificationService
-import eric.bitria.hexon.users.verify.AccountVerificationService
+import eric.bitria.hexon.services.email.verification.EmailVerificationService
+import eric.bitria.hexon.services.users.verify.AccountVerificationService
 import eric.bitria.hexon.utils.TokenHasher
 
 class MockAccountVerificationService(

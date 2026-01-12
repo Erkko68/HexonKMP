@@ -4,7 +4,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import eric.bitria.hexon.auth.mock.MockAuthRepository
 import eric.bitria.hexon.auth.mock.MockTokenService
-import eric.bitria.hexon.auth.repository.User
+import eric.bitria.hexon.services.auth.repository.User
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResponse
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
@@ -17,7 +17,7 @@ import eric.bitria.hexon.dtos.account.ResetPasswordResult
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
 import eric.bitria.hexon.email.mock.MockEmailVerificationRepository
 import eric.bitria.hexon.email.mock.MockSmtpService
-import eric.bitria.hexon.email.verification.EmailVerificationServiceImpl
+import eric.bitria.hexon.services.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.routes.usersRoutes
 import eric.bitria.hexon.users.mock.MockAccountVerificationService
 import eric.bitria.hexon.users.mock.MockUserAccountService

@@ -5,7 +5,7 @@ import eric.bitria.hexon.auth.mock.MockLoginService
 import eric.bitria.hexon.auth.mock.MockRefreshService
 import eric.bitria.hexon.auth.mock.MockRegisterService
 import eric.bitria.hexon.auth.mock.MockTokenService
-import eric.bitria.hexon.auth.repository.User
+import eric.bitria.hexon.services.auth.repository.User
 import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResponse
 import eric.bitria.hexon.dtos.auth.LoginResult

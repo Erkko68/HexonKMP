@@ -1,7 +1,7 @@
 package eric.bitria.hexon.email.mock
 
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
-import eric.bitria.hexon.email.verification.EmailVerificationService
+import eric.bitria.hexon.services.email.verification.EmailVerificationService
 
 class MockEmailVerificationService : EmailVerificationService {
     private val sentCodes = mutableListOf<SentCode>()

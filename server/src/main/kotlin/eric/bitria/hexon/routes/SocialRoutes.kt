@@ -2,7 +2,7 @@ package eric.bitria.hexon.routes
 
 import eric.bitria.hexon.dtos.social.AddFriendRequest
 import eric.bitria.hexon.dtos.social.RespondFriendRequest
-import eric.bitria.hexon.social.SocialService
+import eric.bitria.hexon.services.social.SocialService
 import eric.bitria.hexon.utils.toHttpStatus
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate

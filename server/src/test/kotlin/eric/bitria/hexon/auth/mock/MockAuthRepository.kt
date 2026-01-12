@@ -1,7 +1,7 @@
 package eric.bitria.hexon.auth.mock
 
-import eric.bitria.hexon.auth.repository.AuthRepository
-import eric.bitria.hexon.auth.repository.User
+import eric.bitria.hexon.services.auth.repository.AuthRepository
+import eric.bitria.hexon.services.auth.repository.User
 
 class MockAuthRepository : AuthRepository {
     private val users = mutableMapOf<String, User>()

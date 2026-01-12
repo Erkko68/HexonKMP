@@ -1,8 +1,8 @@
 package eric.bitria.hexon.email.mock
 
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
-import eric.bitria.hexon.email.repository.EmailVerificationRepository
-import eric.bitria.hexon.email.repository.StoredVerificationCode
+import eric.bitria.hexon.services.email.repository.EmailVerificationRepository
+import eric.bitria.hexon.services.email.repository.StoredVerificationCode
 import kotlin.time.Clock
 import kotlin.time.Instant
 

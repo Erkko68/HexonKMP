@@ -5,10 +5,10 @@ import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountRequest
 import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
 import eric.bitria.hexon.dtos.account.ResetPasswordRequest
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
-import eric.bitria.hexon.users.verify.AccountVerificationService
+import eric.bitria.hexon.services.users.verify.AccountVerificationService
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
-import eric.bitria.hexon.users.account.UserAccountService
-import eric.bitria.hexon.users.profile.UserProfileService
+import eric.bitria.hexon.services.users.account.UserAccountService
+import eric.bitria.hexon.services.users.profile.UserProfileService
 import eric.bitria.hexon.utils.toHttpStatus
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate

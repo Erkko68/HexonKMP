@@ -1,12 +1,12 @@
 package eric.bitria.hexon.auth.mock
 
-import eric.bitria.hexon.auth.register.RegisterService
-import eric.bitria.hexon.auth.repository.AuthRepository
+import eric.bitria.hexon.services.auth.register.RegisterService
+import eric.bitria.hexon.services.auth.repository.AuthRepository
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResponse
 import eric.bitria.hexon.dtos.auth.RegisterResult
-import eric.bitria.hexon.email.verification.EmailVerificationService
+import eric.bitria.hexon.services.email.verification.EmailVerificationService
 import eric.bitria.hexon.utils.Validators
 
 class MockRegisterService(
