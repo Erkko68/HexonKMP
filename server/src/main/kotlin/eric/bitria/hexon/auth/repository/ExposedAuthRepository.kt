@@ -61,6 +61,14 @@ class ExposedAuthRepository : AuthRepository {
             .singleOrNull()
     }
 
+    override suspend fun findUserByUsername(username: String): User? = dbQuery {
+        Users.selectAll()
+            .where { Users.username eq username }
+            .map { rowToUser(it) }
+            .singleOrNull()
+    }
+
+
     override suspend fun updateRefreshToken(userId: String, refreshTokenHash: String?) = dbQuery {
         Users.update({ Users.id eq userId }) {
             it[this.refreshTokenHash] = refreshTokenHash

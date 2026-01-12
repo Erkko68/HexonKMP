@@ -20,7 +20,7 @@ enum class AddFriendResult {
     ALREADY_FRIENDS,
     REQUEST_ALREADY_SENT,
     CANNOT_ADD_SELF,
-    ERROR
+    UNKNOWN_ERROR
 }
 
 @Serializable
@@ -45,5 +45,5 @@ data class RespondFriendResponse(
 enum class RespondFriendResult {
     SUCCESS,
     REQUEST_NOT_FOUND,
-    ERROR
+    UNKNOWN_ERROR
 }

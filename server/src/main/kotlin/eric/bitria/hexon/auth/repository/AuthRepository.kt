@@ -33,6 +33,11 @@ interface AuthRepository {
     suspend fun findUserById(userId: String): User?
 
     /**
+     * Finds a user by their username.
+     */
+    suspend fun findUserByUsername(username: String): User?
+
+    /**
      * Updates the refresh token hash for a specific user.
      * Used by LoginService (to set initial token) and RefreshService (rotation).
      * @param refreshTokenHash Nullable because logging out would set this to null.

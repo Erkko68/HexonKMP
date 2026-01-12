@@ -30,6 +30,7 @@ class MockAuthRepository : AuthRepository {
     override suspend fun findUserByEmail(email: String): User? = users.values.find { it.email == email }
 
     override suspend fun findUserById(userId: String): User? = users[userId]
+    override suspend fun findUserByUsername(username: String): User? = users.values.find { it.username == username }
 
     override suspend fun updateRefreshToken(userId: String, refreshTokenHash: String?) {
         val user = users[userId] ?: return

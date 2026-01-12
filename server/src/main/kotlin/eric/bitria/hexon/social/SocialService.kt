@@ -1,5 +1,10 @@
 package eric.bitria.hexon.social
 
+import eric.bitria.hexon.dtos.social.AddFriendResponse
+import eric.bitria.hexon.dtos.social.FriendRequestAction
+import eric.bitria.hexon.dtos.social.GetFriendsResponse
+import eric.bitria.hexon.dtos.social.RespondFriendResponse
+
 
 interface SocialService {
 

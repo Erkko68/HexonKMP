@@ -9,6 +9,9 @@ import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResult
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
+import eric.bitria.hexon.dtos.social.AddFriendResult
+import eric.bitria.hexon.dtos.social.GetFriendsResult
+import eric.bitria.hexon.dtos.social.RespondFriendResult
 import io.ktor.http.HttpStatusCode as HTTPStatusCode
 
 /**
@@ -83,4 +86,26 @@ fun DeleteAccountResult.toHttpStatus() = when (this) {
     DeleteAccountResult.INVALID_CODE -> HTTPStatusCode.BadRequest
     DeleteAccountResult.USER_NOT_FOUND -> HTTPStatusCode.NotFound
     DeleteAccountResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
+}
+
+fun GetFriendsResult.toHttpStatus() = when (this) {
+    GetFriendsResult.SUCCESS -> HTTPStatusCode.OK
+    GetFriendsResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
+}
+
+// --- Feature 2: Add Friend ---
+fun AddFriendResult.toHttpStatus() = when (this) {
+    AddFriendResult.SUCCESS -> HTTPStatusCode.OK // or Created (201)
+    AddFriendResult.USER_NOT_FOUND -> HTTPStatusCode.NotFound
+    AddFriendResult.ALREADY_FRIENDS -> HTTPStatusCode.Conflict // 409 Conflict fits well
+    AddFriendResult.REQUEST_ALREADY_SENT -> HTTPStatusCode.Conflict
+    AddFriendResult.CANNOT_ADD_SELF -> HTTPStatusCode.BadRequest
+    AddFriendResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
+}
+
+// --- Feature 3: Respond to Request ---
+fun RespondFriendResult.toHttpStatus() = when (this) {
+    RespondFriendResult.SUCCESS -> HTTPStatusCode.OK
+    RespondFriendResult.REQUEST_NOT_FOUND -> HTTPStatusCode.NotFound
+    RespondFriendResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }

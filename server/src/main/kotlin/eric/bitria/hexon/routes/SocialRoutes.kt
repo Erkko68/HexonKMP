@@ -1,66 +1,61 @@
 package eric.bitria.hexon.routes
 
+import eric.bitria.hexon.dtos.social.AddFriendRequest
+import eric.bitria.hexon.dtos.social.RespondFriendRequest
+import eric.bitria.hexon.social.SocialService
+import eric.bitria.hexon.utils.toHttpStatus
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+fun Route.socialRoutes(
+    socialService: SocialService
+) {
 
-fun Route.socialRoutes() {
-    // Inject your business logic service
-    val socialService: SocialService by inject()
+    authenticate {
 
-    route("/social") {
-        // Protect all these routes with JWT
-        authenticate() {
+        // 1. Get Friends
+        get("/friends") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.getClaim("userId")?.asString()
+                ?: return@get call.respond(HttpStatusCode.Unauthorized)
 
-            // 1. Get Friends List
-            get("/friends") {
-                val principal = call.principal<JWTPrincipal>()
-                val userId = principal?.payload?.getClaim("userId")?.asString()
-                    ?: return@get call.respond(HttpStatusCode.Unauthorized)
+            val response = socialService.getFriends(userId)
+            call.respond(response.result.toHttpStatus(), response)
+        }
 
-                val response = socialService.getFriends(userId)
-                call.respond(response)
-            }
+        // 2. Add Friend
+        post("/friends/add") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.getClaim("userId")?.asString()
+                ?: return@post call.respond(HttpStatusCode.Unauthorized)
 
-            // 2. Send Friend Request
-            post("/friends/add") {
-                val principal = call.principal<JWTPrincipal>()
-                val userId = principal?.payload?.getClaim("userId")?.asString()
-                    ?: return@post call.respond(HttpStatusCode.Unauthorized)
+            val request = call.receive<AddFriendRequest>()
+            val response = socialService.sendFriendRequest(userId, request.targetUsername)
 
-                val request = call.receive<AddFriendRequest>()
+            call.respond(response.result.toHttpStatus(), response)
+        }
 
-                // Logic to add friend
-                val response = socialService.sendFriendRequest(
-                    requesterId = userId,
-                    targetUsername = request.targetUsername
-                )
+        // 3. Respond (Accept/Decline)
+        post("/friends/respond") {
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.getClaim("userId")?.asString()
+                ?: return@post call.respond(HttpStatusCode.Unauthorized)
 
-                call.respond(response)
-            }
+            val request = call.receive<RespondFriendRequest>()
+            val response = socialService.respondToRequest(
+                userId = userId,
+                requesterUsername = request.requesterUsername,
+                action = request.action
+            )
 
-            // 3. Accept or Decline Request
-            post("/friends/respond") {
-                val principal = call.principal<JWTPrincipal>()
-                val userId = principal?.payload?.getClaim("userId")?.asString()
-                    ?: return@post call.respond(HttpStatusCode.Unauthorized)
-
-                val request = call.receive<RespondFriendRequest>()
-
-                val response = socialService.respondToRequest(
-                    userId = userId,
-                    requesterUsername = request.requesterUsername,
-                    action = request.action
-                )
-
-                call.respond(response)
-            }
+            call.respond(response.result.toHttpStatus(), response)
         }
     }
 }

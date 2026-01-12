@@ -6,8 +6,7 @@ import kotlinx.serialization.Serializable
 data class FriendDto(
     val id: String,
     val username: String,
-    val isOnline: Boolean,
-    val avatarUrl: String? = null
+    val isOnline: Boolean
 )
 
 // --- Feature 1: Get Friends ---
@@ -21,5 +20,5 @@ data class GetFriendsResponse(
 @Serializable
 enum class GetFriendsResult {
     SUCCESS,
-    ERROR
+    UNKNOWN_ERROR
 }
