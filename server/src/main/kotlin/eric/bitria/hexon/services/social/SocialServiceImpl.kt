@@ -73,7 +73,7 @@ class SocialServiceImpl(
                 return AddFriendResponse(AddFriendResult.ALREADY_FRIENDS)
             }
 
-            if (requestsRepository.hasPendingRequest(requesterId, targetUser.id)) {
+            if (requestsRepository.hasPendingRequest(requesterId, targetUser.id) || requestsRepository.hasPendingRequest(targetUser.id, requesterId)) {
                 return AddFriendResponse(AddFriendResult.REQUEST_ALREADY_SENT)
             }
 
