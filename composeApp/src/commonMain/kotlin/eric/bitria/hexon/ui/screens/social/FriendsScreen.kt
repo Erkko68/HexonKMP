@@ -21,17 +21,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.components.friends.AddFriendInput
 import eric.bitria.hexon.ui.components.friends.FriendListItem
 import eric.bitria.hexon.ui.components.shared.HexonHeader
 import eric.bitria.hexon.ui.components.shared.HexonIconButton
+import eric.bitria.hexon.ui.repository.ApiResult
+import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.social.FriendsViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -41,8 +40,19 @@ fun FriendsScreen(
     onExitClicked: () -> Unit,
     onViewProfileClicked: (String) -> Unit
 ) {
-    val uiState by friendsViewModel.uiState.collectAsState()
+    val friendsState = friendsViewModel.friendsState
+    val requestsState = friendsViewModel.requestsState
+    val addFriendState = friendsViewModel.addFriendState
+    
+    val isRefreshing = friendsState is ApiResult.Loading || requestsState is ApiResult.Loading
     val pullToRefreshState = rememberPullToRefreshState()
+
+    val addFriendMessage = when (addFriendState) {
+        is ApiResult.Error -> addFriendState.message
+        is ApiResult.Success -> "Friend request sent!"
+        is ApiResult.NetworkError -> "Network error"
+        else -> null
+    }
 
     HexonTheme {
         val dimensions = HexonTheme.dimensions
@@ -76,7 +86,7 @@ fun FriendsScreen(
                 }
 
                 PullToRefreshBox(
-                    isRefreshing = uiState.isLoading,
+                    isRefreshing = isRefreshing,
                     onRefresh = { friendsViewModel.refresh() },
                     state = pullToRefreshState,
                     modifier = Modifier
@@ -93,67 +103,92 @@ fun FriendsScreen(
                                 onAddFriend = { username ->
                                     friendsViewModel.onAddFriendClicked(username)
                                 },
-                                message = uiState.addFriendMessage,
+                                message = addFriendMessage,
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Spacer(modifier = Modifier.height(spacing.mediumLarge))
                         }
 
                         // Section: Friends List
-                        if (uiState.friendsError != null && uiState.friends.isEmpty()) {
-                            item {
-                                ErrorState(
-                                    message = uiState.friendsError!!,
-                                    onRetry = { friendsViewModel.refreshFriends() }
-                                )
+                        when (friendsState) {
+                            is ApiResult.Success -> {
+                                val friends = friendsState.data
+                                if (friends.isEmpty()) {
+                                    item { EmptyState(text = "No friends added yet") }
+                                } else {
+                                    items(friends, key = { it.id }) { friend ->
+                                        FriendListItem(
+                                            friend = friend,
+                                            onInvite = { /* Handle invite */ },
+                                            onViewProfile = { onViewProfileClicked(it) }
+                                        )
+                                    }
+                                }
                             }
-                        } else if (uiState.friends.isEmpty() && !uiState.isLoading) {
-                            item {
-                                EmptyState(text = "No friends added yet")
+                            is ApiResult.Error -> {
+                                item {
+                                    ErrorState(
+                                        message = friendsState.message ?: "Failed to load friends",
+                                        onRetry = { friendsViewModel.refreshFriends() }
+                                    )
+                                }
                             }
-                        } else {
-                            items(uiState.friends, key = { it.id }) { friend ->
-                                FriendListItem(
-                                    friend = friend,
-                                    onInvite = { /* Handle invite */ },
-                                    onViewProfile = { onViewProfileClicked(it) }
-                                )
+                            is ApiResult.NetworkError -> {
+                                item {
+                                    ErrorState(
+                                        message = "Network error. Please check your connection.",
+                                        onRetry = { friendsViewModel.refreshFriends() }
+                                    )
+                                }
                             }
+                            else -> {}
                         }
 
                         // Section: Friend Requests
-                        if (uiState.friendRequests.isNotEmpty() || uiState.requestsError != null) {
-                            item {
-                                Spacer(modifier = Modifier.height(spacing.medium))
-                                Text(
-                                    text = "Friend Requests",
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    textAlign = TextAlign.Start,
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.small)
-                                )
-                                Spacer(modifier = Modifier.height(spacing.small))
+                        when (requestsState) {
+                            is ApiResult.Success -> {
+                                val requests = requestsState.data
+                                if (requests.isNotEmpty()) {
+                                    item {
+                                        Spacer(modifier = Modifier.height(spacing.medium))
+                                        Text(
+                                            text = "Friend Requests",
+                                            style = MaterialTheme.typography.titleLarge.copy(
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            textAlign = TextAlign.Start,
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.small)
+                                        )
+                                        Spacer(modifier = Modifier.height(spacing.small))
+                                    }
+                                    items(requests, key = { "request_${it.id}" }) { request ->
+                                        FriendListItem(
+                                            friend = request,
+                                            onAccept = { friendsViewModel.onAcceptRequest(it) },
+                                            onDecline = { friendsViewModel.onDeclineRequest(it) },
+                                            onViewProfile = { onViewProfileClicked(it) }
+                                        )
+                                    }
+                                }
                             }
-
-                            if (uiState.requestsError != null) {
+                            is ApiResult.Error -> {
                                 item {
                                     ErrorState(
-                                        message = uiState.requestsError!!,
+                                        message = requestsState.message ?: "Failed to load requests",
                                         onRetry = { friendsViewModel.refreshRequests() }
                                     )
                                 }
-                            } else {
-                                items(uiState.friendRequests, key = { "request_${it.id}" }) { request ->
-                                    FriendListItem(
-                                        friend = request,
-                                        onAccept = { friendsViewModel.onAcceptRequest(it) },
-                                        onDecline = { friendsViewModel.onDeclineRequest(it) },
-                                        onViewProfile = { onViewProfileClicked(it) }
+                            }
+                            is ApiResult.NetworkError -> {
+                                item {
+                                    ErrorState(
+                                        message = "Network error. Please check your connection.",
+                                        onRetry = { friendsViewModel.refreshRequests() }
                                     )
                                 }
                             }
+                            else -> {}
                         }
                     }
                 }
