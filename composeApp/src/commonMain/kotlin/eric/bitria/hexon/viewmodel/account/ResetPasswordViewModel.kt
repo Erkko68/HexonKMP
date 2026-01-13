@@ -5,16 +5,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.client.UserClient
 import eric.bitria.hexon.api.client.SessionManager
-import eric.bitria.hexon.dtos.account.ResetPasswordRequest
 import eric.bitria.hexon.dtos.account.ResetPasswordResult
+import eric.bitria.hexon.ui.repository.ApiResult
+import eric.bitria.hexon.ui.repository.UserRepository
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 
 class ResetPasswordViewModel(
-    private val userClient: UserClient,
+    private val userRepository: UserRepository,
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
@@ -30,10 +29,7 @@ class ResetPasswordViewModel(
     var confirmPassword by mutableStateOf("")
         private set
 
-    var state by mutableStateOf(ResetPasswordStatus.IDLE)
-        private set
-
-    var errorMessage by mutableStateOf<String?>(null)
+    var state by mutableStateOf<ApiResult<ResetPasswordResult>>(ApiResult.Idle)
         private set
 
     var resetCodeError by mutableStateOf<String?>(null)
@@ -84,36 +80,34 @@ class ResetPasswordViewModel(
         if (!validateForm()) return
 
         viewModelScope.launch {
-            state = ResetPasswordStatus.LOADING
-            errorMessage = null
-            try {
-                withTimeout(10000L) {
-                    val response = userClient.resetPassword(
-                        ResetPasswordRequest(
-                            email = email,
-                            code = resetCode,
-                            newPassword = password
-                        )
-                    )
-                    when (response.result) {
+            state = ApiResult.Loading
+            
+            when (val result = userRepository.resetPassword(email, resetCode, password)) {
+                is ApiResult.Success -> {
+                    state = when (result.data) {
                         ResetPasswordResult.SUCCESS -> {
-                            state = ResetPasswordStatus.SUCCESS
                             sessionManager.logout()
+                            ApiResult.Success(ResetPasswordResult.SUCCESS)
                         }
-                        else -> {
-                            state = ResetPasswordStatus.ERROR
-                            errorMessage = response.message
-                        }
+                        ResetPasswordResult.INVALID_CODE -> ApiResult.Error("Invalid reset code.")
+                        ResetPasswordResult.INVALID_EMAIL -> ApiResult.Error("The provided email is invalid.")
+                        ResetPasswordResult.INVALID_PASSWORD -> ApiResult.Error("The new password format is invalid.")
+                        ResetPasswordResult.USER_NOT_FOUND -> ApiResult.Error("User not found.")
+                        else -> ApiResult.Error("An unexpected error occurred.")
                     }
                 }
-            } catch (e: Exception) {
-                state = ResetPasswordStatus.ERROR
-                errorMessage = "Failed to reset password: ${e.message}"
+                is ApiResult.NetworkError -> {
+                    state = ApiResult.NetworkError
+                }
+                is ApiResult.Error -> {
+                    state = ApiResult.Error(result.message ?: "Failed to reset password.")
+                }
+                else -> {}
             }
         }
     }
-}
 
-enum class ResetPasswordStatus {
-    IDLE, LOADING, SUCCESS, ERROR
+    fun resetState() {
+        state = ApiResult.Idle
+    }
 }
