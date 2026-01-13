@@ -1,21 +1,14 @@
 package eric.bitria.hexon.viewmodel.social
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.client.UserClient
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import eric.bitria.hexon.dtos.profile.PublicUserProfileResponse
+import eric.bitria.hexon.ui.repository.ApiResult
+import eric.bitria.hexon.ui.repository.UserRepository
 import kotlinx.coroutines.launch
-
-data class ProfileUiState(
-    val id: String = "",
-    val username: String = "",
-    val stats: UserStats = UserStats("", "", ""),
-    val gameHistory: List<GameHistoryItem> = emptyList(),
-    val isLoading: Boolean = false,
-    val error: String? = null
-)
 
 data class UserStats(
     val wins: String,
@@ -32,49 +25,46 @@ data class GameHistoryItem(
 )
 
 class FriendProfileViewModel(
-    private val userClient: UserClient
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ProfileUiState())
-    val uiState = _uiState.asStateFlow()
+    var state by mutableStateOf<ApiResult<PublicUserProfileResponse>>(ApiResult.Idle)
+        private set
 
     fun loadFriendProfile(userId: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            state = ApiResult.Loading
             
-            try {
-                val profile = userClient.getPublicProfile(userId)
-                
-                if (profile != null) {
-                    _uiState.update { 
-                        it.copy(
-                            id = profile.id,
-                            username = profile.username,
-                            stats = UserStats(
-                                wins = profile.stats.wins.toString(),
-                                streak = "-", // Need backend support for streak
-                                winRate = calculateWinRate(profile.stats.wins, profile.stats.losses)
-                            ),
-                            isLoading = false
-                        )
-                    }
-                } else {
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false, 
-                            error = "User not found"
-                        )
+            when (val result = userRepository.getPublicProfile(userId)) {
+                is ApiResult.Success -> {
+                    val profile = result.data
+                    state = if (profile != null) {
+                        ApiResult.Success(profile)
+                    } else {
+                        ApiResult.Error("User not found")
                     }
                 }
-            } catch (e: Exception) {
-                _uiState.update { 
-                    it.copy(
-                        isLoading = false, 
-                        error = e.message ?: "Failed to load profile"
-                    )
+                is ApiResult.NetworkError -> {
+                    state = ApiResult.NetworkError
                 }
+                is ApiResult.Error -> {
+                    state = ApiResult.Error(result.message ?: "Failed to load profile")
+                }
+                else -> {}
             }
         }
+    }
+
+    /**
+     * Helper to transform the DTO stats into UI-friendly UserStats.
+     * This can be called by the UI when the state is [ApiResult.Success].
+     */
+    fun getProcessedStats(profile: PublicUserProfileResponse): UserStats {
+        return UserStats(
+            wins = profile.stats.wins.toString(),
+            streak = "-", // Need backend support for streak
+            winRate = calculateWinRate(profile.stats.wins, profile.stats.losses)
+        )
     }
 
     private fun calculateWinRate(wins: Int, losses: Int): String {
@@ -82,5 +72,9 @@ class FriendProfileViewModel(
         if (total == 0) return "0%"
         val rate = (wins.toFloat() / total.toFloat()) * 100
         return "${rate.toInt()}%"
+    }
+
+    fun resetState() {
+        state = ApiResult.Idle
     }
 }
