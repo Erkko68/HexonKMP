@@ -5,24 +5,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.client.UserClient
-import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
 import eric.bitria.hexon.dtos.account.ForgotPasswordResult
+import eric.bitria.hexon.ui.repository.ApiResult
+import eric.bitria.hexon.ui.repository.UserRepository
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 
 class ForgotPasswordViewModel(
-    private val userClient: UserClient
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     var email by mutableStateOf("")
         private set
 
-    var state by mutableStateOf(ForgotPasswordStatus.IDLE)
-        private set
-
-    var errorMessage by mutableStateOf<String?>(null)
+    var state by mutableStateOf<ApiResult<ForgotPasswordResult>>(ApiResult.Idle)
         private set
 
     var emailError by mutableStateOf<String?>(null)
@@ -42,33 +38,28 @@ class ForgotPasswordViewModel(
         if (!validateForm()) return
 
         viewModelScope.launch {
-            state = ForgotPasswordStatus.LOADING
-            errorMessage = null
-            try {
-                withTimeout(10000L) {
-                    val response = userClient.forgotPassword(ForgotPasswordRequest(email))
-                    when (response.result) {
-                        ForgotPasswordResult.SUCCESS -> {
-                            state = ForgotPasswordStatus.SUCCESS
-                        }
-                        else -> {
-                            state = ForgotPasswordStatus.ERROR
-                            errorMessage = response.message
-                        }
+            state = ApiResult.Loading
+            
+            when (val result = userRepository.forgotPassword(email)) {
+                is ApiResult.Success -> {
+                    state = when (result.data) {
+                        ForgotPasswordResult.SUCCESS -> ApiResult.Success(ForgotPasswordResult.SUCCESS)
+                        ForgotPasswordResult.INVALID_EMAIL -> ApiResult.Error("The provided email is invalid.")
+                        else -> ApiResult.Error("An unexpected error occurred.")
                     }
                 }
-            } catch (e: Exception) {
-                state = ForgotPasswordStatus.ERROR
-                errorMessage = "Failed to send reset code: ${e.message}"
+                is ApiResult.NetworkError -> {
+                    state = ApiResult.NetworkError
+                }
+                is ApiResult.Error -> {
+                    state = ApiResult.Error(result.message ?: "Failed to send reset code.")
+                }
+                else -> {}
             }
         }
     }
 
     fun resetState() {
-        state = ForgotPasswordStatus.IDLE
+        state = ApiResult.Idle
     }
-}
-
-enum class ForgotPasswordStatus {
-    IDLE, LOADING, SUCCESS, ERROR
 }
