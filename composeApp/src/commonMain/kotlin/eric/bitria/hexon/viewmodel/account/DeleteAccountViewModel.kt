@@ -6,15 +6,14 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.api.client.SessionManager
-import eric.bitria.hexon.api.client.UserClient
-import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountRequest
 import eric.bitria.hexon.dtos.account.DeleteAccountResult
+import eric.bitria.hexon.ui.repository.ApiResult
+import eric.bitria.hexon.ui.repository.UserRepository
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 
 class DeleteAccountViewModel(
-    private val userClient: UserClient,
+    private val userRepository: UserRepository,
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
@@ -24,10 +23,7 @@ class DeleteAccountViewModel(
     var code by mutableStateOf("")
         private set
 
-    var state by mutableStateOf(DeleteAccountStatus.IDLE)
-        private set
-
-    var errorMessage by mutableStateOf<String?>(null)
+    var state by mutableStateOf<ApiResult<DeleteAccountResult>>(ApiResult.Idle)
         private set
 
     var passwordError by mutableStateOf<String?>(null)
@@ -53,17 +49,20 @@ class DeleteAccountViewModel(
 
     fun initiateDelete() {
         viewModelScope.launch {
-            state = DeleteAccountStatus.LOADING
-            errorMessage = null
-            try {
-                withTimeout(10000L) {
-                    userClient.initiateDeleteAccount()
+            state = ApiResult.Loading
+            
+            when (val result = userRepository.requestDeleteAccount()) {
+                is ApiResult.Success -> {
                     codeSent = true
-                    state = DeleteAccountStatus.IDLE
+                    state = ApiResult.Idle // Move to Idle to allow confirmDelete interaction
                 }
-            } catch (e: Exception) {
-                state = DeleteAccountStatus.ERROR
-                errorMessage = "Failed to send verification code: ${e.message}"
+                is ApiResult.NetworkError -> {
+                    state = ApiResult.NetworkError
+                }
+                is ApiResult.Error -> {
+                    state = ApiResult.Error(result.message ?: "Failed to send verification code.")
+                }
+                else -> {}
             }
         }
     }
@@ -78,30 +77,28 @@ class DeleteAccountViewModel(
         if (!isPasswordValid || !isCodeValid) return
 
         viewModelScope.launch {
-            state = DeleteAccountStatus.LOADING
-            errorMessage = null
-            try {
-                withTimeout(10000L) {
-                    val response = userClient.confirmDeleteAccount(
-                        ConfirmDeleteAccountRequest(
-                            password = password,
-                            code = code
-                        )
-                    )
-                    when (response.result) {
+            state = ApiResult.Loading
+            
+            when (val result = userRepository.deleteAccount(password, code)) {
+                is ApiResult.Success -> {
+                    state = when (result.data) {
                         DeleteAccountResult.SUCCESS -> {
-                            state = DeleteAccountStatus.SUCCESS
                             sessionManager.logout()
+                            ApiResult.Success(DeleteAccountResult.SUCCESS)
                         }
-                        else -> {
-                            state = DeleteAccountStatus.ERROR
-                            errorMessage = response.message
-                        }
+                        DeleteAccountResult.WRONG_PASSWORD -> ApiResult.Error("Incorrect password.")
+                        DeleteAccountResult.INVALID_CODE -> ApiResult.Error("Invalid verification code.")
+                        DeleteAccountResult.USER_NOT_FOUND -> ApiResult.Error("User session not found.")
+                        else -> ApiResult.Error("An unexpected error occurred.")
                     }
                 }
-            } catch (e: Exception) {
-                state = DeleteAccountStatus.ERROR
-                errorMessage = "Failed to delete account: ${e.message}"
+                is ApiResult.NetworkError -> {
+                    state = ApiResult.NetworkError
+                }
+                is ApiResult.Error -> {
+                    state = ApiResult.Error(result.message ?: "Failed to delete account.")
+                }
+                else -> {}
             }
         }
     }
@@ -109,8 +106,8 @@ class DeleteAccountViewModel(
     fun resendCode() {
         initiateDelete()
     }
-}
 
-enum class DeleteAccountStatus {
-    IDLE, LOADING, SUCCESS, ERROR
+    fun resetState() {
+        state = ApiResult.Idle
+    }
 }
