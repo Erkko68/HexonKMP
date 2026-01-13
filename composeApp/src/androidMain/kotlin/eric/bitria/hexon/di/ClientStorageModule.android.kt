@@ -1,4 +1,4 @@
-package eric.bitria.hexon.client.di
+package eric.bitria.hexon.di
 
 import com.liftric.kvault.KVault
 import org.koin.android.ext.koin.androidContext

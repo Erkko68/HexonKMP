@@ -13,7 +13,6 @@ import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
-import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import eric.bitria.hexon.dtos.profile.PublicUserProfileResponse
 import eric.bitria.hexon.dtos.profile.UserProfileResponse
 import io.ktor.client.HttpClient
@@ -26,22 +25,32 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
+interface UserClient {
+    suspend fun verifyEmail(request: VerifyEmailRequest): VerifyEmailResponse
+    suspend fun resendVerificationCode(request: ResendVerificationCodeRequest): ResendVerificationCodeResponse
+
+    suspend fun changePassword(request: ChangePasswordRequest): ChangePasswordResponse
+    suspend fun forgotPassword(request: ForgotPasswordRequest): ForgotPasswordResponse
+
+    suspend fun resetPassword(request: ResetPasswordRequest): ResetPasswordResponse
+
+    suspend fun initiateDeleteAccount(): RequestDeleteAccountResponse
+    suspend fun confirmDeleteAccount(request: ConfirmDeleteAccountRequest): ConfirmDeleteAccountResponse
+
+    suspend fun getMe(): UserProfileResponse
+
+    suspend fun getPublicProfile(userId: String): PublicUserProfileResponse?
+}
+
 class KtorUserClient(
-    private val client: HttpClient,
-    private val sessionManager: SessionManager
+    private val client: HttpClient
 ) : UserClient {
 
     override suspend fun verifyEmail(request: VerifyEmailRequest): VerifyEmailResponse {
-        val response = client.post("/users/email/confirm") {
+        return client.post("/users/email/confirm") {
             contentType(ContentType.Application.Json)
             setBody(request)
-        }.body<VerifyEmailResponse>()
-
-        if (response.result == VerifyEmailResult.SUCCESS) {
-            sessionManager.saveTokens(response.accessToken!!, response.refreshToken!!)
-        }
-
-        return response
+        }.body()
     }
 
     override suspend fun resendVerificationCode(request: ResendVerificationCodeRequest): ResendVerificationCodeResponse {

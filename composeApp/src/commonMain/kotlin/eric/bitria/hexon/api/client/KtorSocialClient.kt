@@ -14,6 +14,14 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
+interface SocialClient {
+    suspend fun getFriends(): GetFriendsResponse
+    suspend fun getFriendRequests(): GetFriendRequestsResponse
+    suspend fun addFriend(request: AddFriendRequest): AddFriendResponse
+    suspend fun respondToFriendRequest(request: RespondFriendRequest): RespondFriendResponse
+}
+
+
 class KtorSocialClient(
     private val client: HttpClient
 ) : SocialClient {
