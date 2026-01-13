@@ -28,7 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
-import eric.bitria.hexon.viewmodel.auth.VerifyStatus
+import eric.bitria.hexon.ui.repository.ApiResult
 import eric.bitria.hexon.viewmodel.auth.VerifyViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -91,7 +91,10 @@ fun VerifyScreen(
                         value = verifyViewModel.code,
                         onValueChange = { verifyViewModel.onCodeChange(it) },
                         placeholder = "Verification Code",
-                        error = verifyViewModel.errorMessage,
+                        error = when (val state = verifyViewModel.verifyStatus) {
+                            is ApiResult.Error -> state.message
+                            else -> null
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
 
@@ -101,9 +104,10 @@ fun VerifyScreen(
                         text = "Verify",
                         onClick = { verifyViewModel.verify() },
                         modifier = Modifier.fillMaxWidth(),
+                        enabled = verifyViewModel.verifyStatus !is ApiResult.Loading,
                         paddingScale = paddingScale
                     ) {
-                        if (verifyViewModel.verifyStatus == VerifyStatus.LOADING) {
+                        if (verifyViewModel.verifyStatus is ApiResult.Loading) {
                             CircularProgressIndicator(
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(paddingScale * 0.05f),
@@ -129,6 +133,16 @@ fun VerifyScreen(
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold
                             )
+                        )
+                    }
+
+                    if (verifyViewModel.verifyStatus is ApiResult.NetworkError) {
+                        Spacer(Modifier.height(spacing.mediumSmall))
+                        Text(
+                            text = "Network error. Please check your connection.",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
