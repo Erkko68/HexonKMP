@@ -26,10 +26,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import eric.bitria.hexon.dtos.account.ResetPasswordResult
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
+import eric.bitria.hexon.ui.repository.ApiResult
 import eric.bitria.hexon.ui.screens.auth.LoginInputField
-import eric.bitria.hexon.viewmodel.account.ResetPasswordStatus
 import eric.bitria.hexon.viewmodel.account.ResetPasswordViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -51,7 +52,8 @@ fun ResetPasswordScreen(
 
         // Redirect on success
         LaunchedEffect(viewModel.state) {
-            if (viewModel.state == ResetPasswordStatus.SUCCESS) {
+            val state = viewModel.state
+            if (state is ApiResult.Success && state.data == ResetPasswordResult.SUCCESS) {
                 onSuccess()
             }
         }
@@ -134,10 +136,10 @@ fun ResetPasswordScreen(
                         text = "Reset Password",
                         onClick = { viewModel.resetPassword() },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = viewModel.state != ResetPasswordStatus.LOADING,
+                        enabled = viewModel.state !is ApiResult.Loading,
                         paddingScale = paddingScale
                     ) {
-                        if (viewModel.state == ResetPasswordStatus.LOADING || viewModel.state == ResetPasswordStatus.SUCCESS) {
+                        if (viewModel.state is ApiResult.Loading) {
                             CircularProgressIndicator(
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(paddingScale * 0.05f),
@@ -163,14 +165,26 @@ fun ResetPasswordScreen(
                         )
                     }
 
-                    if (viewModel.state == ResetPasswordStatus.ERROR) {
-                        Spacer(Modifier.height(spacing.mediumSmall))
-                        Text(
-                            text = viewModel.errorMessage ?: "Unknown error occurred",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center
-                        )
+                    when (val state = viewModel.state) {
+                        is ApiResult.Error -> {
+                            Spacer(Modifier.height(spacing.mediumSmall))
+                            Text(
+                                text = state.message ?: "Unknown error occurred",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        is ApiResult.NetworkError -> {
+                            Spacer(Modifier.height(spacing.mediumSmall))
+                            Text(
+                                text = "Network error. Please check your connection.",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        else -> {}
                     }
                 }
             }
