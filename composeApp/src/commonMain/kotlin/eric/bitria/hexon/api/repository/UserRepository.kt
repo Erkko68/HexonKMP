@@ -1,6 +1,6 @@
-package eric.bitria.hexon.ui.repository
+package eric.bitria.hexon.api.repository
 
-import eric.bitria.hexon.api.client.SessionManager
+import eric.bitria.hexon.api.SessionManager
 import eric.bitria.hexon.api.client.UserClient
 import eric.bitria.hexon.dtos.account.*
 import eric.bitria.hexon.dtos.auth.*

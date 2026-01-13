@@ -6,8 +6,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.dtos.social.*
-import eric.bitria.hexon.ui.repository.ApiResult
-import eric.bitria.hexon.ui.repository.SocialRepository
+import eric.bitria.hexon.api.repository.ApiResult
+import eric.bitria.hexon.api.repository.SocialRepository
 import eric.bitria.hexon.viewmodel.data.Friend
 import kotlinx.coroutines.launch
 

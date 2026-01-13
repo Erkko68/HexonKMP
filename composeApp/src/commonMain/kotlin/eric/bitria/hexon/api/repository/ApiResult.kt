@@ -1,4 +1,4 @@
-package eric.bitria.hexon.ui.repository
+package eric.bitria.hexon.api.repository
 
 import io.ktor.client.plugins.ResponseException
 import kotlinx.io.IOException

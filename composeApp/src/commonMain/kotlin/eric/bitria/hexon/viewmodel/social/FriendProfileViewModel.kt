@@ -6,8 +6,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.dtos.profile.PublicUserProfileResponse
-import eric.bitria.hexon.ui.repository.ApiResult
-import eric.bitria.hexon.ui.repository.UserRepository
+import eric.bitria.hexon.api.repository.ApiResult
+import eric.bitria.hexon.api.repository.UserRepository
 import kotlinx.coroutines.launch
 
 data class UserStats(

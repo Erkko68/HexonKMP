@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.dp
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
-import eric.bitria.hexon.ui.repository.ApiResult
+import eric.bitria.hexon.api.repository.ApiResult
 import eric.bitria.hexon.viewmodel.auth.LoginViewModel
 import org.koin.compose.viewmodel.koinViewModel
 

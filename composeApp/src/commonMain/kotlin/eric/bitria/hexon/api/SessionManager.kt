@@ -1,6 +1,7 @@
-package eric.bitria.hexon.api.client
+package eric.bitria.hexon.api
 
 import com.russhwolf.settings.Settings
+import eric.bitria.hexon.api.client.AuthClient
 import eric.bitria.hexon.api.persistence.EncryptedData
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResult

@@ -97,10 +97,6 @@ class KtorUserClient(
     }
 
     override suspend fun getPublicProfile(userId: String): PublicUserProfileResponse? {
-        return try {
-            client.get("/users/$userId").body()
-        } catch (e: ClientRequestException) {
-            null
-        }
+        return client.get("/users/$userId").body()
     }
 }

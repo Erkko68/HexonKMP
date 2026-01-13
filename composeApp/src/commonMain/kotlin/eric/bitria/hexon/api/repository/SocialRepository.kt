@@ -1,4 +1,4 @@
-package eric.bitria.hexon.ui.repository
+package eric.bitria.hexon.api.repository
 
 import eric.bitria.hexon.api.client.SocialClient
 import eric.bitria.hexon.dtos.social.*
