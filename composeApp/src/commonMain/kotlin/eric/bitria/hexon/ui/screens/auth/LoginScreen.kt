@@ -50,9 +50,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
-import eric.bitria.hexon.viewmodel.auth.LoginStatus
+import eric.bitria.hexon.ui.repository.ApiResult
 import eric.bitria.hexon.viewmodel.auth.LoginViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -70,14 +71,12 @@ fun LoginScreen(
 
         var selectedTab by remember { mutableStateOf("Login") }
 
-        // UPDATED LaunchedEffect
+        // Handle navigation to Verification Screen
         LaunchedEffect(loginViewModel.loginState) {
-            when (loginViewModel.loginState) {
-                LoginStatus.VERIFICATION_SENT -> {
-                    onNavigateToVerify(loginViewModel.email)
-                    loginViewModel.resetState()
-                }
-                else -> {}
+            val state = loginViewModel.loginState
+            if (state is ApiResult.Success && state.data == LoginResult.NOT_VERIFIED) {
+                onNavigateToVerify(loginViewModel.email)
+                loginViewModel.resetState()
             }
         }
 
@@ -212,10 +211,10 @@ fun LoginScreen(
                             else loginViewModel.registerWithEmail()
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = loginViewModel.loginState != LoginStatus.LOADING,
+                        enabled = loginViewModel.loginState !is ApiResult.Loading,
                         paddingScale = paddingScale
                     ) {
-                        if (loginViewModel.loginState == LoginStatus.LOADING) {
+                        if (loginViewModel.loginState is ApiResult.Loading) {
                             CircularProgressIndicator(
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(paddingScale * 0.05f),
@@ -302,14 +301,26 @@ fun LoginScreen(
                         }
                     }
 
-                    if (loginViewModel.loginState == LoginStatus.ERROR || loginViewModel.loginState == LoginStatus.TIMEOUT) {
-                        Spacer(Modifier.height(spacing.mediumSmall))
-                        Text(
-                            text = loginViewModel.errorMessage ?: "Unknown error occurred",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center
-                        )
+                    when (val state = loginViewModel.loginState) {
+                        is ApiResult.Error -> {
+                            Spacer(Modifier.height(spacing.mediumSmall))
+                            Text(
+                                text = state.message ?: "Unknown error occurred",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        is ApiResult.NetworkError -> {
+                            Spacer(Modifier.height(spacing.mediumSmall))
+                            Text(
+                                text = "Network error. Please check your connection.",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        else -> {}
                     }
                 }
             }
