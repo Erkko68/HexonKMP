@@ -5,17 +5,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.client.UserClient
 import eric.bitria.hexon.api.client.SessionManager
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
-import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
-import kotlinx.coroutines.TimeoutCancellationException
+import eric.bitria.hexon.ui.repository.ApiResult
+import eric.bitria.hexon.ui.repository.UserRepository
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 
 class VerifyViewModel(
-    private val userClient: UserClient,
+    private val userRepository: UserRepository,
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
@@ -25,10 +22,7 @@ class VerifyViewModel(
     var code by mutableStateOf("")
         private set
 
-    var verifyStatus by mutableStateOf(VerifyStatus.IDLE)
-        private set
-
-    var errorMessage by mutableStateOf<String?>(null)
+    var verifyStatus by mutableStateOf<ApiResult<VerifyEmailResult>>(ApiResult.Idle)
         private set
 
     fun updateEmail(email: String) {
@@ -43,49 +37,44 @@ class VerifyViewModel(
 
     fun verify() {
         if (code.length != 6) {
-            errorMessage = "Code must be 6 digits"
+            verifyStatus = ApiResult.Error("Code must be 6 digits")
             return
         }
 
         viewModelScope.launch {
-            verifyStatus = VerifyStatus.LOADING
-            errorMessage = null
-            try {
-                withTimeout(10000L) {
-                    val response = userClient.verifyEmail(VerifyEmailRequest(email, code))
-                    when (response.result) {
+            verifyStatus = ApiResult.Loading
+
+            when (val result = userRepository.verifyEmail(code, email)) {
+                is ApiResult.Success -> {
+                    verifyStatus = when (result.data) {
                         VerifyEmailResult.SUCCESS -> {
-                            verifyStatus = VerifyStatus.SUCCESS
                             sessionManager.login()
+                            ApiResult.Success(VerifyEmailResult.SUCCESS)
                         }
-                        else -> {
-                            verifyStatus = VerifyStatus.ERROR
-                            errorMessage = response.message
-                        }
+                        VerifyEmailResult.INVALID_CODE -> ApiResult.Error("Invalid verification code.")
+                        VerifyEmailResult.ALREADY_VERIFIED -> ApiResult.Error("Email is already verified.")
+                        VerifyEmailResult.USER_NOT_FOUND -> ApiResult.Error("User not found.")
+                        else -> ApiResult.Error("An unexpected error occurred.")
                     }
                 }
-            } catch (e: TimeoutCancellationException) {
-                verifyStatus = VerifyStatus.TIMEOUT
-                errorMessage = "Request timed out. Please try again."
-            } catch (e: Exception) {
-                verifyStatus = VerifyStatus.ERROR
-                errorMessage = "Verification failed: ${e.message}"
+                is ApiResult.NetworkError -> {
+                    verifyStatus = ApiResult.NetworkError
+                }
+                is ApiResult.Error -> {
+                    verifyStatus = ApiResult.Error(result.message ?: "Verification failed.")
+                }
+                else -> {}
             }
         }
     }
 
     fun resendCode() {
         viewModelScope.launch {
-            try {
-                userClient.resendVerificationCode(ResendVerificationCodeRequest(email))
-                // Optionally show a message that code was resent
-            } catch (e: Exception) {
-                // Handle error
-            }
+            userRepository.resendVerificationCode(email)
         }
     }
-}
 
-enum class VerifyStatus {
-    IDLE, LOADING, SUCCESS, ERROR, TIMEOUT
+    fun resetState() {
+        verifyStatus = ApiResult.Idle
+    }
 }

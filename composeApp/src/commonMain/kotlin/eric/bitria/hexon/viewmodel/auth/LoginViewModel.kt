@@ -33,7 +33,7 @@ class LoginViewModel(
     var confirmPassword by mutableStateOf("")
         private set
 
-    var loginState by mutableStateOf<ApiResult<LoginStatus>>(ApiResult.Idle)
+    var loginState by mutableStateOf<ApiResult<LoginResult>>(ApiResult.Idle)
         private set
 
     var nameError by mutableStateOf<String?>(null)
@@ -100,20 +100,20 @@ class LoginViewModel(
 
             when (val result = authRepository.login(email, password)) {
                 is ApiResult.Success -> {
-                    when (result.data) {
+                    loginState = when (result.data) {
                         LoginResult.SUCCESS -> {
                             sessionManager.login()
-                            loginState = ApiResult.Success(LoginStatus.SUCCESS)
+                            ApiResult.Success(LoginResult.SUCCESS)
                         }
                         LoginResult.NOT_VERIFIED -> {
                             userRepository.resendVerificationCode(email)
-                            loginState = ApiResult.Success(LoginStatus.VERIFICATION_SENT)
+                            ApiResult.Success(LoginResult.NOT_VERIFIED)
                         }
                         LoginResult.INVALID_CREDENTIALS -> {
-                            loginState = ApiResult.Error("Invalid email or password.")
+                            ApiResult.Error("Invalid email or password.")
                         }
                         else -> {
-                            loginState = ApiResult.Error("An unexpected error occurred.")
+                            ApiResult.Error("An unexpected error occurred.")
                         }
                     }
                 }
@@ -138,17 +138,14 @@ class LoginViewModel(
                 is ApiResult.Success -> {
                     loginState = when (result.data) {
                         RegisterResult.SUCCESS -> {
-                            ApiResult.Success(LoginStatus.VERIFICATION_SENT)
+                            ApiResult.Success(LoginResult.NOT_VERIFIED)
                         }
-
                         RegisterResult.EMAIL_ALREADY_EXISTS -> {
                             ApiResult.Error("Email already in use.")
                         }
-
                         RegisterResult.USERNAME_ALREADY_EXISTS -> {
                             ApiResult.Error("Username already taken.")
                         }
-
                         else -> {
                             ApiResult.Error("An unexpected error occurred.")
                         }
@@ -173,9 +170,4 @@ class LoginViewModel(
     fun resetState() {
         loginState = ApiResult.Idle
     }
-}
-
-// Represent the login result states
-enum class LoginStatus {
-    SUCCESS, VERIFICATION_SENT
 }

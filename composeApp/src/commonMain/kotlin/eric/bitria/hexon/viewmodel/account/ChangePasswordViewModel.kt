@@ -5,21 +5,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
-import eric.bitria.hexon.api.client.UserClient
 import eric.bitria.hexon.api.client.SessionManager
+import eric.bitria.hexon.ui.repository.ApiResult
+import eric.bitria.hexon.ui.repository.UserRepository
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 
 class ChangePasswordViewModel(
-    private val userClient: UserClient,
+    private val userRepository: UserRepository,
     private val sessionManager: SessionManager
 ) : ViewModel() {
-
-    var email by mutableStateOf("")
-        private set
 
     var oldPassword by mutableStateOf("")
         private set
@@ -30,10 +26,7 @@ class ChangePasswordViewModel(
     var confirmPassword by mutableStateOf("")
         private set
 
-    var state by mutableStateOf(ChangePasswordStatus.IDLE)
-        private set
-
-    var errorMessage by mutableStateOf<String?>(null)
+    var state by mutableStateOf<ApiResult<ChangePasswordResult>>(ApiResult.Idle)
         private set
 
     var oldPasswordError by mutableStateOf<String?>(null)
@@ -80,36 +73,33 @@ class ChangePasswordViewModel(
         if (!validateForm()) return
 
         viewModelScope.launch {
-            state = ChangePasswordStatus.LOADING
-            errorMessage = null
-            try {
-                withTimeout(10000L) {
-                    val response = userClient.changePassword(
-                        ChangePasswordRequest(
-                            oldPassword = oldPassword,
-                            newPassword = password
-                        )
-                    )
-                    when (response.result) {
+            state = ApiResult.Loading
+            
+            when (val result = userRepository.changePassword(oldPassword, password)) {
+                is ApiResult.Success -> {
+                    state = when (result.data) {
                         ChangePasswordResult.SUCCESS -> {
-                            state = ChangePasswordStatus.SUCCESS
                             sessionManager.logout()
+                            ApiResult.Success(ChangePasswordResult.SUCCESS)
                         }
-                        else -> {
-                            state = ChangePasswordStatus.ERROR
-                            println(response.message)
-                            errorMessage = response.message
-                        }
+                        ChangePasswordResult.WRONG_PASSWORD -> ApiResult.Error("Old password is incorrect.")
+                        ChangePasswordResult.INVALID_PASSWORD -> ApiResult.Error("New password format is invalid.")
+                        ChangePasswordResult.USER_NOT_FOUND -> ApiResult.Error("User session not found.")
+                        else -> ApiResult.Error("An unexpected error occurred.")
                     }
                 }
-            } catch (e: Exception) {
-                state = ChangePasswordStatus.ERROR
-                errorMessage = "Failed to update password: ${e.message}"
+                is ApiResult.NetworkError -> {
+                    state = ApiResult.NetworkError
+                }
+                is ApiResult.Error -> {
+                    state = ApiResult.Error(result.message ?: "Failed to change password.")
+                }
+                else -> {}
             }
         }
     }
-}
 
-enum class ChangePasswordStatus {
-    IDLE, LOADING, SUCCESS, ERROR
+    fun resetState() {
+        state = ApiResult.Idle
+    }
 }
