@@ -1,7 +1,7 @@
 package eric.bitria.hexon.ui.repository
 
-import io.ktor.client.plugins.*
-import io.ktor.utils.io.errors.*
+import io.ktor.client.plugins.ResponseException
+import kotlinx.io.IOException
 
 sealed interface ApiResult<out T> {
     object Idle : ApiResult<Nothing>
