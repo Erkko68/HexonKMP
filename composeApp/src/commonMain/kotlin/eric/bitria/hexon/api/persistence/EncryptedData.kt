@@ -1,4 +1,4 @@
-package eric.bitria.hexon.client.persistence
+package eric.bitria.hexon.api.persistence
 
 interface EncryptedData {
     fun putString(key: String, value: String)

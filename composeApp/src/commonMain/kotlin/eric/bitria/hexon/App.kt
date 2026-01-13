@@ -17,7 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import eric.bitria.hexon.client.SessionState
+import eric.bitria.hexon.api.client.SessionState
 import eric.bitria.hexon.navigation.AuthNavigation
 import eric.bitria.hexon.navigation.MainNavigation
 import eric.bitria.hexon.ui.theme.HexonTheme

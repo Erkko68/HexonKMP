@@ -1,4 +1,4 @@
-package eric.bitria.hexon.render
+package eric.bitria.hexon.ui.render
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier

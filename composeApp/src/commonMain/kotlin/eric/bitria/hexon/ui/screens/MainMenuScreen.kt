@@ -18,7 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import eric.bitria.hexon.render.GameLayer
+import eric.bitria.hexon.ui.render.GameLayer
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonHeader
 import eric.bitria.hexon.ui.components.shared.HexonIconButton

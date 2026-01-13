@@ -5,8 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.client.SessionManager
-import eric.bitria.hexon.client.UserClient
+import eric.bitria.hexon.api.client.SessionManager
+import eric.bitria.hexon.api.client.UserClient
 import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountRequest
 import eric.bitria.hexon.dtos.account.DeleteAccountResult
 import eric.bitria.hexon.utils.Validators

@@ -1,9 +1,6 @@
-package eric.bitria.hexon
+package eric.bitria.hexon.di
 
-import eric.bitria.hexon.client.di.networkModule
-import eric.bitria.hexon.client.di.platformStorageModule
-import eric.bitria.hexon.client.di.repositoryModule
-import eric.bitria.hexon.client.di.storageModule
+import eric.bitria.hexon.AppViewModel
 import eric.bitria.hexon.viewmodel.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.GameUIViewModel
 import eric.bitria.hexon.viewmodel.MainMenuViewModel

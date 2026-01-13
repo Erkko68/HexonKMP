@@ -9,9 +9,9 @@ import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResult
-import eric.bitria.hexon.client.AuthClient
-import eric.bitria.hexon.client.UserClient
-import eric.bitria.hexon.client.SessionManager
+import eric.bitria.hexon.api.client.AuthClient
+import eric.bitria.hexon.api.client.UserClient
+import eric.bitria.hexon.api.client.SessionManager
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.TimeoutCancellationException

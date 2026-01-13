@@ -1,6 +1,6 @@
 package eric.bitria.hexon.ui.repository
 
-import eric.bitria.hexon.client.UserClient
+import eric.bitria.hexon.api.client.UserClient
 import eric.bitria.hexon.dtos.profile.UserProfileResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow

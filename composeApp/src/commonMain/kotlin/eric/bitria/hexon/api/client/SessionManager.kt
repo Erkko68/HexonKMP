@@ -1,7 +1,7 @@
-package eric.bitria.hexon.client
+package eric.bitria.hexon.api.client
 
 import com.russhwolf.settings.Settings
-import eric.bitria.hexon.client.persistence.EncryptedData
+import eric.bitria.hexon.api.persistence.EncryptedData
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import kotlinx.coroutines.flow.MutableStateFlow

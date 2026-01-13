@@ -1,8 +1,8 @@
-package eric.bitria.hexon.client.di
+package eric.bitria.hexon.di
 
 import com.russhwolf.settings.Settings
-import eric.bitria.hexon.client.persistence.EncryptedData
-import eric.bitria.hexon.client.persistence.EncryptedDataImpl
+import eric.bitria.hexon.api.persistence.EncryptedData
+import eric.bitria.hexon.api.persistence.EncryptedDataImpl
 import org.koin.core.module.Module
 import org.koin.dsl.module
 

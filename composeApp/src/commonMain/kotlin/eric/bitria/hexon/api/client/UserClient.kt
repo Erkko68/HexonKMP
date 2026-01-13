@@ -1,4 +1,4 @@
-package eric.bitria.hexon.client
+package eric.bitria.hexon.api.client
 
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResponse

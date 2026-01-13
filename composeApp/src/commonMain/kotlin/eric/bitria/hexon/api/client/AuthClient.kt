@@ -1,4 +1,4 @@
-package eric.bitria.hexon.client
+package eric.bitria.hexon.api.client
 
 import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResponse

@@ -2,7 +2,7 @@ package eric.bitria.hexon.viewmodel.social
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.client.SocialClient
+import eric.bitria.hexon.api.client.SocialClient
 import eric.bitria.hexon.dtos.social.AddFriendRequest
 import eric.bitria.hexon.dtos.social.AddFriendResult
 import eric.bitria.hexon.dtos.social.FriendRequestAction

@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.client.UserClient
+import eric.bitria.hexon.api.client.UserClient
 import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
 import eric.bitria.hexon.dtos.account.ForgotPasswordResult
 import eric.bitria.hexon.utils.Validators

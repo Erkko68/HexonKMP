@@ -2,7 +2,7 @@ package eric.bitria.hexon.viewmodel.social
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.client.UserClient
+import eric.bitria.hexon.api.client.UserClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
