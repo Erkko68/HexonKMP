@@ -1,9 +1,11 @@
 package eric.bitria.hexon.ui.repository
 
-import io.ktor.client.plugins.ResponseException
-import kotlinx.io.IOException
+import io.ktor.client.plugins.*
+import io.ktor.utils.io.errors.*
 
 sealed interface ApiResult<out T> {
+    object Idle : ApiResult<Nothing>
+    object Loading : ApiResult<Nothing>
     data class Success<out T>(val data: T) : ApiResult<T>
     data class Error(val message: String?) : ApiResult<Nothing>
     object NetworkError : ApiResult<Nothing>

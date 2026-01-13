@@ -5,22 +5,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.dtos.auth.LoginRequest
-import eric.bitria.hexon.dtos.auth.LoginResult
-import eric.bitria.hexon.dtos.auth.RegisterRequest
-import eric.bitria.hexon.dtos.auth.RegisterResult
-import eric.bitria.hexon.api.client.AuthClient
-import eric.bitria.hexon.api.client.UserClient
 import eric.bitria.hexon.api.client.SessionManager
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
+import eric.bitria.hexon.dtos.auth.LoginResult
+import eric.bitria.hexon.dtos.auth.RegisterResult
+import eric.bitria.hexon.ui.repository.ApiResult
+import eric.bitria.hexon.ui.repository.AuthRepository
+import eric.bitria.hexon.ui.repository.UserRepository
 import eric.bitria.hexon.utils.Validators
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 
 class LoginViewModel(
-    private val authClient: AuthClient,
-    private val userClient: UserClient,
+    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository,
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
@@ -37,10 +33,7 @@ class LoginViewModel(
     var confirmPassword by mutableStateOf("")
         private set
 
-    var loginState by mutableStateOf(LoginStatus.IDLE)
-        private set
-
-    var errorMessage by mutableStateOf<String?>(null)
+    var loginState by mutableStateOf<ApiResult<LoginStatus>>(ApiResult.Idle)
         private set
 
     var nameError by mutableStateOf<String?>(null)
@@ -103,31 +96,34 @@ class LoginViewModel(
         if (!validateLoginForm()) return
 
         viewModelScope.launch {
-            loginState = LoginStatus.LOADING
-            errorMessage = null
-            try {
-                withTimeout(10000L) {
-                    val response = authClient.login(LoginRequest(email, password))
-                    when (response.result) {
+            loginState = ApiResult.Loading
+
+            when (val result = authRepository.login(email, password)) {
+                is ApiResult.Success -> {
+                    when (result.data) {
                         LoginResult.SUCCESS -> {
                             sessionManager.login()
+                            loginState = ApiResult.Success(LoginStatus.SUCCESS)
                         }
                         LoginResult.NOT_VERIFIED -> {
-                            userClient.resendVerificationCode(ResendVerificationCodeRequest(email))
-                            loginState = LoginStatus.VERIFICATION_SENT
+                            userRepository.resendVerificationCode(email)
+                            loginState = ApiResult.Success(LoginStatus.VERIFICATION_SENT)
+                        }
+                        LoginResult.INVALID_CREDENTIALS -> {
+                            loginState = ApiResult.Error("Invalid email or password.")
                         }
                         else -> {
-                            loginState = LoginStatus.ERROR
-                            errorMessage = response.message
+                            loginState = ApiResult.Error("An unexpected error occurred.")
                         }
                     }
                 }
-            } catch (e: TimeoutCancellationException) {
-                loginState = LoginStatus.TIMEOUT
-                errorMessage = "Request timed out. Please try again."
-            } catch (e: Exception) {
-                loginState = LoginStatus.ERROR
-                errorMessage = "Login failed: ${e.message}"
+                is ApiResult.NetworkError -> {
+                    loginState = ApiResult.NetworkError
+                }
+                is ApiResult.Error -> {
+                    loginState = ApiResult.Error(result.message ?: "Login failed.")
+                }
+                else -> {}
             }
         }
     }
@@ -136,27 +132,35 @@ class LoginViewModel(
         if (!validateRegisterForm()) return
 
         viewModelScope.launch {
-            loginState = LoginStatus.LOADING
-            errorMessage = null
-            try {
-                withTimeout(10000L) { // 10 seconds timeout
-                    val response = authClient.register(RegisterRequest(email, name, password))
-                    when (response.result) {
+            loginState = ApiResult.Loading
+
+            when (val result = authRepository.register(email, name, password)) {
+                is ApiResult.Success -> {
+                    loginState = when (result.data) {
                         RegisterResult.SUCCESS -> {
-                            loginState = LoginStatus.VERIFICATION_SENT
+                            ApiResult.Success(LoginStatus.VERIFICATION_SENT)
                         }
+
+                        RegisterResult.EMAIL_ALREADY_EXISTS -> {
+                            ApiResult.Error("Email already in use.")
+                        }
+
+                        RegisterResult.USERNAME_ALREADY_EXISTS -> {
+                            ApiResult.Error("Username already taken.")
+                        }
+
                         else -> {
-                            loginState = LoginStatus.ERROR
-                            errorMessage = response.message
+                            ApiResult.Error("An unexpected error occurred.")
                         }
                     }
                 }
-            } catch (e: TimeoutCancellationException) {
-                loginState = LoginStatus.TIMEOUT
-                errorMessage = "Request timed out. Please try again."
-            } catch (e: Exception) {
-                loginState = LoginStatus.ERROR
-                errorMessage = "Registration failed: ${e.message}"
+                is ApiResult.NetworkError -> {
+                    loginState = ApiResult.NetworkError
+                }
+                is ApiResult.Error -> {
+                    loginState = ApiResult.Error(result.message ?: "Registration failed.")
+                }
+                else -> {}
             }
         }
     }
@@ -167,11 +171,11 @@ class LoginViewModel(
     }
 
     fun resetState() {
-        loginState = LoginStatus.IDLE
+        loginState = ApiResult.Idle
     }
 }
 
 // Represent the login result states
 enum class LoginStatus {
-    IDLE, LOADING, SUCCESS, ERROR, TIMEOUT, VERIFICATION_SENT
+    SUCCESS, VERIFICATION_SENT
 }
