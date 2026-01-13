@@ -1,79 +1,69 @@
 package eric.bitria.hexon.viewmodel.social
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import eric.bitria.hexon.dtos.profile.UserProfileResponse
+import eric.bitria.hexon.ui.repository.ApiResult
 import eric.bitria.hexon.ui.repository.UserRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class ProfileViewModel(
     private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val sampleHistory = listOf(
+    var state by mutableStateOf<ApiResult<UserProfileResponse>>(ApiResult.Idle)
+        private set
+
+    // Mock history for now, could be fetched from repository in the future
+    val gameHistory = listOf(
         GameHistoryItem(1, true, "vs. Zoe, Marcus", "2 days ago", 15),
         GameHistoryItem(2, false, "vs. Samira", "3 days ago", -10),
         GameHistoryItem(3, true, "vs. Leo", "5 days ago", 12),
         GameHistoryItem(4, true, "vs. Marcus, Zoe", "1 week ago", 18)
     )
 
-    private val _uiState = MutableStateFlow(ProfileUiState(gameHistory = sampleHistory))
-    val uiState = _uiState.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading = _isLoading.asStateFlow()
-
     init {
-        observeProfile()
-        fetchProfile(forceRefresh = false)
+        loadProfile()
     }
 
-    private fun observeProfile() {
+    fun loadProfile() {
         viewModelScope.launch {
-            userRepository.profile.collect { profile ->
-                profile?.let { response ->
-                    _uiState.update { state ->
-                        state.copy(
-                            username = response.username,
-                            stats = UserStats(
-                                wins = response.stats.wins.toString(),
-                                streak = "-",
-                                winRate = "${calculateWinRate(response.stats.wins, response.stats.losses).toInt()}%"
-                            ),
-                            error = null
-                        )
-                    }
+            state = ApiResult.Loading
+            
+            when (val result = userRepository.getProfile()) {
+                is ApiResult.Success -> {
+                    state = ApiResult.Success(result.data)
                 }
+                is ApiResult.NetworkError -> {
+                    state = ApiResult.NetworkError
+                }
+                is ApiResult.Error -> {
+                    state = ApiResult.Error(result.message ?: "Failed to load profile")
+                }
+                else -> {}
             }
         }
     }
 
-    private fun fetchProfile(forceRefresh: Boolean) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                userRepository.getProfile(forceRefresh = forceRefresh)
-            } catch (e: Exception) {
-                // Only show error if we don't have any cached data to display
-                if (_uiState.value.username.isEmpty()) {
-                    _uiState.update { it.copy(error = e.message) }
-                }
-            } finally {
-                _isLoading.value = false
-            }
-        }
+    fun getProcessedStats(profile: UserProfileResponse): UserStats {
+        return UserStats(
+            wins = profile.stats.wins.toString(),
+            streak = "-",
+            winRate = calculateWinRate(profile.stats.wins, profile.stats.losses)
+        )
+    }
+
+    private fun calculateWinRate(wins: Int, losses: Int): String {
+        val total = wins + losses
+        if (total == 0) return "0%"
+        val rate = (wins.toFloat() / total.toFloat()) * 100
+        return "${rate.toInt()}%"
     }
 
     fun retry() {
-        _uiState.update { it.copy(error = null) }
-        fetchProfile(forceRefresh = true)
-    }
-
-    private fun calculateWinRate(won: Int, lost: Int): Double {
-        val total = won + lost
-        val rate = if (total > 0) (won.toDouble() / total) * 100 else 0.0
-        return rate
+        loadProfile()
     }
 }
