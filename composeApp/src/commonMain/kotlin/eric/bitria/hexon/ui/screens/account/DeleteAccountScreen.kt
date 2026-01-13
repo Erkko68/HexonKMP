@@ -32,8 +32,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
+import eric.bitria.hexon.ui.repository.ApiResult
 import eric.bitria.hexon.ui.screens.auth.LoginInputField
-import eric.bitria.hexon.viewmodel.account.DeleteAccountStatus
 import eric.bitria.hexon.viewmodel.account.DeleteAccountViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -147,10 +147,10 @@ fun DeleteAccountScreen(
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = viewModel.state != DeleteAccountStatus.LOADING,
+                        enabled = viewModel.state !is ApiResult.Loading,
                         paddingScale = paddingScale
                     ) {
-                        if (viewModel.state == DeleteAccountStatus.LOADING) {
+                        if (viewModel.state is ApiResult.Loading) {
                             CircularProgressIndicator(
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(paddingScale * 0.05f),
@@ -179,14 +179,26 @@ fun DeleteAccountScreen(
 
                     Spacer(Modifier.height(spacing.mediumSmall))
 
-                    if (viewModel.state == DeleteAccountStatus.ERROR) {
-                        Text(
-                            text = viewModel.errorMessage ?: "Unknown error occurred",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(Modifier.height(spacing.mediumSmall))
+                    when (val state = viewModel.state) {
+                        is ApiResult.Error -> {
+                            Text(
+                                text = state.message ?: "Unknown error occurred",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(Modifier.height(spacing.mediumSmall))
+                        }
+                        is ApiResult.NetworkError -> {
+                            Text(
+                                text = "Network error. Please check your connection.",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(Modifier.height(spacing.mediumSmall))
+                        }
+                        else -> {}
                     }
 
                     TextButton(onClick = onNavigateBack) {
