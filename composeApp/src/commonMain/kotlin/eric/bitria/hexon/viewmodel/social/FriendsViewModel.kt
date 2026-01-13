@@ -1,35 +1,28 @@
 package eric.bitria.hexon.viewmodel.social
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.client.SocialClient
-import eric.bitria.hexon.dtos.social.AddFriendRequest
-import eric.bitria.hexon.dtos.social.AddFriendResult
-import eric.bitria.hexon.dtos.social.FriendRequestAction
-import eric.bitria.hexon.dtos.social.GetFriendRequestsResult
-import eric.bitria.hexon.dtos.social.GetFriendsResult
-import eric.bitria.hexon.dtos.social.RespondFriendRequest
+import eric.bitria.hexon.dtos.social.*
+import eric.bitria.hexon.ui.repository.ApiResult
+import eric.bitria.hexon.ui.repository.SocialRepository
 import eric.bitria.hexon.viewmodel.data.Friend
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class FriendsUiState(
-    val friends: List<Friend> = emptyList(),
-    val friendRequests: List<Friend> = emptyList(),
-    val isLoading: Boolean = false,
-    val addFriendMessage: String? = null,
-    val friendsError: String? = null,
-    val requestsError: String? = null
-)
-
 class FriendsViewModel(
-    private val socialClient: SocialClient
+    private val socialRepository: SocialRepository
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(FriendsUiState())
-    val uiState: StateFlow<FriendsUiState> = _uiState.asStateFlow()
+
+    var friendsState by mutableStateOf<ApiResult<List<Friend>>>(ApiResult.Idle)
+        private set
+
+    var requestsState by mutableStateOf<ApiResult<List<Friend>>>(ApiResult.Idle)
+        private set
+
+    var addFriendState by mutableStateOf<ApiResult<AddFriendResult>>(ApiResult.Idle)
+        private set
 
     init {
         refresh()
@@ -42,88 +35,113 @@ class FriendsViewModel(
 
     fun refreshFriends() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, friendsError = null) }
-            try {
-                val response = socialClient.getFriends()
-                if (response.result == GetFriendsResult.SUCCESS) {
-                    _uiState.update { it.copy(
-                        friends = response.friends.map { Friend(it.id, it.username, it.isOnline) }
-                    ) }
-                } else {
-                    _uiState.update { it.copy(friendsError = response.message ?: "Failed to load friends") }
+            friendsState = ApiResult.Loading
+            
+            when (val result = socialRepository.getFriends()) {
+                is ApiResult.Success -> {
+                    val response = result.data
+                    if (response.result == GetFriendsResult.SUCCESS) {
+                        friendsState = ApiResult.Success(
+                            response.friends.map { Friend(it.id, it.username, it.isOnline) }
+                        )
+                    } else {
+                        friendsState = ApiResult.Error(response.message ?: "Failed to load friends")
+                    }
                 }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(friendsError = "Connection error") }
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
+                is ApiResult.NetworkError -> {
+                    friendsState = ApiResult.NetworkError
+                }
+                is ApiResult.Error -> {
+                    friendsState = ApiResult.Error(result.message ?: "Failed to load friends")
+                }
+                else -> {}
             }
         }
     }
 
     fun refreshRequests() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, requestsError = null) }
-            try {
-                val response = socialClient.getFriendRequests()
-                if (response.result == GetFriendRequestsResult.SUCCESS) {
-                    _uiState.update { it.copy(
-                        friendRequests = response.requests.map { Friend(it.id, it.username, it.isOnline) }
-                    ) }
-                } else {
-                    _uiState.update { it.copy(requestsError = response.message ?: "Failed to load requests") }
+            requestsState = ApiResult.Loading
+            
+            when (val result = socialRepository.getFriendRequests()) {
+                is ApiResult.Success -> {
+                    val response = result.data
+                    if (response.result == GetFriendRequestsResult.SUCCESS) {
+                        requestsState = ApiResult.Success(
+                            response.requests.map { Friend(it.id, it.username, it.isOnline) }
+                        )
+                    } else {
+                        requestsState = ApiResult.Error(response.message ?: "Failed to load requests")
+                    }
                 }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(requestsError = "Connection error") }
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
+                is ApiResult.NetworkError -> {
+                    requestsState = ApiResult.NetworkError
+                }
+                is ApiResult.Error -> {
+                    requestsState = ApiResult.Error(result.message ?: "Failed to load requests")
+                }
+                else -> {}
             }
         }
     }
 
     fun onAddFriendClicked(username: String) {
         viewModelScope.launch {
-            // We clear it only when starting a new request to show fresh status
-            _uiState.update { it.copy(addFriendMessage = null) }
-            try {
-                val response = socialClient.addFriend(AddFriendRequest(username))
-                val message = when (response.result) {
-                    AddFriendResult.SUCCESS -> "Request sent!"
-                    AddFriendResult.USER_NOT_FOUND -> "User not found"
-                    AddFriendResult.ALREADY_FRIENDS -> "Already friends"
-                    AddFriendResult.REQUEST_ALREADY_SENT -> "Request already sent"
-                    AddFriendResult.CANNOT_ADD_SELF -> "Cannot add yourself"
-                    AddFriendResult.UNKNOWN_ERROR -> response.message ?: "Something went wrong"
+            addFriendState = ApiResult.Loading
+            
+            when (val result = socialRepository.addFriend(username)) {
+                is ApiResult.Success -> {
+                    addFriendState = when (result.data) {
+                        AddFriendResult.SUCCESS -> ApiResult.Success(AddFriendResult.SUCCESS)
+                        AddFriendResult.USER_NOT_FOUND -> ApiResult.Error("User not found")
+                        AddFriendResult.ALREADY_FRIENDS -> ApiResult.Error("Already friends")
+                        AddFriendResult.REQUEST_ALREADY_SENT -> ApiResult.Error("Request already sent")
+                        AddFriendResult.CANNOT_ADD_SELF -> ApiResult.Error("Cannot add yourself")
+                        else -> ApiResult.Error("Something went wrong")
+                    }
                 }
-                _uiState.update { it.copy(addFriendMessage = message) }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(addFriendMessage = "Error sending request") }
+                is ApiResult.NetworkError -> {
+                    addFriendState = ApiResult.NetworkError
+                }
+                is ApiResult.Error -> {
+                    addFriendState = ApiResult.Error(result.message ?: "Error sending request")
+                }
+                else -> {}
             }
         }
     }
 
     fun onAcceptRequest(username: String) {
         viewModelScope.launch {
-            try {
-                socialClient.respondToFriendRequest(
-                    RespondFriendRequest(username, FriendRequestAction.ACCEPT)
-                )
-                refresh()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(requestsError = "Failed to accept request") }
+            when (val result = socialRepository.respondToRequest(username, FriendRequestAction.ACCEPT)) {
+                is ApiResult.Success -> {
+                    if (result.data == RespondFriendResult.SUCCESS) {
+                        refresh()
+                    }
+                }
+                else -> {
+                    // Handle failure if needed
+                }
             }
         }
     }
 
     fun onDeclineRequest(username: String) {
         viewModelScope.launch {
-            try {
-                socialClient.respondToFriendRequest(
-                    RespondFriendRequest(username, FriendRequestAction.DECLINE)
-                )
-                refreshRequests()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(requestsError = "Failed to decline request") }
+            when (val result = socialRepository.respondToRequest(username, FriendRequestAction.DECLINE)) {
+                is ApiResult.Success -> {
+                    if (result.data == RespondFriendResult.SUCCESS) {
+                        refreshRequests()
+                    }
+                }
+                else -> {
+                    // Handle failure if needed
+                }
             }
         }
+    }
+
+    fun resetAddFriendState() {
+        addFriendState = ApiResult.Idle
     }
 }

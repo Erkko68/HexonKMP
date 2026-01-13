@@ -4,25 +4,25 @@ import eric.bitria.hexon.api.client.SocialClient
 import eric.bitria.hexon.dtos.social.*
 
 interface SocialRepository {
-    suspend fun getFriends(): ApiResult<GetFriendsResult>
-    suspend fun getFriendRequests(): ApiResult<GetFriendRequestsResult>
+    suspend fun getFriends(): ApiResult<GetFriendsResponse>
+    suspend fun getFriendRequests(): ApiResult<GetFriendRequestsResponse>
     suspend fun addFriend(targetUsername: String): ApiResult<AddFriendResult>
-    suspend fun respondToRequest(requesterUsername: String, action: String): ApiResult<RespondFriendResult>
+    suspend fun respondToRequest(requesterUsername: String, action: FriendRequestAction): ApiResult<RespondFriendResult>
 }
 
 class SocialRepositoryImpl(
     private val socialClient: SocialClient
 ) : SocialRepository {
 
-    override suspend fun getFriends(): ApiResult<GetFriendsResult> {
+    override suspend fun getFriends(): ApiResult<GetFriendsResponse> {
         return safeApiCall {
-            socialClient.getFriends().result
+            socialClient.getFriends()
         }
     }
 
-    override suspend fun getFriendRequests(): ApiResult<GetFriendRequestsResult> {
+    override suspend fun getFriendRequests(): ApiResult<GetFriendRequestsResponse> {
         return safeApiCall {
-            socialClient.getFriendRequests().result
+            socialClient.getFriendRequests()
         }
     }
 
@@ -32,14 +32,9 @@ class SocialRepositoryImpl(
         }
     }
 
-    override suspend fun respondToRequest(requesterUsername: String, action: String): ApiResult<RespondFriendResult> {
+    override suspend fun respondToRequest(requesterUsername: String, action: FriendRequestAction): ApiResult<RespondFriendResult> {
         return safeApiCall {
-            val requestAction = when (action) {
-                "accept" -> FriendRequestAction.ACCEPT
-                "decline" -> FriendRequestAction.DECLINE
-                else -> throw IllegalArgumentException("Invalid action")
-            }
-            socialClient.respondToFriendRequest(RespondFriendRequest(requesterUsername, requestAction)).result
+            socialClient.respondToFriendRequest(RespondFriendRequest(requesterUsername, action)).result
         }
     }
 }
