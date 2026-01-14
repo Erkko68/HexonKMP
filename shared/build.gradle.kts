@@ -18,6 +18,11 @@ kotlin {
     iosSimulatorArm64()
 
     jvm()
+
+    js {
+        browser()
+        binaries.executable()
+    }
     
     sourceSets {
         commonMain.dependencies {

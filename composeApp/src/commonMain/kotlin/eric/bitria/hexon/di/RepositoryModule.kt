@@ -12,7 +12,7 @@ import org.koin.dsl.module
 
 val repositoryModule = module {
     // Session Manager
-    single { SessionManager({ get<AuthClient>() }, get(), get()) }
+    single { SessionManager({ get<AuthClient>() }, get()) }
 
     // Clients (API Layer)
     single<AuthClient> { KtorAuthClient(get()) }

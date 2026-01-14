@@ -41,7 +41,6 @@ fun initKoin(config: KoinAppDeclaration? = null){
         config?.invoke(this)
         modules(
             repositoryModule,
-            platformStorageModule,
             storageModule,
             networkModule,
             viewModelsModule

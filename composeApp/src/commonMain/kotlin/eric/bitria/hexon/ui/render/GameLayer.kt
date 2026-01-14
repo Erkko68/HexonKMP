@@ -22,17 +22,5 @@ fun GameLayer(
     jsonCollector: Flow<String>,
     onJsonReceived: (String) -> Unit
 ) {
-    val webViewRender = remember { WebViewGameRender() }
 
-    LaunchedEffect(jsonCollector, onJsonReceived) {
-        // Register the provided callback
-        webViewRender.registerJsonCallback(onJsonReceived)
-
-        // Collect from provided flow and send to WebView
-        jsonCollector.collect { json ->
-            webViewRender.sendJson(json)
-        }
-    }
-
-    webViewRender.Render(modifier)
 }

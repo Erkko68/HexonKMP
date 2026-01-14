@@ -39,6 +39,11 @@ kotlin {
         }
     }
     
+    js {
+        browser {}
+        binaries.executable()
+    }
+    
     sourceSets {
         
         androidMain.dependencies {
@@ -58,10 +63,10 @@ kotlin {
             implementation(libs.androidx.navigation.compose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(projects.shared)
+            implementation(projects.render)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
             implementation(libs.kotlinx.serialization.json)
-            api(libs.compose.webview.multiplatform)
 
             // Koin Dependency Injection
             implementation(project.dependencies.platform(libs.koin.bom))
@@ -72,7 +77,6 @@ kotlin {
 
             // Persistent Settings and Persistent Encrypted Data
             implementation(libs.multiplatform.settings.no.arg)
-            implementation(libs.kvault)
 
             // Ktor Client
             implementation(libs.ktor.client.core)
@@ -100,7 +104,7 @@ buildkonfig {
     }
 
     defaultConfigs("staging") {
-        buildConfigField(STRING, "BASE_URL", "http://192.168.100.207:8080")
+        buildConfigField(STRING, "BASE_URL", "http://192.168.100.209:8080")
     }
 
     defaultConfigs("release") {

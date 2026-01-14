@@ -2,7 +2,6 @@ package eric.bitria.hexon.api
 
 import com.russhwolf.settings.Settings
 import eric.bitria.hexon.api.client.AuthClient
-import eric.bitria.hexon.api.persistence.EncryptedData
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,9 +14,8 @@ enum class SessionState {
 }
 
 class SessionManager(
-    private val authClientProvider: () -> AuthClient, // Break circular dependency
+    private val authClientProvider: () -> AuthClient,
     private val settings: Settings,
-    private val encryptedData: EncryptedData
 ) {
     private val _sessionState = MutableStateFlow(SessionState.LOADING)
     val sessionState = _sessionState.asStateFlow()
@@ -29,17 +27,17 @@ class SessionManager(
 
     fun saveTokens(accessToken: String, refreshToken: String) {
         settings.putString(ACCESS_TOKEN_KEY, accessToken)
-        encryptedData.putString(REFRESH_TOKEN_KEY, refreshToken)
+        settings.putString(REFRESH_TOKEN_KEY, refreshToken)
     }
 
     fun getAccessToken(): String = settings.getString(ACCESS_TOKEN_KEY,"")
-    fun getRefreshToken(): String? = encryptedData.getString(REFRESH_TOKEN_KEY)
+    fun getRefreshToken(): String = settings.getString(REFRESH_TOKEN_KEY,"")
 
     suspend fun initSession() {
         if (_sessionState.value != SessionState.LOADING) return
 
         val refreshToken = getRefreshToken()
-        if (refreshToken == null) {
+        if (refreshToken.isEmpty()) {
             _sessionState.value = SessionState.LOGGED_OUT
             return
         }
@@ -64,7 +62,6 @@ class SessionManager(
     fun logout() {
         settings.clear()
         settings.remove(ACCESS_TOKEN_KEY)
-        encryptedData.remove(REFRESH_TOKEN_KEY)
         _sessionState.value = SessionState.LOGGED_OUT
     }
 }
