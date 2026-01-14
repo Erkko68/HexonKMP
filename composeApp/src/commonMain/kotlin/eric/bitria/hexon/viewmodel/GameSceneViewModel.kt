@@ -1,39 +1,47 @@
 package eric.bitria.hexon.viewmodel
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import eric.bitria.hexon.render.GameCommand
+import eric.bitria.hexon.render.GameEvent
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 class GameSceneViewModel: ViewModel() {
-    private val _gameEvents = MutableSharedFlow<String>()
-    val gameEvents: SharedFlow<String> = _gameEvents.asSharedFlow()
 
-    private val _sendJson = MutableSharedFlow<String>(extraBufferCapacity = 1)
-    val sendJson: SharedFlow<String> = _sendJson.asSharedFlow()
+    // Technical State
+    var isEngineReady by mutableStateOf(false)
+        private set
 
-    fun sendCommand(command: String) {
-        viewModelScope.launch {
-            _sendJson.emit(command)
-        }
-    }
+    // Command Channel
+    private val _gameCommands = Channel<GameCommand>(Channel.BUFFERED)
+    val gameCommands = _gameCommands.receiveAsFlow()
 
-    fun onJsonReceived(json: String) {
-        viewModelScope.launch {
-            _gameEvents.emit(json)
-            println(json)
-            if (json == """{"status":"SUCCESS","message":"READY"}""") {
-                testCommand()
+    fun handleGameEvent(event: GameEvent) {
+        when (event) {
+            is GameEvent.Initialised -> {
+                println("Engine Ready. Sending initial commands.")
+                isEngineReady = true
+
+                // Send setup commands to JS
+                //sendCommand(GameCommand.UpdateSpeed(0.05f))
+            }
+            is GameEvent.ObjectClicked -> {
+                println("Clicked: ${event.id}")
+            }
+            is GameEvent.AnimationFinished -> {
+                // Handle animation finish
             }
         }
     }
 
-    fun testCommand() {
-        val command = """{"type":"INIT_BOARD","config":{"radius":2,"tiles":[{"type":"forest","position":{"q":0,"r":0},"token":5},{"type":"hills","position":{"q":1,"r":0},"token":2},{"type":"pasture","position":{"q":0,"r":-1},"token":10},{"type":"desert","position":{"q":-1,"r":0},"token":null},{"type":"fields","position":{"q":-1,"r":1},"token":3},{"type":"mountains","position":{"q":1,"r":-1},"token":6},{"type":"fields","position":{"q":0,"r":1},"token":8}]}}"""
-        sendCommand(
-            command.trimIndent()
-        )
+    private fun sendCommand(command: GameCommand) {
+        viewModelScope.launch {
+            _gameCommands.send(command)
+        }
     }
 }

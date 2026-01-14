@@ -1,5 +1,8 @@
 package eric.bitria.hexon.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,15 +21,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import eric.bitria.hexon.render.ComposeWebView
-import eric.bitria.hexon.render.rememberWebViewState
-import eric.bitria.hexon.ui.render.GameLayer
-import eric.bitria.hexon.ui.theme.HexonTheme
+import eric.bitria.hexon.render.HexonGameView
 import eric.bitria.hexon.ui.components.shared.HexonHeader
 import eric.bitria.hexon.ui.components.shared.HexonIconButton
+import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.MainMenuViewModel
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -40,123 +40,71 @@ fun MainMenuScreen(
     HexonTheme {
         val spacing = HexonTheme.dimensions.spacing
 
-        BoxWithConstraints (
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            val jsBundle = """
-                (function() {
-                    let rotationSpeed = 0.01;
-            
-                    function runThreeApp() {
-                        const canvas = document.getElementById("three-root");
-                        if (!canvas) { 
-                            console.error("No canvas found"); 
-                            return; 
-                        }
-            
-                        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
-                        renderer.setSize(window.innerWidth, window.innerHeight);
-                        renderer.setPixelRatio(window.devicePixelRatio);
-            
-                        const scene = new THREE.Scene();
-                        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                        camera.position.z = 4;
-            
-                        const geometry = new THREE.BoxGeometry();
-                        const material = new THREE.MeshNormalMaterial();
-                        const cube = new THREE.Mesh(geometry, material);
-                        scene.add(cube);
-            
-                        function animate() {
-                            requestAnimationFrame(animate);
-                            cube.rotation.x += rotationSpeed;
-                            cube.rotation.y += rotationSpeed;
-                            renderer.render(scene, camera);
-                        }
-                        animate();
-            
-                        window.addEventListener("resize", () => {
-                            renderer.setSize(window.innerWidth, window.innerHeight);
-                            camera.aspect = window.innerWidth / window.innerHeight;
-                            camera.updateProjectionMatrix();
-                        });
-                    }
-            
-                    if (typeof THREE === 'undefined') {
-                        const script = document.createElement('script');
-                        script.src = "https://unpkg.com/three@0.160.0/build/three.min.js";
-                        script.onload = runThreeApp;
-                        document.head.appendChild(script);
-                    } else {
-                        runThreeApp();
-                    }
-                })();
-            """.trimIndent()
-
-
-            val state = rememberWebViewState(data = jsBundle)
-            ComposeWebView(
-                state = state,
-                modifier = Modifier.fillMaxSize()
+            // 1. The 3D View
+            HexonGameView(
+                modifier = Modifier.fillMaxSize(),
+                commands = viewModel.gameCommands,
+                onGameEvent = { event ->
+                    viewModel.handleGameEvent(event)
+                }
             )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = spacing.screenHorizontal, vertical = spacing.screenVertical)
-                    .clickable(onClick = onStartGameClicked),
-                verticalArrangement = Arrangement.SpaceBetween,
-                horizontalAlignment = Alignment.CenterHorizontally,
+            // 2. The UI Overlay (Only visible when 3D Engine is Ready)
+            AnimatedVisibility(
+                visible = viewModel.isEngineReady,
+                enter = fadeIn(),
+                exit = fadeOut()
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ){
-                    HexonHeader{
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = spacing.screenHorizontal, vertical = spacing.screenVertical)
+                        .clickable(onClick = onStartGameClicked),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    // Header
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        HexonHeader {
+                            HexonIconButton.Transparent(
+                                onClick = onFriendsClicked,
+                                icon = Icons.Default.Group,
+                                contentDescription = "Friends"
+                            )
 
-                        HexonIconButton.Transparent(
-                            onClick = onFriendsClicked,
-                            icon = Icons.Default.Group,
-                            contentDescription = "Friends"
-                        )
+                            HexonIconButton.Transparent(
+                                onClick = onProfileClicked,
+                                icon = Icons.Default.Person,
+                                contentDescription = "Profile"
+                            )
+                        }
+                    }
 
-                        HexonIconButton.Transparent(
-                            onClick = onProfileClicked,
-                            icon = Icons.Default.Person,
-                            contentDescription = "Profile"
+                    // "Tap to Start" Label
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = spacing.extraLarge),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Tap to Start",
+                            style = MaterialTheme.typography.displaySmall.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
                         )
                     }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = spacing.extraLarge),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Tap to Start",
-                        style = MaterialTheme.typography.displaySmall.copy(
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true, widthDp = 360, heightDp = 800)
-@Composable
-fun MainMenuScreenPreview() {
-    HexonTheme {
-        MainMenuScreen(
-            onFriendsClicked = {},
-            onProfileClicked = {},
-            onStartGameClicked = {}
-        )
     }
 }

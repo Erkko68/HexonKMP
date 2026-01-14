@@ -25,14 +25,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import eric.bitria.hexon.ui.render.GameLayer
-import eric.bitria.hexon.ui.theme.HexonTheme
+import eric.bitria.hexon.render.HexonGameView
 import eric.bitria.hexon.ui.components.game.ControlButton
 import eric.bitria.hexon.ui.components.game.ItemCard
 import eric.bitria.hexon.ui.components.game.OptionsButton
 import eric.bitria.hexon.ui.components.game.PlayerTurn
 import eric.bitria.hexon.ui.components.game.VictoryPointsIndicator
 import eric.bitria.hexon.ui.components.game.trade.TradePanel
+import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.GameUIViewModel
 import eric.bitria.hexon.viewmodel.enums.GameUIState
@@ -64,10 +64,12 @@ fun GameScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            GameLayer(
+            HexonGameView(
                 modifier = Modifier.fillMaxSize(),
-                jsonCollector = gameSceneViewModel.sendJson,
-                onJsonReceived = gameSceneViewModel::onJsonReceived
+                commands = gameSceneViewModel.gameCommands,
+                onGameEvent = { event ->
+                    gameSceneViewModel.handleGameEvent(event)
+                }
             )
 
             // UI Layer
@@ -75,7 +77,7 @@ fun GameScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(
-                        horizontal = spacing.screenHorizontal, 
+                        horizontal = spacing.screenHorizontal,
                         vertical = spacing.screenVertical * 1.5f
                     ),
                 verticalArrangement = Arrangement.SpaceBetween
@@ -107,7 +109,7 @@ fun GameScreen(
                                 .padding(end = spacing.small)
                         )
                     }
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
@@ -165,7 +167,7 @@ fun GameScreen(
                                 resources.forEach { resource ->
                                     ItemCard(itemCardData = resource)
                                 }
-                                
+
                                 if (progressCards.isNotEmpty()) {
                                     VerticalDivider(
                                         modifier = Modifier
@@ -173,7 +175,7 @@ fun GameScreen(
                                             .padding(horizontal = spacing.extraSmall),
                                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                     )
-                                    
+
                                     progressCards.forEach { progressCard ->
                                         ItemCard(itemCardData = progressCard)
                                     }

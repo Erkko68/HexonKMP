@@ -112,19 +112,6 @@ buildkonfig {
     }
 }
 
-val bundleThreeJs by tasks.registering(Exec::class) {
-    group = "build"
-    workingDir = file("../threeJs")
-
-    // Use shell to execute npm to ensure it's found in the PATH
-    commandLine("sh", "-c", "npm run build")
-
-    isIgnoreExitValue = false
-    standardOutput = System.out
-    errorOutput = System.err
-}
-
 tasks.matching { it.name == "preBuild" }.configureEach {
-    dependsOn(bundleThreeJs)
-    dependsOn("generateBuildKonfig")
+    dependsOn(":threeJs:generateThreeJsBundle")
 }
