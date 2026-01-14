@@ -80,11 +80,6 @@ fun initThreeJs() {
         // 1. Notify Ready
         AppBridge.call("onEngineReady", "ready")
 
-        // 2. Object Clicked: Matches GameEvent.ObjectClicked
-        val clickPayload = js("{}")
-        clickPayload.id = "Target_01"
-        AppBridge.call("onObjectClicked", clickPayload)
-
     } else {
         console.warn("AppBridge not found.")
     }

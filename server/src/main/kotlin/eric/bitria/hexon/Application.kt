@@ -41,21 +41,17 @@ fun Application.module() {
 
     install(CORS) {
         allowMethod(HttpMethod.Options)
+        allowMethod(HttpMethod.Get)
+        allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Put)
         allowMethod(HttpMethod.Delete)
         allowMethod(HttpMethod.Patch)
+        
         allowHeader(HttpHeaders.Authorization)
         allowHeader(HttpHeaders.ContentType)
+        allowHeader(HttpHeaders.Accept)
         
-        // Browsers send the actual IP/hostname in the Origin header.
-        // 0.0.0.0 is a bind address, not a valid origin.
-        allowHost("0.0.0.0:8081")
-        allowHost("localhost:8081")
-        allowHost("127.0.0.1:8081")
-        allowHost("192.168.100.209:8081") // Added from your logs
-        
-        // For development, you might want to allow any host:
-        // anyHost() 
+        anyHost() // Note: anyHost() doesn't allow allowCredentials = true
     }
 
     // 4. Configure security (JWT)

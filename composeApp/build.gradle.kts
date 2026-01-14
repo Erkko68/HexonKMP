@@ -39,8 +39,14 @@ kotlin {
         }
     }
     
-    js {
-        browser {}
+    js (IR) {
+        browser {
+            commonWebpackConfig {
+                devServer = (devServer ?: org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig.DevServer()).apply {
+                    open = false
+                }
+            }
+        }
         binaries.executable()
     }
     
@@ -104,7 +110,7 @@ buildkonfig {
     }
 
     defaultConfigs("staging") {
-        buildConfigField(STRING, "BASE_URL", "http://192.168.100.209:8080")
+        buildConfigField(STRING, "BASE_URL", "http://192.168.100.207:8080")
     }
 
     defaultConfigs("release") {

@@ -19,7 +19,7 @@ kotlin {
 
     jvm()
 
-    js {
+    js (IR) {
         browser()
         binaries.executable()
     }

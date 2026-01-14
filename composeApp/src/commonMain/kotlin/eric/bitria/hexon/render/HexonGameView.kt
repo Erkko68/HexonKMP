@@ -39,11 +39,6 @@ fun HexonGameView(
         bridge.register<String, Unit>("onEngineReady") { _ ->
             onGameEvent(GameEvent.Initialised)
         }
-
-        // B. Game Interactions
-        bridge.register<GameEvent.ObjectClicked, Unit>("onObjectClicked") { event ->
-            onGameEvent(event)
-        }
     }
 
     // 3. Handle Commands (Kotlin -> JS)

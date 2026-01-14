@@ -25,6 +25,8 @@ internal actual fun ComposeWebViewImpl(
 
     val contentInjectionId = "content-injection-point"
     val bridgeInjectionId = "bridge-injection-point"
+    val styleInjectionId = "style-injection-point"
+    val canvasId = "three-root"
 
     DisposableEffect(Unit) {
         state.webView = webView
@@ -34,6 +36,8 @@ internal actual fun ComposeWebViewImpl(
             state.webView = null
             document.getElementById(contentInjectionId)?.remove()
             document.getElementById(bridgeInjectionId)?.remove()
+            document.getElementById(styleInjectionId)?.remove()
+            document.getElementById(canvasId)?.remove()
             onDispose(webView)
         }
     }
@@ -42,8 +46,6 @@ internal actual fun ComposeWebViewImpl(
     LaunchedEffect(jsBridge) {
         if (jsBridge != null) {
             jsBridge.attach(webView)
-
-            // Remove previous injection
             document.getElementById(bridgeInjectionId)?.remove()
 
             val script = document.createElement("script") as HTMLScriptElement
@@ -59,12 +61,47 @@ internal actual fun ComposeWebViewImpl(
     LaunchedEffect(state.content) {
         val content = state.content
         if (content is WebContent.Data) {
-            document.getElementById(contentInjectionId)?.remove()
+            if (document.getElementById(contentInjectionId) != null) return@LaunchedEffect
+
+            val isFullHtml = content.data.trim().startsWith("<!DOCTYPE") || content.data.trim().startsWith("<html")
+
+            if (isFullHtml) {
+                // 1. Extract and Inject Styles
+                val styleRegex = Regex("<style>([\\s\\S]*?)</style>")
+                val styleMatch = styleRegex.find(content.data)
+                if (styleMatch != null) {
+                    val style = document.createElement("style")
+                    style.id = styleInjectionId
+                    // Ensure the background canvas is behind Compose
+                    style.textContent = styleMatch.groupValues[1] + "\n#$canvasId { z-index: -1 !important; }"
+                    document.head?.appendChild(style)
+                }
+
+                // 2. Inject Canvas if missing
+                if (content.data.contains("id=\"$canvasId\"") && document.getElementById(canvasId) == null) {
+                    val canvas = document.createElement("canvas")
+                    canvas.id = canvasId
+                    document.body?.appendChild(canvas)
+                }
+            }
+
+            // 3. Extract and Inject Script
+            val scriptData = if (isFullHtml) {
+                val regex = Regex("<script>([\\s\\S]*?)</script>")
+                val matches = regex.findAll(content.data).toList()
+                if (matches.isNotEmpty()) {
+                    matches.last().groupValues[1]
+                } else {
+                    content.data
+                }
+            } else {
+                content.data
+            }
 
             val script = document.createElement("script") as HTMLScriptElement
             script.id = contentInjectionId
             script.type = "text/javascript"
-            script.text = content.data
+            script.text = scriptData
 
             document.body?.appendChild(script)
             state.loadingState = LoadingState.Finished

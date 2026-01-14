@@ -30,12 +30,6 @@ class GameSceneViewModel: ViewModel() {
                 // Send setup commands to JS
                 //sendCommand(GameCommand.UpdateSpeed(0.05f))
             }
-            is GameEvent.ObjectClicked -> {
-                println("Clicked: ${event.id}")
-            }
-            is GameEvent.AnimationFinished -> {
-                // Handle animation finish
-            }
         }
     }
 
