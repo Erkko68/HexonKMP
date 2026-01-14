@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -54,7 +55,7 @@ fun MainMenuScreen(
                 }
             )
 
-            // 2. The UI Overlay (Only visible when 3D Engine is Ready)
+            // 2. The UI Overlay
             AnimatedVisibility(
                 visible = viewModel.isEngineReady,
                 enter = fadeIn(),
@@ -103,6 +104,21 @@ fun MainMenuScreen(
                             )
                         )
                     }
+                }
+            }
+
+            // 3. Loading Overlay (Hides everything until the engine is ready)
+            AnimatedVisibility(
+                visible = !viewModel.isEngineReady,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background),
+                    contentAlignment = Alignment.Center
+                ) {
                 }
             }
         }

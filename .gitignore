@@ -18,3 +18,5 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
 server/src/main/resources/application.conf
+composeApp/src/commonMain/composeResources/files/threeJs.js
+kotlin-js-store/*

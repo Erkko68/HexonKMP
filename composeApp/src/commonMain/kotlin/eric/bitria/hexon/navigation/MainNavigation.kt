@@ -30,32 +30,16 @@ fun MainNavigation() {
         navController = navController,
         startDestination = Screens.MainMenu,
         enterTransition = {
-            fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
-                    scaleIn(
-                        initialScale = 0.92f,
-                        animationSpec = tween(300, easing = LinearOutSlowInEasing)
-                    )
+            fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing))
         },
         exitTransition = {
-            fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
-                    scaleOut(
-                        targetScale = 1.08f,
-                        animationSpec = tween(300, easing = FastOutLinearInEasing)
-                    )
+            fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing))
         },
         popEnterTransition = {
-            fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) +
-                    scaleIn(
-                        initialScale = 1.08f,
-                        animationSpec = tween(300, easing = LinearOutSlowInEasing)
-                    )
+            fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing))
         },
         popExitTransition = {
-            fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing)) +
-                    scaleOut(
-                        targetScale = 0.92f,
-                        animationSpec = tween(300, easing = FastOutLinearInEasing)
-                    )
+            fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing))
         }
     ) {
         composable<Screens.MainMenu> {

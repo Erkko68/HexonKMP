@@ -42,6 +42,9 @@ internal actual fun ComposeWebViewImpl(
                 allowsBackForwardNavigationGestures = false
                 autoresizingMask = platform.UIKit.UIViewAutoresizingFlexibleWidth or platform.UIKit.UIViewAutoresizingFlexibleHeight
                 
+                backgroundColor = platform.UIKit.UIColor.clearColor
+                opaque = false
+                
                 // Disable scrolling
                 scrollView.scrollEnabled = false
                 scrollView.bounces = false
@@ -224,7 +227,7 @@ private fun wrapScriptInHtml(script: String, bridgeScript: String?): String = ""
                 width: 100%;
                 height: 100%;
                 overflow: hidden;
-                background: black;
+                background: transparent;
             }
             #three-root {
                 position: fixed;

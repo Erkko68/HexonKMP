@@ -2,6 +2,7 @@ package eric.bitria.hexon.render
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.view.ViewGroup.LayoutParams
 import android.webkit.ConsoleMessage as AndroidConsoleMessage
 import android.webkit.WebChromeClient
@@ -66,6 +67,8 @@ internal actual fun ComposeWebViewImpl(
             factory = { context ->
                 WebView(context).apply {
                     this.layoutParams = layoutParams
+                    
+                    setBackgroundColor(Color.TRANSPARENT)
                     
                     @SuppressLint("SetJavaScriptEnabled")
                     settings.javaScriptEnabled = true
@@ -181,7 +184,7 @@ private fun wrapScriptInHtml(script: String, bridgeScript: String?): String = ""
                 width: 100%;
                 height: 100%;
                 overflow: hidden;
-                background: black;
+                background: transparent;
             }
             #three-root {
                 position: fixed;
