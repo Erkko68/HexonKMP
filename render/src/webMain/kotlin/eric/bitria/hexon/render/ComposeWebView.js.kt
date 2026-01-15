@@ -63,40 +63,7 @@ internal actual fun ComposeWebViewImpl(
         if (content is WebContent.Data) {
             if (document.getElementById(contentInjectionId) != null) return@LaunchedEffect
 
-            val isFullHtml = content.data.trim().startsWith("<!DOCTYPE") || content.data.trim().startsWith("<html")
-
-            if (isFullHtml) {
-                // 1. Extract and Inject Styles
-                val styleRegex = Regex("<style>([\\s\\S]*?)</style>")
-                val styleMatch = styleRegex.find(content.data)
-                if (styleMatch != null) {
-                    val style = document.createElement("style")
-                    style.id = styleInjectionId
-                    // Ensure the background canvas is behind Compose
-                    style.textContent = styleMatch.groupValues[1] + "\n#$canvasId { z-index: -1 !important; }"
-                    document.head?.appendChild(style)
-                }
-
-                // 2. Inject Canvas if missing
-                if (content.data.contains("id=\"$canvasId\"") && document.getElementById(canvasId) == null) {
-                    val canvas = document.createElement("canvas")
-                    canvas.id = canvasId
-                    document.body?.appendChild(canvas)
-                }
-            }
-
-            // 3. Extract and Inject Script
-            val scriptData = if (isFullHtml) {
-                val regex = Regex("<script>([\\s\\S]*?)</script>")
-                val matches = regex.findAll(content.data).toList()
-                if (matches.isNotEmpty()) {
-                    matches.last().groupValues[1]
-                } else {
-                    content.data
-                }
-            } else {
-                content.data
-            }
+            val scriptData = content.data
 
             val script = document.createElement("script") as HTMLScriptElement
             script.id = contentInjectionId

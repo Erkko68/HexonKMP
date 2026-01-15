@@ -41,19 +41,19 @@ fun MainMenuScreen(
     HexonTheme {
         val spacing = HexonTheme.dimensions.spacing
 
+        // 1. The 3D View
+        HexonGameView(
+            modifier = Modifier.fillMaxSize(),
+            commands = viewModel.gameCommands,
+            onGameEvent = { event ->
+                viewModel.handleGameEvent(event)
+            }
+        )
+
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
         ) {
-            // 1. The 3D View
-            HexonGameView(
-                modifier = Modifier.fillMaxSize(),
-                commands = viewModel.gameCommands,
-                onGameEvent = { event ->
-                    viewModel.handleGameEvent(event)
-                }
-            )
 
             // 2. The UI Overlay
             AnimatedVisibility(

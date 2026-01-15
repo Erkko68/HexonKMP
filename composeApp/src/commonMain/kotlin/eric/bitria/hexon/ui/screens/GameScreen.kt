@@ -59,19 +59,18 @@ fun GameScreen(
         val spacing = dimensions.spacing
         val rowHeight = dimensions.listItemHeight * 0.7f
 
+        HexonGameView(
+            modifier = Modifier.fillMaxSize(),
+            commands = gameSceneViewModel.gameCommands,
+            onGameEvent = { event ->
+                gameSceneViewModel.handleGameEvent(event)
+            }
+        )
+
         BoxWithConstraints (
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
         ) {
-            HexonGameView(
-                modifier = Modifier.fillMaxSize(),
-                commands = gameSceneViewModel.gameCommands,
-                onGameEvent = { event ->
-                    gameSceneViewModel.handleGameEvent(event)
-                }
-            )
-
             // UI Layer
             Column(
                 modifier = Modifier
