@@ -18,6 +18,10 @@ import eric.bitria.hexon.services.email.smtp.SmtpService
 import eric.bitria.hexon.services.email.smtp.SmtpServiceImp
 import eric.bitria.hexon.services.email.verification.EmailVerificationService
 import eric.bitria.hexon.services.email.verification.EmailVerificationServiceImpl
+import eric.bitria.hexon.services.game.GameSessionRepository
+import eric.bitria.hexon.services.game.InMemoryGameSessionRepository
+import eric.bitria.hexon.services.matchmaking.MatchmakingService
+import eric.bitria.hexon.services.matchmaking.MatchmakingServiceImpl
 import eric.bitria.hexon.services.social.SocialService
 import eric.bitria.hexon.services.social.SocialServiceImpl
 import eric.bitria.hexon.services.social.repository.ExposedFriendRequestRepository
@@ -46,6 +50,8 @@ fun appModule(config: ApplicationConfig) = module {
     single<ProfileRepository> { ExposedProfileRepository() }
     single<FriendsRepository> { ExposedFriendsRepository() }
     single<FriendRequestRepository> { ExposedFriendRequestRepository() }
+    single<GameSessionRepository> { InMemoryGameSessionRepository() }
+
 
     // Services
     single<TokenService> { JwtTokenService(get()) }
@@ -58,4 +64,5 @@ fun appModule(config: ApplicationConfig) = module {
     single<RefreshService> { RefreshServiceImpl(get(), get()) }
     single<UserAccountService> { UserAccountServiceImpl(get(), get()) }
     single<SocialService> { SocialServiceImpl(get(), get(), get()) }
+    single<MatchmakingService> { MatchmakingServiceImpl(get()) }
 }

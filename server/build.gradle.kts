@@ -19,6 +19,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.ktor.server.contentnegotiation)
     implementation(libs.ktor.server.cors)
+    implementation(libs.ktor.server.websockets)
     implementation(libs.ktor.client.contentnegotiation)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.auth)

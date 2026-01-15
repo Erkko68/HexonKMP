@@ -6,6 +6,7 @@ import eric.bitria.hexon.services.auth.token.JwtConfig
 import eric.bitria.hexon.database.DatabaseFactory
 import eric.bitria.hexon.di.appModule
 import eric.bitria.hexon.routes.authRoutes
+import eric.bitria.hexon.routes.matchmakingRoutes
 import eric.bitria.hexon.routes.socialRoutes
 import eric.bitria.hexon.routes.usersRoutes
 import io.ktor.http.HttpHeaders
@@ -63,6 +64,7 @@ fun Application.module() {
         authRoutes()
         usersRoutes()
         socialRoutes()
+        matchmakingRoutes()
     }
 }
 

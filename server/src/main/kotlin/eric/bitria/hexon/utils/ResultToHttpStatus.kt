@@ -9,6 +9,8 @@ import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResult
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
+import eric.bitria.hexon.dtos.matchmaking.CreateLobbyResult
+import eric.bitria.hexon.dtos.matchmaking.JoinGameResult
 import eric.bitria.hexon.dtos.social.AddFriendResult
 import eric.bitria.hexon.dtos.social.GetFriendRequestsResult
 import eric.bitria.hexon.dtos.social.GetFriendsResult
@@ -114,4 +116,17 @@ fun RespondFriendResult.toHttpStatus() = when (this) {
 fun GetFriendRequestsResult.toHttpStatus() = when (this) {
     GetFriendRequestsResult.SUCCESS -> HTTPStatusCode.OK
     GetFriendRequestsResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
+}
+
+fun JoinGameResult.toHttpStatus() = when (this) {
+    JoinGameResult.SUCCESS -> HTTPStatusCode.OK
+    JoinGameResult.INVALID_MODE -> HTTPStatusCode.BadRequest
+    JoinGameResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
+}
+
+fun CreateLobbyResult.toHttpStatus() = when (this) {
+    CreateLobbyResult.SUCCESS -> HTTPStatusCode.OK
+    CreateLobbyResult.INVALID_MODE,
+    CreateLobbyResult.INVALID_MAX_PLAYERS -> HTTPStatusCode.BadRequest
+    CreateLobbyResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }
