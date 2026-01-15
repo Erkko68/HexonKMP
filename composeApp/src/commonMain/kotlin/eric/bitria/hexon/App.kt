@@ -30,6 +30,11 @@ fun App(
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
 
     HexonTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
             AnimatedContent(
                 targetState = sessionState,
                 transitionSpec = {
@@ -59,5 +64,5 @@ fun App(
                 }
             }
         }
-
+    }
 }
