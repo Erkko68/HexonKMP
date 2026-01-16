@@ -43,8 +43,7 @@ class MatchmakingServiceImpl(
             // 2. No session found or reservation failed, create a new one
             val newSession = GameSessionImpl(
                 mode = mode,
-                maxPlayers = maxPlayers,
-                repository = repository
+                maxPlayers = maxPlayers
             )
             
             val reserved = newSession.reserveSlot(userId)

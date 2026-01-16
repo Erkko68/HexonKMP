@@ -13,7 +13,7 @@ interface GameSession {
     fun hasAvailableSlots(): Boolean
 
     // WebSocket Logic
-    suspend fun connectPlayer(userId: String, session: DefaultWebSocketSession): Boolean
+    suspend fun connectPlayer(userId: String, username: String, session: DefaultWebSocketSession): Boolean
     suspend fun removePlayer(userId: String)
     suspend fun handleIncomingMessage(userId: String, message: GameMessage)
 }

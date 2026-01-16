@@ -39,7 +39,7 @@ class MockAccountVerificationService(
 
         authRepository.verifyUser(user.id)
         
-        val access = tokenService.generateAccessToken(user.id)
+        val access = tokenService.generateAccessToken(user.id, user.username)
         val refresh = tokenService.generateRefreshToken(user.id)
         authRepository.updateRefreshToken(user.id, TokenHasher.hash(refresh))
 

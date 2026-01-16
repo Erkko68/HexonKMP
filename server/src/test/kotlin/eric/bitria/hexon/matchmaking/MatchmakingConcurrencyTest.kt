@@ -81,14 +81,14 @@ class MatchmakingConcurrencyTest {
         val resp1 = matchmakingService.findGameForPlayer("user1", mode, maxPlayers)
         val session = repository.getSession(resp1.sessionId!!)!!
         val fakeWs1 = createFakeWebSocketSession()
-        session.connectPlayer("user1", fakeWs1)
+        session.connectPlayer("user1", "user1",fakeWs1)
         
         assertTrue(!session.isGameStarted, "Game should not be started with 1 player")
 
         // 2. Second player joins and connects
         val resp2 = matchmakingService.findGameForPlayer("user2", mode, maxPlayers)
         val fakeWs2 = createFakeWebSocketSession()
-        session.connectPlayer("user2", fakeWs2)
+        session.connectPlayer("user2","user2", fakeWs2)
 
         // 3. Verify game started
         assertTrue(session.isGameStarted, "Game should have started automatically when full")

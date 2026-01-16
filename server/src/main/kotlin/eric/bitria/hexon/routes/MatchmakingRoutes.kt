@@ -55,15 +55,16 @@ fun Route.matchmakingRoutes(){
 
         webSocket("/game/{sessionId}") {
             val sessionId = call.parameters["sessionId"] ?: return@webSocket close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Missing ID"))
-            val userId = call.principal<JWTPrincipal>()?.payload?.subject ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized"))
+            val principal = call.principal<JWTPrincipal>()
+            val userId = principal?.payload?.subject ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized"))
+            val username = principal.payload.getClaim("username").asString() ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Username claim missing"))
 
             // 1. Retrieve Session
-            // Use the interface 'GameSession', not the implementation
             val session = gameSessionRepository.getSession(sessionId)
                 ?: return@webSocket close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Session invalid"))
 
             // 2. Handshake / Connect
-            val connected = session.connectPlayer(userId, this)
+            val connected = session.connectPlayer(userId, username, this)
             if (!connected) {
                 return@webSocket close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Room full or not reserved"))
             }
@@ -74,10 +75,15 @@ fun Route.matchmakingRoutes(){
                     if (frame is Frame.Text) {
                         try {
                             val text = frame.readText()
-                            // Deserialize using your polymorphic setup
+                            // Deserialize
                             val message = Json.decodeFromString<GameMessage>(text)
+                            
+                            // Inject verified username from JWT into the message
+                            if (message is GameMessage.PlayerAction) {
+                                message.sender = username
+                            }
 
-                            // Delegate directly to Session (which delegates to Engine)
+                            // Delegate to Session
                             session.handleIncomingMessage(userId, message)
                         } catch (e: Exception) {
                             // JSON Error

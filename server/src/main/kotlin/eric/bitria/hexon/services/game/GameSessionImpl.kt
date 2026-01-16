@@ -2,9 +2,10 @@ package eric.bitria.hexon.services.game
 
 import com.github.f4b6a3.uuid.UuidCreator
 import eric.bitria.hexon.dtos.matchmaking.GameMessage
-import eric.bitria.hexon.services.game.engine.BasicGameEngine
+import eric.bitria.hexon.services.game.engine.GameEngineImpl
 import eric.bitria.hexon.services.game.engine.GameEngine
 import eric.bitria.hexon.services.game.engine.GameMessageSender
+import eric.bitria.hexon.services.game.engine.Players
 import io.ktor.websocket.DefaultWebSocketSession
 import io.ktor.websocket.Frame
 import kotlinx.coroutines.sync.Mutex
@@ -13,7 +14,6 @@ import kotlinx.serialization.json.Json
 import java.util.concurrent.ConcurrentHashMap
 
 class GameSessionImpl(
-    private val repository: GameSessionRepository,
     private val mode: String,
     private val maxPlayers: Int,
     override val sessionId: String = UuidCreator.getTimeBasedWithRandom().toString()
@@ -26,6 +26,7 @@ class GameSessionImpl(
     private var engine: GameEngine? = null
 
     private val connectedPlayers = ConcurrentHashMap<String, DefaultWebSocketSession>()
+    private val usernames = ConcurrentHashMap<String, String>()
     private val reservedSlots = ConcurrentHashMap<String, Long>()
 
     private val stateMutex = Mutex()
@@ -50,7 +51,7 @@ class GameSessionImpl(
 
     // --- Connection Phase ---
 
-    override suspend fun connectPlayer(userId: String, session: DefaultWebSocketSession): Boolean {
+    override suspend fun connectPlayer(userId: String, username: String, session: DefaultWebSocketSession): Boolean {
         stateMutex.withLock {
             // 1. Validation (Must have reservation or be reconnecting)
             if (!reservedSlots.containsKey(userId) && !connectedPlayers.containsKey(userId)) {
@@ -60,6 +61,7 @@ class GameSessionImpl(
             // 2. Upgrade State
             reservedSlots.remove(userId)
             connectedPlayers[userId] = session
+            usernames[userId] = username
 
             // 3. Logic Branch
             if (isGameStarted) {
@@ -89,13 +91,11 @@ class GameSessionImpl(
                 engine?.onPlayerLeave(userId)
                 // Optionally remove socket if you want to force re-handshake
                 connectedPlayers.remove(userId)
+                usernames.remove(userId)
             } else {
                 // Lobby Phase: Full cleanup
                 connectedPlayers.remove(userId)
                 reservedSlots.remove(userId)
-
-                // Return to queue since a spot opened up
-                repository.addSession(mode, this) // Assuming 'addSession' acts as 'returnToQueue'
 
                 broadcastLobbyStatus()
             }
@@ -125,7 +125,6 @@ class GameSessionImpl(
     }
 
     override suspend fun broadcast(message: GameMessage) {
-        // No Lock needed: ConcurrentHashMap iterator is weakly consistent
         val json = Json.encodeToString(message)
         val frame = Frame.Text(json)
 
@@ -153,14 +152,15 @@ class GameSessionImpl(
         isGameStarted = true
         // Factory logic for different modes
         val newEngine = when (mode) {
-            "classic" -> BasicGameEngine(sessionId)
-            else -> BasicGameEngine(sessionId) // Default or Error
+            "classic" -> GameEngineImpl(sessionId)
+            else -> GameEngineImpl(sessionId) 
         }
 
         this.engine = newEngine
 
-        // Start the engine logic (it will broadcast GAME_START)
-        newEngine.start(connectedPlayers.keys.toList(), this)
+        newEngine.start(connectedPlayers.map { (userId, _) ->
+            Players(userId, usernames[userId] ?: "Unknown")
+        }, this)
     }
 
     private suspend fun broadcastLobbyStatus() {

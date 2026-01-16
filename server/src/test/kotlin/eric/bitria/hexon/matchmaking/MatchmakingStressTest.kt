@@ -59,7 +59,7 @@ class MatchmakingStressTest {
                     }
                     else -> {
                         // 90%: Connect and play
-                        if (session.connectPlayer(userId, fakeWs)) {
+                        if (session.connectPlayer(userId, userId,fakeWs)) {
                             // If game started, they stay longer
                             if (session.isGameStarted) {
                                 delay(Random.nextLong(100, 300))

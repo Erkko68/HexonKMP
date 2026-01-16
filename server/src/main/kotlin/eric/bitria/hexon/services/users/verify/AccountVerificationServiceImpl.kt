@@ -57,7 +57,7 @@ class AccountVerificationServiceImpl(
         authRepository.verifyUser(user.id)
 
         // 5. Generate Tokens
-        val accessToken = tokenService.generateAccessToken(user.id)
+        val accessToken = tokenService.generateAccessToken(user.id, user.username)
         val refreshToken = tokenService.generateRefreshToken(user.id)
 
         // 6. Securely Store Refresh Token Session

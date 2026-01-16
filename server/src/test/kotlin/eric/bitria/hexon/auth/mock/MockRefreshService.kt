@@ -37,7 +37,7 @@ class MockRefreshService(
         }
 
         // 4. Generate New Tokens
-        val newAccess = tokenService.generateAccessToken(userId)
+        val newAccess = tokenService.generateAccessToken(userId, userId)
         val newRefresh = tokenService.generateRefreshToken(userId)
 
         // 5. Update State
