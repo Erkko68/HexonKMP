@@ -1,18 +1,15 @@
 package eric.bitria.hexon.services.game.engine
 
+import eric.bitria.hexon.dtos.matchmaking.GameMessage
+
 interface GameEngine {
+    // Called once when the room hits maxPlayers
+    suspend fun start(playerIds: List<String>, sender: GameMessageSender)
 
-    val gameId: String
+    // Called when a running game receives input
+    suspend fun onMessage(userId: String, message: GameMessage)
 
-    /** Initialize the game with players */
-    fun initialize(players: List<String>)
-
-    /** Apply a player move. Returns true if valid */
-    fun applyMove(playerId: String, move: Any): Boolean
-
-    /** Get current game state (for sending to clients) */
-    fun getState(): Any
-
-    /** Check if game has finished */
-    fun isFinished(): Boolean
+    // Handle disconnects during the game
+    suspend fun onPlayerLeave(userId: String)
+    suspend fun onPlayerRejoin(userId: String)
 }

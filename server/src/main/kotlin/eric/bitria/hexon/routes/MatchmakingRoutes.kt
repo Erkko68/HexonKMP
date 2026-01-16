@@ -1,6 +1,7 @@
 package eric.bitria.hexon.routes
 
 import eric.bitria.hexon.dtos.matchmaking.CreateLobbyRequest
+import eric.bitria.hexon.dtos.matchmaking.GameMessage
 import eric.bitria.hexon.dtos.matchmaking.JoinGameRequest
 import eric.bitria.hexon.services.game.GameSessionRepository
 import eric.bitria.hexon.services.matchmaking.LobbyService
@@ -19,6 +20,7 @@ import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
+import kotlinx.serialization.json.Json
 import org.koin.ktor.ext.inject
 
 fun Route.matchmakingRoutes(){
@@ -52,49 +54,38 @@ fun Route.matchmakingRoutes(){
         }
 
         webSocket("/game/{sessionId}") {
-            val sessionId = call.parameters["sessionId"]
-                ?: return@webSocket close(
-                    CloseReason(
-                        CloseReason.Codes.CANNOT_ACCEPT,
-                        "Missing sessionId"
-                    )
-                )
+            val sessionId = call.parameters["sessionId"] ?: return@webSocket close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Missing ID"))
+            val userId = call.principal<JWTPrincipal>()?.payload?.subject ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized"))
 
-            val userId = call.principal<JWTPrincipal>()?.payload?.subject
-                ?: return@webSocket close(
-                    CloseReason(
-                        CloseReason.Codes.VIOLATED_POLICY,
-                        "Unauthorized"
-                    )
-                )
-
+            // 1. Retrieve Session
+            // Use the interface 'GameSession', not the implementation
             val session = gameSessionRepository.getSession(sessionId)
-                ?: return@webSocket close(
-                    CloseReason(
-                        CloseReason.Codes.CANNOT_ACCEPT,
-                        "Invalid sessionId"
-                    )
-                )
+                ?: return@webSocket close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Session invalid"))
 
+            // 2. Handshake / Connect
             val connected = session.connectPlayer(userId, this)
             if (!connected) {
-                return@webSocket close(
-                    CloseReason(
-                        CloseReason.Codes.CANNOT_ACCEPT,
-                        "Cannot connect, slot not reserved"
-                    )
-                )
+                return@webSocket close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Room full or not reserved"))
             }
 
             try {
-                // Broadcast lobby updates automatically
+                // 3. Message Loop
                 for (frame in incoming) {
                     if (frame is Frame.Text) {
-                        val text = frame.readText()
-                        //session.currentEngine?.applyMove(userId, parseMove(text))
+                        try {
+                            val text = frame.readText()
+                            // Deserialize using your polymorphic setup
+                            val message = Json.decodeFromString<GameMessage>(text)
+
+                            // Delegate directly to Session (which delegates to Engine)
+                            session.handleIncomingMessage(userId, message)
+                        } catch (e: Exception) {
+                            // JSON Error
+                        }
                     }
                 }
             } finally {
+                // 4. Cleanup
                 session.removePlayer(userId)
             }
         }
