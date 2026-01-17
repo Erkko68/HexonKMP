@@ -21,6 +21,7 @@ import io.ktor.server.netty.EngineMain
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.routing.routing
+import io.ktor.server.websocket.WebSockets
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
@@ -39,6 +40,8 @@ fun Application.module() {
 
     // 3. Install plugins
     install(ContentNegotiation) { json() }
+
+    install(WebSockets)
 
     install(CORS) {
         allowMethod(HttpMethod.Options)

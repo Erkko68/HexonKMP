@@ -1,7 +1,6 @@
 package eric.bitria.hexon.services.game
 
-import eric.bitria.hexon.dtos.matchmaking.GameMessage
-import eric.bitria.hexon.services.game.engine.GameEngine
+import eric.bitria.hexon.ws.GameMessage
 import io.ktor.websocket.DefaultWebSocketSession
 
 interface GameSession {
