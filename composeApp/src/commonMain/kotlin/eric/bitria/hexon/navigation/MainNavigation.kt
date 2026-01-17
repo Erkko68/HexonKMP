@@ -10,12 +10,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import eric.bitria.hexon.ui.screens.GameScreen
-import eric.bitria.hexon.ui.screens.MainMenuScreen
 import eric.bitria.hexon.ui.screens.Screens
-import eric.bitria.hexon.ui.screens.SettingsScreen
 import eric.bitria.hexon.ui.screens.account.ChangePasswordScreen
 import eric.bitria.hexon.ui.screens.account.DeleteAccountScreen
+import eric.bitria.hexon.ui.screens.account.SettingsScreen
+import eric.bitria.hexon.ui.screens.game.GameScreen
 import eric.bitria.hexon.ui.screens.social.FriendProfileScreen
 import eric.bitria.hexon.ui.screens.social.FriendsScreen
 import eric.bitria.hexon.ui.screens.social.ProfileScreen
@@ -26,7 +25,7 @@ fun MainNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = Screens.MainMenu,
+        startDestination = Screens.Game,
         enterTransition = {
             fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing))
         },
@@ -40,11 +39,10 @@ fun MainNavigation() {
             fadeOut(animationSpec = tween(300, easing = FastOutLinearInEasing))
         }
     ) {
-        composable<Screens.MainMenu> {
-            MainMenuScreen(
+        composable<Screens.Game> {
+            GameScreen(
                 onFriendsClicked = { navController.navigate(Screens.Friends) },
                 onProfileClicked = { navController.navigate(Screens.Profile) },
-                onStartGameClicked = { navController.navigate(Screens.Game) }
             )
         }
 
@@ -92,13 +90,6 @@ fun MainNavigation() {
                 // which triggers App.kt to swap to AuthNavigation.
                 // No additional action needed here.
             }
-
-        composable<Screens.Game> {
-            GameScreen(
-                onExitClicked = { navController.popBackStack() },
-                onAboutClicked = { /*navController.navigate(Screens.About)*/ }
-            )
-        }
 
         composable<Screens.FriendProfile> { backStackEntry ->
             val friendProfile: Screens.FriendProfile = backStackEntry.toRoute()

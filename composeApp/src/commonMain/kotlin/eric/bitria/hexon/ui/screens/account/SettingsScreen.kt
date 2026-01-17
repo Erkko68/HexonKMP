@@ -1,4 +1,4 @@
-package eric.bitria.hexon.ui.screens
+package eric.bitria.hexon.ui.screens.account
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -19,7 +19,7 @@ import eric.bitria.hexon.ui.components.settings.SettingsToggle
 import eric.bitria.hexon.ui.components.settings.VolumeSlider
 import eric.bitria.hexon.ui.components.shared.HexonHeader
 import eric.bitria.hexon.ui.components.shared.HexonIconButton
-import eric.bitria.hexon.viewmodel.SettingsViewModel
+import eric.bitria.hexon.viewmodel.account.SettingsViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable

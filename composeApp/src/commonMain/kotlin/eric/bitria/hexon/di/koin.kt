@@ -1,16 +1,17 @@
 package eric.bitria.hexon.di
 
 import eric.bitria.hexon.AppViewModel
-import eric.bitria.hexon.viewmodel.GameSceneViewModel
-import eric.bitria.hexon.viewmodel.GameUIViewModel
-import eric.bitria.hexon.viewmodel.MainMenuViewModel
-import eric.bitria.hexon.viewmodel.SettingsViewModel
+import eric.bitria.hexon.viewmodel.account.SettingsViewModel
 import eric.bitria.hexon.viewmodel.account.ChangePasswordViewModel
 import eric.bitria.hexon.viewmodel.account.DeleteAccountViewModel
 import eric.bitria.hexon.viewmodel.account.ForgotPasswordViewModel
 import eric.bitria.hexon.viewmodel.account.ResetPasswordViewModel
 import eric.bitria.hexon.viewmodel.auth.LoginViewModel
 import eric.bitria.hexon.viewmodel.auth.VerifyViewModel
+import eric.bitria.hexon.viewmodel.game.GameSceneViewModel
+import eric.bitria.hexon.viewmodel.game.GameViewModel
+import eric.bitria.hexon.viewmodel.game.LobbyViewModel
+import eric.bitria.hexon.viewmodel.game.MatchmakingViewModel
 import eric.bitria.hexon.viewmodel.social.FriendProfileViewModel
 import eric.bitria.hexon.viewmodel.social.FriendsViewModel
 import eric.bitria.hexon.viewmodel.social.ProfileViewModel
@@ -20,9 +21,12 @@ import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
 
 val viewModelsModule = module {
-    viewModelOf(::GameUIViewModel)
+
+    viewModelOf(::GameViewModel)
     viewModelOf(::GameSceneViewModel)
-    viewModelOf(::MainMenuViewModel)
+    viewModelOf(::LobbyViewModel)
+    viewModelOf(::MatchmakingViewModel)
+
     viewModelOf(::ProfileViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::LoginViewModel)

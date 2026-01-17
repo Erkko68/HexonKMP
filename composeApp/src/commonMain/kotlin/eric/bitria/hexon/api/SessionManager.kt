@@ -20,18 +20,14 @@ class SessionManager(
     private val _sessionState = MutableStateFlow(SessionState.LOADING)
     val sessionState = _sessionState.asStateFlow()
 
-    companion object {
-        private const val ACCESS_TOKEN_KEY = "access_token"
-        private const val REFRESH_TOKEN_KEY = "refresh_token"
-    }
 
     fun saveTokens(accessToken: String, refreshToken: String) {
-        settings.putString(ACCESS_TOKEN_KEY, accessToken)
-        settings.putString(REFRESH_TOKEN_KEY, refreshToken)
+        settings.putString("access_token", accessToken)
+        settings.putString("refresh_token", refreshToken)
     }
 
-    fun getAccessToken(): String = settings.getString(ACCESS_TOKEN_KEY,"")
-    fun getRefreshToken(): String = settings.getString(REFRESH_TOKEN_KEY,"")
+    fun getAccessToken(): String = settings.getString("access_token","")
+    fun getRefreshToken(): String = settings.getString("refresh_token","")
 
     suspend fun initSession() {
         if (_sessionState.value != SessionState.LOADING) return
@@ -47,6 +43,7 @@ class SessionManager(
             val response = authClientProvider().refresh(RefreshRequest(refreshToken))
             if (response.result == RefreshResult.SUCCESS) {
                 _sessionState.value = SessionState.LOGGED_IN
+                saveTokens(response.accessToken!!, response.refreshToken!!)
             } else {
                 logout()
             }
@@ -61,7 +58,7 @@ class SessionManager(
 
     fun logout() {
         settings.clear()
-        settings.remove(ACCESS_TOKEN_KEY)
+        settings.remove("access_token")
         _sessionState.value = SessionState.LOGGED_OUT
     }
 }

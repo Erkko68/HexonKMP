@@ -50,7 +50,7 @@ val networkModule = module {
 
                     refreshTokens {
                         val sessionManager = get<SessionManager>()
-                        val refreshToken = sessionManager.getRefreshToken() ?: return@refreshTokens null
+                        val refreshToken = sessionManager.getRefreshToken()
 
                         try {
                             val response = client.post("/auth/refresh") {

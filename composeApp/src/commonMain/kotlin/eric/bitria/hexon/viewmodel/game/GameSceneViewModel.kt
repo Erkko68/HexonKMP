@@ -1,4 +1,4 @@
-package eric.bitria.hexon.viewmodel
+package eric.bitria.hexon.viewmodel.game
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -11,10 +11,20 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
-class MainMenuViewModel : ViewModel() {
+enum class SceneState {
+    MAIN_MENU,
+    MATCHMAKING,
+    LOBBY,
+    GAME
+}
+
+class GameSceneViewModel: ViewModel() {
 
     // Technical State
     var isEngineReady by mutableStateOf(false)
+        private set
+
+    var sceneState by mutableStateOf(SceneState.MAIN_MENU)
         private set
 
     // Command Channel
@@ -26,11 +36,12 @@ class MainMenuViewModel : ViewModel() {
             is GameEvent.Initialised -> {
                 println("Engine Ready. Sending initial commands.")
                 isEngineReady = true
-
-                // Send setup commands to JS
-                //sendCommand(GameCommand.UpdateSpeed(0.05f))
             }
         }
+    }
+
+    fun updateSceneState(state: SceneState) {
+        sceneState = state
     }
 
     private fun sendCommand(command: GameCommand) {

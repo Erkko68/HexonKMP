@@ -1,4 +1,4 @@
-package eric.bitria.hexon.viewmodel
+package eric.bitria.hexon.viewmodel.account
 
 import androidx.lifecycle.ViewModel
 import com.russhwolf.settings.Settings
