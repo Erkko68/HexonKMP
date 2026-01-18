@@ -1,6 +1,7 @@
 package eric.bitria.hexon.services.matchmaking
 
 import eric.bitria.hexon.dtos.matchmaking.JoinGameResponse
+import eric.bitria.hexon.ws.data.GameMode
 
 interface MatchmakingService {
 
@@ -10,7 +11,7 @@ interface MatchmakingService {
      */
     suspend fun findGameForPlayer(
         userId: String,
-        mode: String = "classic",
+        mode: GameMode = GameMode.CLASSIC,
         maxPlayers: Int = 4
     ): JoinGameResponse
 }

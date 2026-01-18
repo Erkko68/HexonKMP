@@ -4,6 +4,7 @@ import eric.bitria.hexon.dtos.matchmaking.JoinGameResponse
 import eric.bitria.hexon.dtos.matchmaking.JoinGameResult
 import eric.bitria.hexon.services.game.GameSessionImpl
 import eric.bitria.hexon.services.game.GameSessionRepository
+import eric.bitria.hexon.ws.data.GameMode
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -15,12 +16,12 @@ class MatchmakingServiceImpl(
 
     override suspend fun findGameForPlayer(
         userId: String,
-        mode: String,
+        mode: GameMode,
         maxPlayers: Int
     ): JoinGameResponse = mutex.withLock {
         try {
             // Only Allow Classic for now
-            if (mode != "classic") {
+            if (mode != GameMode.CLASSIC) {
                 return JoinGameResponse(
                     status = JoinGameResult.INVALID_MODE,
                     message = "Invalid game mode"

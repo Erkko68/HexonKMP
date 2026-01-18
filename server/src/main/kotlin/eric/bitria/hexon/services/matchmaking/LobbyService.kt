@@ -1,13 +1,14 @@
 package eric.bitria.hexon.services.matchmaking
 
 import eric.bitria.hexon.dtos.matchmaking.CreateLobbyResponse
+import eric.bitria.hexon.ws.data.GameMode
 
 interface LobbyService {
 
     /** Create a custom lobby */
     suspend fun createCustomGame(
         creatorId: String,
-        mode: String,
+        mode: GameMode,
         maxPlayers: Int,
     ): CreateLobbyResponse
 

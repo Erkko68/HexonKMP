@@ -1,10 +1,11 @@
 package eric.bitria.hexon.dtos.matchmaking
 
+import eric.bitria.hexon.ws.data.GameMode
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class CreateLobbyRequest(
-    val mode: String,
+    val mode: GameMode,
     val maxPlayers: Int,
 )
 

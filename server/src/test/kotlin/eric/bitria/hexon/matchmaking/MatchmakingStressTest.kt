@@ -6,6 +6,7 @@ import eric.bitria.hexon.services.game.GameSessionRepository
 import eric.bitria.hexon.services.game.InMemoryGameSessionRepository
 import eric.bitria.hexon.services.matchmaking.MatchmakingService
 import eric.bitria.hexon.services.matchmaking.MatchmakingServiceImpl
+import eric.bitria.hexon.ws.data.GameMode
 import io.ktor.websocket.DefaultWebSocketSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -25,7 +26,7 @@ class MatchmakingStressTest {
     fun testIntenseRandomMatchmaking() = runBlocking {
         val repository: GameSessionRepository = InMemoryGameSessionRepository()
         val matchmakingService: MatchmakingService = MatchmakingServiceImpl(repository)
-        val mode = "classic"
+        val mode = GameMode.CLASSIC
         val maxPlayers = 4
         
         val totalPlayersToSimulate = 500
@@ -119,11 +120,11 @@ class MatchmakingStressTest {
         ) { _, _, _ -> null } as DefaultWebSocketSession
     }
 
-    private fun getAllSessionsFromRepo(repo: GameSessionRepository, mode: String): List<GameSession> {
+    private fun getAllSessionsFromRepo(repo: GameSessionRepository, mode: GameMode): List<GameSession> {
         val field = repo.javaClass.getDeclaredField("allSessions")
         field.isAccessible = true
         @Suppress("UNCHECKED_CAST")
-        val allSessionsMap = field.get(repo) as Map<String, GameSession>
+        val allSessionsMap = field.get(repo) as Map<GameMode, GameSession>
         
         // Since 'mode' is private in GameSessionImpl and not in GameSession interface,
         // we use reflection to filter sessions by mode.

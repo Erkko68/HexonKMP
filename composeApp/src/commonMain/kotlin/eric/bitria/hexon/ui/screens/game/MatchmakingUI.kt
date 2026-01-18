@@ -33,7 +33,7 @@ fun MatchmakingUI(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Searching for a game...",
+                text = viewModel.statusMessage,
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
@@ -54,7 +54,7 @@ fun MatchmakingUI(
 
             Button(
                 onClick = {
-                    viewModel.cancelMatchmaking()
+                    viewModel.leaveMatchmaking()
                     onExitClicked()
                 }
             ) {

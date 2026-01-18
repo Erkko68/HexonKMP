@@ -5,6 +5,7 @@ import eric.bitria.hexon.services.game.GameSessionRepository
 import eric.bitria.hexon.services.game.InMemoryGameSessionRepository
 import eric.bitria.hexon.services.matchmaking.MatchmakingService
 import eric.bitria.hexon.services.matchmaking.MatchmakingServiceImpl
+import eric.bitria.hexon.ws.data.GameMode
 import io.ktor.websocket.DefaultWebSocketSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -24,7 +25,7 @@ class MatchmakingConcurrencyTest {
 
         val playerCount = 100
         val maxPlayersPerSession = 4
-        val mode = "classic"
+        val mode = GameMode.CLASSIC
 
         // Simulate 100 players joining simultaneously
         val jobs = (1..playerCount).map { i ->
@@ -54,7 +55,7 @@ class MatchmakingConcurrencyTest {
     fun testSessionReusabilityAfterDisconnect() = runBlocking {
         val repository: GameSessionRepository = InMemoryGameSessionRepository()
         val matchmakingService: MatchmakingService = MatchmakingServiceImpl(repository)
-        val mode = "classic"
+        val mode = GameMode.CLASSIC
         val maxPlayers = 2
 
         // 1. Fill a session partially
@@ -74,7 +75,7 @@ class MatchmakingConcurrencyTest {
     fun testGameStartsAutomaticallyWhenFull() = runBlocking {
         val repository: GameSessionRepository = InMemoryGameSessionRepository()
         val matchmakingService: MatchmakingService = MatchmakingServiceImpl(repository)
-        val mode = "classic"
+        val mode = GameMode.CLASSIC
         val maxPlayers = 2
 
         // 1. First player joins and connects

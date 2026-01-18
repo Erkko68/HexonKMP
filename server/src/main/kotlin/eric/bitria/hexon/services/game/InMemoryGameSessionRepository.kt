@@ -1,17 +1,18 @@
 package eric.bitria.hexon.services.game
 
+import eric.bitria.hexon.ws.data.GameMode
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.LinkedBlockingQueue
 
 class InMemoryGameSessionRepository : GameSessionRepository {
 
     // mode -> Queue of sessions with available slots
-    private val availableQueuesByMode = ConcurrentHashMap<String, LinkedBlockingQueue<GameSession>>()
+    private val availableQueuesByMode = ConcurrentHashMap<GameMode, LinkedBlockingQueue<GameSession>>()
     
     // global lookup for sessionId -> GameSession
     private val allSessions = ConcurrentHashMap<String, GameSession>()
 
-    override fun addSession(mode: String, session: GameSession) {
+    override fun addSession(mode: GameMode, session: GameSession) {
         allSessions[session.sessionId] = session
         // Only add to available queue if it's not already there and has slots/not started
         if (!session.isGameStarted && session.hasAvailableSlots()) {
@@ -22,7 +23,7 @@ class InMemoryGameSessionRepository : GameSessionRepository {
         }
     }
 
-    override fun removeSession(mode: String, sessionId: String) {
+    override fun removeSession(mode: GameMode, sessionId: String) {
         val session = allSessions.remove(sessionId)
         if (session != null) {
             availableQueuesByMode[mode]?.remove(session)
@@ -33,7 +34,7 @@ class InMemoryGameSessionRepository : GameSessionRepository {
         return allSessions[sessionId]
     }
 
-    override fun findAvailableSession(mode: String): GameSession? {
+    override fun findAvailableSession(mode: GameMode): GameSession? {
         val queue = availableQueuesByMode[mode] ?: return null
         
         while (true) {

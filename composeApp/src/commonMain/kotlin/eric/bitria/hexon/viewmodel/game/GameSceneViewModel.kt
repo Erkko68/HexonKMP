@@ -11,20 +11,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
-enum class SceneState {
-    MAIN_MENU,
-    MATCHMAKING,
-    LOBBY,
-    GAME
-}
-
 class GameSceneViewModel: ViewModel() {
 
     // Technical State
     var isEngineReady by mutableStateOf(false)
-        private set
-
-    var sceneState by mutableStateOf(SceneState.MAIN_MENU)
         private set
 
     // Command Channel
@@ -38,10 +28,6 @@ class GameSceneViewModel: ViewModel() {
                 isEngineReady = true
             }
         }
-    }
-
-    fun updateSceneState(state: SceneState) {
-        sceneState = state
     }
 
     private fun sendCommand(command: GameCommand) {

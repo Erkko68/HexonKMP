@@ -1,16 +1,18 @@
 package eric.bitria.hexon.services.game
 
+import eric.bitria.hexon.ws.data.GameMode
+
 interface GameSessionRepository {
 
     /** Add a new session to repository */
-    fun addSession(mode: String, session: GameSession)
+    fun addSession(mode: GameMode, session: GameSession)
 
     /** Remove session (finished or abandoned) */
-    fun removeSession(mode: String, sessionId: String)
+    fun removeSession(mode: GameMode, sessionId: String)
 
     /** Lookup a session by id */
     fun getSession(sessionId: String): GameSession?
 
     /** Find a session with available slots for the given mode */
-    fun findAvailableSession(mode: String): GameSession?
+    fun findAvailableSession(mode: GameMode): GameSession?
 }

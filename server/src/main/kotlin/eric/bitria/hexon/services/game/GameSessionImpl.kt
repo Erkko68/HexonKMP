@@ -9,6 +9,7 @@ import eric.bitria.hexon.ws.GameplayMessage
 import eric.bitria.hexon.ws.LobbyErrorCode
 import eric.bitria.hexon.ws.LobbyEvent
 import eric.bitria.hexon.ws.LobbyIntent
+import eric.bitria.hexon.ws.data.GameMode
 import eric.bitria.hexon.ws.data.Player
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.DefaultWebSocketSession
@@ -21,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class GameSessionImpl(
     private val isCustom: Boolean = false,
-    private val mode: String,
+    private val mode: GameMode,
     private val maxPlayers: Int,
     override val sessionId: String = UuidCreator.getTimeBasedWithRandom().toString()
 ) : GameSession, GameMessageSender {

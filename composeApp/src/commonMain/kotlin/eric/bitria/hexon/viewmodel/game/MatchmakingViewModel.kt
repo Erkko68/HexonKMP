@@ -6,14 +6,20 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.api.repository.ApiResult
+import eric.bitria.hexon.api.repository.GameRepository
 import eric.bitria.hexon.api.repository.MatchmakingRepository
 import eric.bitria.hexon.dtos.matchmaking.JoinGameResult
+import eric.bitria.hexon.ws.LobbyEvent
+import eric.bitria.hexon.ws.LobbyIntent
+import io.ktor.websocket.DefaultWebSocketSession
+import io.ktor.websocket.close
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MatchmakingViewModel(
-    private val matchmakingRepository: MatchmakingRepository
+    private val matchmakingRepository: MatchmakingRepository,
+    private val gameRepository: GameRepository
 ) : ViewModel() {
 
     var playersFound by mutableStateOf(0)
@@ -26,23 +32,24 @@ class MatchmakingViewModel(
         private set
 
     private var matchmakingJob: Job? = null
+    private var socketSession: DefaultWebSocketSession? = null
 
     init {
         startMatchmaking()
     }
 
     private fun startMatchmaking() {
-        matchmakingJob?.cancel()
         matchmakingJob = viewModelScope.launch {
             statusMessage = "Searching for a game..."
 
-            when (val result = matchmakingRepository.joinGame(mode = "classic")) {
+            when (val result = matchmakingRepository.joinGame(mode = "CLASSIC")) {
                 is ApiResult.Success -> {
                     val response = result.data
-                    statusMessage = if (response.status == JoinGameResult.SUCCESS) {
-                        "Game found! Connecting..."
+                    if (response.status == JoinGameResult.SUCCESS && response.sessionId != null) {
+                        statusMessage = "Game found! Connecting..."
+                        connectToSocket(response.sessionId!!)
                     } else {
-                        response.message
+                        statusMessage = response.message
                     }
                 }
                 is ApiResult.Error -> {
@@ -56,13 +63,58 @@ class MatchmakingViewModel(
         }
     }
 
-    fun cancelMatchmaking() {
-        matchmakingJob?.cancel()
-        // Logic to notify the server if necessary
+    private suspend fun connectToSocket(sessionId: String) {
+        try {
+            val session = gameRepository.connect(sessionId)
+            socketSession = session
+
+            gameRepository.observeMessages(session).collect { message ->
+                when (message) {
+                    is LobbyEvent.LobbySnapshot -> {
+                        playersFound = message.players.size
+                        maxPlayers = message.maxPlayers
+                        statusMessage = "Waiting for players..."
+                    }
+                    is LobbyEvent.PlayerJoined -> {
+                        playersFound++
+                    }
+                    is LobbyEvent.PlayerLeft -> {
+                        playersFound--
+                    }
+                    else -> {}
+                }
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            statusMessage = "Connection lost: ${e.message}"
+        } finally {
+            socketSession?.close()
+            socketSession = null
+        }
+    }
+
+    /**
+     * Called when the user manually cancels matchmaking.
+     * We send a leave intent to the server and the navigation will handle
+     * clearing the ViewModel via onCleared.
+     */
+    fun leaveMatchmaking() {
+        viewModelScope.launch {
+            try {
+                socketSession?.let { session ->
+                    gameRepository.sendMessage(session, LobbyIntent.LeaveLobby())
+                }
+            } catch (e: Exception) {
+                // Ignore errors during departure
+            } finally {
+                matchmakingJob?.cancel()
+            }
+        }
     }
 
     override fun onCleared() {
         super.onCleared()
         matchmakingJob?.cancel()
+        socketSession = null
     }
 }

@@ -12,6 +12,7 @@ import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -25,6 +26,8 @@ val networkModule = module {
     single {
         
         HttpClient {
+            install(WebSockets)
+
             install(DefaultRequest) {
                 url(BuildKonfig.BASE_URL)
                 contentType(ContentType.Application.Json)

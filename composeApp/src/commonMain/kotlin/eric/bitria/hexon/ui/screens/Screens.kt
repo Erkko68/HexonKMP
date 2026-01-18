@@ -29,9 +29,6 @@ sealed class Screens {
     object ChangePassword : Screens()
 
     @Serializable
-    object MainMenu : Screens()
-
-    @Serializable
     object Game : Screens()
 
     @Serializable
@@ -48,4 +45,12 @@ sealed class Screens {
 
     @Serializable
     data class FriendProfile(val userId: String) : Screens()
+
+    @Serializable
+    sealed class GameSubScreens {
+        @Serializable object MainMenu : GameSubScreens()
+        @Serializable object Matchmaking : GameSubScreens()
+        @Serializable object Lobby : GameSubScreens()
+        @Serializable object Gameplay : GameSubScreens()
+    }
 }
