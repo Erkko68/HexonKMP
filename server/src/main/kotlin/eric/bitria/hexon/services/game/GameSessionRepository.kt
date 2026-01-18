@@ -1,6 +1,6 @@
 package eric.bitria.hexon.services.game
 
-import eric.bitria.hexon.ws.data.GameMode
+import eric.bitria.hexon.ws.lobby.GameMode
 
 interface GameSessionRepository {
 

@@ -1,4 +1,4 @@
-package eric.bitria.hexon.ws.data
+package eric.bitria.hexon.ws.lobby
 
 import kotlinx.serialization.Serializable
 

@@ -5,7 +5,7 @@ import eric.bitria.hexon.services.game.GameSessionRepository
 import eric.bitria.hexon.services.game.InMemoryGameSessionRepository
 import eric.bitria.hexon.services.matchmaking.MatchmakingService
 import eric.bitria.hexon.services.matchmaking.MatchmakingServiceImpl
-import eric.bitria.hexon.ws.data.GameMode
+import eric.bitria.hexon.ws.lobby.GameMode
 import io.ktor.websocket.DefaultWebSocketSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async

@@ -1,7 +1,7 @@
 package eric.bitria.hexon.services.matchmaking
 
 import eric.bitria.hexon.dtos.matchmaking.CreateLobbyResponse
-import eric.bitria.hexon.ws.data.GameMode
+import eric.bitria.hexon.ws.lobby.GameMode
 
 interface LobbyService {
 

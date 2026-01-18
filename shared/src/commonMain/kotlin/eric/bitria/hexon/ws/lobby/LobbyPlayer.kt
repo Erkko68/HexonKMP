@@ -1,9 +1,9 @@
-package eric.bitria.hexon.ws.data
+package eric.bitria.hexon.ws.lobby
 
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class Player(
+data class LobbyPlayer(
     val id: String,
     val name: String,
     val color: String,

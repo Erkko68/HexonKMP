@@ -9,8 +9,8 @@ import eric.bitria.hexon.ws.GameplayMessage
 import eric.bitria.hexon.ws.LobbyErrorCode
 import eric.bitria.hexon.ws.LobbyEvent
 import eric.bitria.hexon.ws.LobbyIntent
-import eric.bitria.hexon.ws.data.GameMode
-import eric.bitria.hexon.ws.data.Player
+import eric.bitria.hexon.ws.lobby.GameMode
+import eric.bitria.hexon.ws.lobby.LobbyPlayer
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.DefaultWebSocketSession
 import io.ktor.websocket.Frame
@@ -34,7 +34,7 @@ class GameSessionImpl(
     private var engine: GameEngine? = null
 
     private val connectedPlayers = ConcurrentHashMap<String, DefaultWebSocketSession>()
-    private val players = ConcurrentHashMap<String, Player>()
+    private val players = ConcurrentHashMap<String, LobbyPlayer>()
     private val reservedSlots = ConcurrentHashMap<String, Long>()
     private val allColors = listOf("Red", "Blue", "White", "Orange", "Green", "Brown")
 
@@ -82,7 +82,7 @@ class GameSessionImpl(
                 val initialReady = !isCustom
                 val isHost = if (isCustom) isFirstPlayer else false
 
-                val newPlayer = Player(
+                val newLobbyPlayer = LobbyPlayer(
                     id = userId,
                     name = username,
                     color = assignAvailableColor(),
@@ -90,16 +90,16 @@ class GameSessionImpl(
                     isHost = isHost
                 )
 
-                players[userId] = newPlayer
+                players[userId] = newLobbyPlayer
 
                 val snapshot = LobbyEvent.LobbySnapshot(
                     lobbyId = sessionId,
-                    players = players.values.toList(),
+                    lobbyPlayers = players.values.toList(),
                     maxPlayers = maxPlayers,
                     availableColors = allColors
                 )
                 sendToPlayer(userId, snapshot)
-                broadcast(LobbyEvent.PlayerJoined(newPlayer), excludeUserId = userId)
+                broadcast(LobbyEvent.PlayerJoined(newLobbyPlayer), excludeUserId = userId)
 
                 if (!isCustom && connectedPlayers.size == maxPlayers) {
                     launchGameEngine()
@@ -241,10 +241,10 @@ class GameSessionImpl(
         isGameStarted = true
 
         // Startup logic
-        val enginePlayers = players.values.map { lobbyPlayer ->
-            Player(lobbyPlayer.id, lobbyPlayer.name, lobbyPlayer.color, lobbyPlayer.isReady, lobbyPlayer.isHost)
+        val engineLobbyPlayers = players.values.map { lobbyPlayer ->
+            LobbyPlayer(lobbyPlayer.id, lobbyPlayer.name, lobbyPlayer.color, lobbyPlayer.isReady, lobbyPlayer.isHost)
         }
 
-        newEngine.start(enginePlayers, this)
+        newEngine.start(engineLobbyPlayers, this)
     }
 }

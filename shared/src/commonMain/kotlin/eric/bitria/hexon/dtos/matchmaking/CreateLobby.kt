@@ -1,6 +1,6 @@
 package eric.bitria.hexon.dtos.matchmaking
 
-import eric.bitria.hexon.ws.data.GameMode
+import eric.bitria.hexon.ws.lobby.GameMode
 import kotlinx.serialization.Serializable
 
 @Serializable

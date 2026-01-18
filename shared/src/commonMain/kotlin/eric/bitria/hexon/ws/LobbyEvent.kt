@@ -1,6 +1,6 @@
 package eric.bitria.hexon.ws
 
-import eric.bitria.hexon.ws.data.Player
+import eric.bitria.hexon.ws.lobby.LobbyPlayer
 import kotlinx.serialization.Serializable
 
 /**
@@ -16,7 +16,7 @@ sealed class LobbyEvent : LobbyMessage() {
     @Serializable
     data class LobbySnapshot(
         val lobbyId: String,
-        val players: List<Player>,
+        val lobbyPlayers: List<LobbyPlayer>,
         val maxPlayers: Int,
         val availableColors: List<String>,
         override val senderId: String? = "Server"
@@ -25,7 +25,7 @@ sealed class LobbyEvent : LobbyMessage() {
     /** Incremental Update: A new player entered */
     @Serializable
     data class PlayerJoined(
-        val player: Player,
+        val lobbyPlayer: LobbyPlayer,
         override val senderId: String? = "Server"
     ) : LobbyEvent()
 
@@ -39,7 +39,7 @@ sealed class LobbyEvent : LobbyMessage() {
     /** Incremental Update: Someone changed ready status, color, etc. */
     @Serializable
     data class PlayerUpdated(
-        val player: Player,
+        val lobbyPlayer: LobbyPlayer,
         override val senderId: String? = "Server"
     ) : LobbyEvent()
 

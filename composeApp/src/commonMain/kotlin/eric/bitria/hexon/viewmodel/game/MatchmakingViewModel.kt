@@ -11,7 +11,7 @@ import eric.bitria.hexon.api.repository.MatchmakingRepository
 import eric.bitria.hexon.dtos.matchmaking.JoinGameResult
 import eric.bitria.hexon.ws.LobbyEvent
 import eric.bitria.hexon.ws.LobbyIntent
-import eric.bitria.hexon.ws.data.GameMode
+import eric.bitria.hexon.ws.lobby.GameMode
 import io.ktor.websocket.DefaultWebSocketSession
 import io.ktor.websocket.close
 import kotlinx.coroutines.CancellationException
@@ -75,7 +75,7 @@ class MatchmakingViewModel(
             gameRepository.observeMessages(session).collect { message ->
                 when (message) {
                     is LobbyEvent.LobbySnapshot -> {
-                        playersFound = message.players.size
+                        playersFound = message.lobbyPlayers.size
                         maxPlayers = message.maxPlayers
                         statusMessage = "Waiting for players..."
                     }
