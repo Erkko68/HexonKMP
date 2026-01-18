@@ -23,6 +23,9 @@ class MatchmakingViewModel(
     private val gameRepository: GameRepository
 ) : ViewModel() {
 
+    var navigateToGameplay by mutableStateOf(false)
+        private set
+
     var playersFound by mutableStateOf(0)
         private set
 
@@ -81,6 +84,12 @@ class MatchmakingViewModel(
                     }
                     is LobbyEvent.PlayerLeft -> {
                         playersFound--
+                    }
+                    is LobbyEvent.GameStarted -> {
+                        navigateToGameplay = true
+                    }
+                    is LobbyEvent.LobbyError -> {
+                        statusMessage = message.errorMessage
                     }
                     else -> {}
                 }

@@ -55,6 +55,14 @@ fun GameScreen(
                     MatchmakingUI(
                         onExitClicked = {
                             nestedNavController.popBackStack()
+                        },
+                        onGameStarted = {
+                            nestedNavController.navigate(Screens.GameSubScreens.Gameplay) {
+                                popUpTo<Screens.GameSubScreens.Matchmaking> {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
                         }
                     )
                 }

@@ -9,6 +9,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import eric.bitria.hexon.ui.theme.HexonTheme
@@ -18,8 +19,15 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun MatchmakingUI(
     onExitClicked: () -> Unit,
+    onGameStarted: () -> Unit,
     viewModel: MatchmakingViewModel = koinViewModel()
 ) {
+    if (viewModel.navigateToGameplay) {
+        LaunchedEffect(Unit) {
+            onGameStarted()
+        }
+    }
+
     val spacing = HexonTheme.dimensions.spacing
 
     Box(
