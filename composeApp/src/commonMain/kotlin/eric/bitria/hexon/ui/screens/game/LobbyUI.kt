@@ -8,11 +8,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import eric.bitria.hexon.viewmodel.game.LobbyViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun LobbyUI(
     onExitClicked: () -> Unit,
-    viewModel: LobbyViewModel
+    viewModel: LobbyViewModel = koinViewModel()
 ) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text("Lobby: Waiting for players...", style = MaterialTheme.typography.headlineMedium)

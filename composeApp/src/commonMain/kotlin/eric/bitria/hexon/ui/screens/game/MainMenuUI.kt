@@ -59,7 +59,7 @@ fun MainMenuUI(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = spacing.screenHorizontal, vertical = spacing.screenVertical)
-                    .clickable(onClick = onMatchmakingClicked),
+                    .clickable(onClick = onMatchmakingClicked, indication = null, interactionSource = null),
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {

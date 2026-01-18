@@ -18,5 +18,6 @@ data class JoinGameResponse(
 enum class JoinGameResult {
     SUCCESS,
     INVALID_MODE,
+    SESSION_FULL,
     UNKNOWN_ERROR
 }

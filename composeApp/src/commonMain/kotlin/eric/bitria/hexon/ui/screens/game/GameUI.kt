@@ -34,11 +34,12 @@ import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.game.GameViewModel
 import eric.bitria.hexon.viewmodel.enums.GameUIState
 import eric.bitria.hexon.viewmodel.enums.next
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun GameUI(
     onExitClicked: () -> Unit,
-    viewModel: GameViewModel,
+    viewModel: GameViewModel = koinViewModel()
 ) {
     val players by viewModel.players.collectAsState()
     val resources by viewModel.resources.collectAsState()

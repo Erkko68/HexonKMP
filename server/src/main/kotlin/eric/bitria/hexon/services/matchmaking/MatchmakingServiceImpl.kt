@@ -57,8 +57,8 @@ class MatchmakingServiceImpl(
             }
 
             return JoinGameResponse(
-                status = JoinGameResult.UNKNOWN_ERROR,
-                message = "Failed to create or join session"
+                status = JoinGameResult.SESSION_FULL,
+                message = "Failed to reserve slot for session."
             )
         } catch (e: Exception) {
             JoinGameResponse(

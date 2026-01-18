@@ -121,6 +121,7 @@ fun GetFriendRequestsResult.toHttpStatus() = when (this) {
 fun JoinGameResult.toHttpStatus() = when (this) {
     JoinGameResult.SUCCESS -> HTTPStatusCode.OK
     JoinGameResult.INVALID_MODE -> HTTPStatusCode.BadRequest
+    JoinGameResult.SESSION_FULL -> HTTPStatusCode.Conflict
     JoinGameResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }
 
