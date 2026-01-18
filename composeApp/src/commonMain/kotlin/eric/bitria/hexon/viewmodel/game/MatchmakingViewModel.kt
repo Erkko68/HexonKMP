@@ -11,6 +11,7 @@ import eric.bitria.hexon.api.repository.MatchmakingRepository
 import eric.bitria.hexon.dtos.matchmaking.JoinGameResult
 import eric.bitria.hexon.ws.LobbyEvent
 import eric.bitria.hexon.ws.LobbyIntent
+import eric.bitria.hexon.ws.data.GameMode
 import io.ktor.websocket.DefaultWebSocketSession
 import io.ktor.websocket.close
 import kotlinx.coroutines.CancellationException
@@ -42,7 +43,7 @@ class MatchmakingViewModel(
         matchmakingJob = viewModelScope.launch {
             statusMessage = "Searching for a game..."
 
-            when (val result = matchmakingRepository.joinGame(mode = "CLASSIC")) {
+            when (val result = matchmakingRepository.joinGame(mode = GameMode.CLASSIC)) {
                 is ApiResult.Success -> {
                     val response = result.data
                     if (response.status == JoinGameResult.SUCCESS && response.sessionId != null) {

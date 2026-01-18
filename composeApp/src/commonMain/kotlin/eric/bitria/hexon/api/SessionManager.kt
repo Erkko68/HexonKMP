@@ -59,6 +59,7 @@ class SessionManager(
     fun logout() {
         settings.clear()
         settings.remove("access_token")
+        settings.remove("refresh_token")
         _sessionState.value = SessionState.LOGGED_OUT
     }
 }
