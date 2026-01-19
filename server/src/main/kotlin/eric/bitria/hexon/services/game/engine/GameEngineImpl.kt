@@ -16,7 +16,6 @@ import eric.bitria.hexon.ws.GameMessage
 import eric.bitria.hexon.ws.GameplayEvent
 import eric.bitria.hexon.ws.GameplayIntent
 import eric.bitria.hexon.ws.lobby.LobbyPlayer
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.forEach
 
 private enum class TurnPhase {
@@ -75,7 +74,9 @@ class GameEngineImpl(
         when(message) {
             is GameplayIntent.ProposeTrade -> return handleTradeProposal(userId, message)
             is GameplayIntent.RespondToTrade -> return handleTradeResponse(userId, message)
-            else -> {}
+            is GameplayIntent.ConfirmTrade -> return handleTradeConfirmation(userId, message)
+            else -> sender.sendToPlayer(userId, GameplayEvent.GameError("Unknown action",
+                GameErrorCode.UNKNOWN_BUILDING))
         }
 
         // 1. Universal Validation (Is it this player's turn?)
@@ -87,8 +88,6 @@ class GameEngineImpl(
             is GameplayIntent.MoveRobber -> handleRobberMove(userId, message)
             is GameplayIntent.ExchangeWithBank -> handleExchangeWithBank(userId, message)
             is GameplayIntent.EndTurn -> handleEndTurn(userId)
-            else -> sender.sendToPlayer(userId, GameplayEvent.GameError("Unknown action",
-                GameErrorCode.UNKNOWN_BUILDING))
         }
     }
 
@@ -246,14 +245,93 @@ class GameEngineImpl(
         trades[userId] = intent.offer
 
         // Send trade proposal to the receiver
-        sender.sendToPlayer(
-            intent.receiverPlayerId,
+        sender.broadcast(
             GameplayEvent.TradeProposed(
                 offer = intent.offer,
                 senderId = userId // Need to notify from who this trade is coming from
             )
         )
     }
+
+    private suspend fun handleTradeResponse(userId: PlayerId, intent: GameplayIntent.RespondToTrade) {
+        val trade = trades[intent.offererId] ?: return sender.sendToPlayer(
+            userId,
+            GameplayEvent.GameError("No trade found for this player.", GameErrorCode.INVALID_TRADE)
+        )
+
+        val player = players[userId]
+        if(!player?.canDeductResources(trade.want)!!){
+            return sender.sendToPlayer(
+                userId,
+                GameplayEvent.GameError("Insufficient resources", GameErrorCode.INSUFFICIENT_RESOURCES)
+            )
+        }
+        // Notify original player offer of this player response
+        sender.broadcast(
+            GameplayEvent.TradeResponse(
+                offererId = intent.offererId, // The original player that sent the trade
+                accepted = intent.accepted,   // Whether they accepted or not
+                senderId = userId             // The user that sent this response
+            )
+        )
+    }
+
+    private suspend fun handleTradeConfirmation(userId: PlayerId, intent: GameplayIntent.ConfirmTrade) {
+        val trade = trades[userId] ?: return sender.sendToPlayer(
+            userId,
+            GameplayEvent.GameError("No trade found for this player.", GameErrorCode.INVALID_TRADE)
+        )
+
+        val player = players[userId]
+        if(!player?.canDeductResources(trade.give)!!){
+            return sender.sendToPlayer(
+                userId,
+                GameplayEvent.GameError("Insufficient resources", GameErrorCode.INSUFFICIENT_RESOURCES)
+            )
+        }
+
+        //TODO Store and verify other player accepted
+
+        sender.broadcast(
+            GameplayEvent.TradeAccepted(
+                responderId = intent.responderId, // The player that accepted the trade
+                senderId = userId                 // The user that sent this response
+            )
+        )
+
+        // Switch resources
+        player.tryDeductResources(trade.give)
+        player.addResources(trade.want)
+
+        val changes =
+            trade.give.mapValues { -it.value } + trade.want
+
+        sender.sendToPlayer(
+            userId,
+            GameplayEvent.ResourcesUpdated(
+                playerId = userId,
+                changes = changes,
+                reason = UpdateReason.TRADE
+            )
+        )
+
+        val otherPlayer = players[intent.responderId]
+        otherPlayer?.tryDeductResources(trade.want)
+        otherPlayer?.addResources(trade.give)
+
+        val otherChanges =
+            trade.want.mapValues { -it.value } + trade.give
+
+        sender.sendToPlayer(
+            intent.responderId,
+            GameplayEvent.ResourcesUpdated(
+                playerId = userId,
+                changes = otherChanges,
+                reason = UpdateReason.TRADE
+            )
+        )
+    }
+
 
     private suspend fun handleExchangeWithBank(userId: String, intent: GameplayIntent.ExchangeWithBank) {
         val player = players[userId] ?: return

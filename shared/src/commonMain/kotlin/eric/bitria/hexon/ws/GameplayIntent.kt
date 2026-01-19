@@ -36,13 +36,19 @@ sealed class GameplayIntent : GameplayMessage() {
     @Serializable
     data class ProposeTrade(
         val offer: TradeOffer,
-        val receiverPlayerId: PlayerId = "Server",
         override var senderId: String? = null
     ) : GameplayIntent()
 
     @Serializable
     data class RespondToTrade(
-        val tradeId: String,
+        val offererId: PlayerId,
+        val accepted: Boolean,
+        override var senderId: String? = null
+    ) : GameplayIntent()
+
+    @Serializable
+    data class ConfirmTrade(
+        val responderId: PlayerId,
         val accepted: Boolean,
         override var senderId: String? = null
     ) : GameplayIntent()

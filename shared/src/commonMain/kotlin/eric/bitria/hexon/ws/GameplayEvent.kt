@@ -82,9 +82,15 @@ sealed class GameplayEvent : GameplayMessage() {
     ) : GameplayEvent()
 
     @Serializable
-    data class TradeCompleted(
-        val tradeId: String,
-        val participantIds: List<String>,
+    data class TradeResponse(
+        val offererId: PlayerId,
+        val accepted: Boolean,
+        override var senderId: String? = "Server"
+    ) : GameplayEvent()
+
+    @Serializable
+    data class TradeAccepted(
+        val responderId: PlayerId,
         override var senderId: String? = "Server"
     ) : GameplayEvent()
 
