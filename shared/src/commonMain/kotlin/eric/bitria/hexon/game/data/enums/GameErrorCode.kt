@@ -9,5 +9,6 @@ enum class GameErrorCode {
     INVALID_PLACEMENT,
     INVALID_TRADE,
     UNKNOWN_BUILDING,
+    UNKNOW_ACTION,
     GAME_ENDED
 }

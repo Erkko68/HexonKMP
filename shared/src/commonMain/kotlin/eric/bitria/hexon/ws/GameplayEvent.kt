@@ -34,6 +34,12 @@ sealed class GameplayEvent : GameplayMessage() {
 
     // --- State Changes ---
     @Serializable
+    data class RobberUpdated(
+        val location: HexCoord,
+        override var senderId: String? = "Server"
+    ): GameplayEvent()
+
+    @Serializable
     data class ResourcesUpdated(
         val playerId: PlayerId,
         val changes: Map<ResourceId, Int>, // e.g. {"wood": -1}

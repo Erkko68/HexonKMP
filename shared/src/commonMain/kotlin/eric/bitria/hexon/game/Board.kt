@@ -1,6 +1,9 @@
 package eric.bitria.hexon.game
 
+import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.HexCoord
+import eric.bitria.hexon.game.data.PlacementType
+import eric.bitria.hexon.game.data.PlayerId
 import eric.bitria.hexon.game.data.ResourceId
 
 
@@ -43,18 +46,18 @@ class Board {
     /**
      * @return true if the spot was empty and successfully built
      */
-    fun placeBuilding(typeId: String, ownerId: String, locId: String, isVertex: Boolean): Boolean {
+    fun placeBuilding(typeId: BuildingId, ownerId: String, locId: String, type: PlacementType): Boolean {
         if (buildings.containsKey(locId)) return false
 
         buildings[locId] = Building(
             id = typeId,
             ownerId = ownerId,
-            type = if (isVertex) "VERTEX" else "EDGE"
+            type = type
         )
         return true
     }
 
-    fun getBuildingAt(locId: String): Building? = buildings[locId]
+    fun getBuildingAt(locId: BuildingId): Building? = buildings[locId]
 
     // --- Production Logic (The Core) ---
 
@@ -62,40 +65,47 @@ class Board {
      * Given a dice roll, calculate who gets what.
      * @return Map of PlayerID -> List of ResourceIDs
      */
-    fun getProductionForRoll(roll: Int): Map<String, List<ResourceId>> {
-        val production = mutableMapOf<String, MutableList<ResourceId>>()
+    fun getProductionForRoll(roll: Int): Map<String, MutableMap<ResourceId, Int>> {
+        val production = mutableMapOf<String, MutableMap<ResourceId, Int>>()
 
-        // 1. Find all tiles matching the dice roll
+        // 1. Find all tiles matching the dice roll and not blocked by the robber
         val activeTiles = tiles.values.filter {
             it.numberToken == roll && it.coordinate != robberLocation
         }
 
-        // 2. For each active tile, check its 6 corners (vertices)
+        // 2. For each active tile, check its 6 vertices
         for (tile in activeTiles) {
             val resource = tile.resourceId ?: continue
-
-            // Get the 6 vertex IDs around this hex
             val vertices = getVerticesForHex(tile.coordinate)
 
             for (vertexId in vertices) {
                 val building = buildings[vertexId] ?: continue
 
-                // Logic: Settlement = 1 res, City = 2 res
-                // In dynamic system: we might look up "productionMultiplier" in config
-                // For now, hardcode standard logic or inject it:
+                // Settlement = 1, City = 2
                 val amount = if (building.id == "city") 2 else 1
 
-                val playerList = production.getOrPut(building.ownerId) { mutableListOf() }
-                repeat(amount) { playerList.add(resource) }
+                val playerProduction =
+                    production.getOrPut(building.ownerId) { mutableMapOf() }
+
+                playerProduction[resource] =
+                    (playerProduction[resource] ?: 0) + amount
             }
         }
+
         return production
     }
 
     // --- Helpers ---
 
-    fun moveRobber(target: HexCoord) {
+    /**
+     * Moves the robber to the selected HexCoord.
+     * @return A list of the affected players.
+     */
+    fun moveRobber(target: HexCoord): List<PlayerId> {
         robberLocation = target
+        return getVerticesForHex(target)
+            .mapNotNull { buildings[it]?.ownerId }
+            .distinct()
     }
 
     /**
@@ -138,8 +148,8 @@ data class HexTile(
 
 data class Building(
     val id: String,         // "settlement", "road"
-    val ownerId: String,    // "player_123"
-    val type: String        // "VERTEX" or "EDGE" (Cached for easy logic)
+    val ownerId: PlayerId,    // "player_123"
+    val type: PlacementType // "VERTEX" or "EDGE"
 )
 
 data class Port(

@@ -56,7 +56,7 @@ sealed class GameplayIntent : GameplayMessage() {
     // --- Robber ---
     @Serializable
     data class MoveRobber(
-        val hexLocation: HexCoord,   // Target Hex
+        val hexA: HexCoord,   // Target Hex
         val victimId: String?,       // Optional (might trigger simple move)
         override var senderId: String? = null
     ) : GameplayIntent()

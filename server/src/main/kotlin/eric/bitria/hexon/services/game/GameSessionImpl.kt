@@ -196,8 +196,8 @@ class GameSessionImpl(
     }
 
     // --- Output Handling ---
-    override suspend fun sendToPlayer(userId: String, message: GameMessage) {
-        val session = connectedPlayers[userId] ?: return
+    override suspend fun sendToPlayer(playerId: String, message: GameMessage) {
+        val session = connectedPlayers[playerId] ?: return
         try {
             val json = Json.encodeToString(message)
             session.send(Frame.Text(json))
