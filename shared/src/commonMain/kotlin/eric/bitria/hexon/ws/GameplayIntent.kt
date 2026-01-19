@@ -2,6 +2,7 @@ package eric.bitria.hexon.ws
 
 import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.BuildingId
+import eric.bitria.hexon.game.data.PlayerId
 import eric.bitria.hexon.game.data.ResourceId
 import eric.bitria.hexon.game.data.TradeOffer
 import kotlinx.serialization.Serializable
@@ -13,7 +14,7 @@ sealed class GameplayIntent : GameplayMessage() {
 
     @Serializable
     data class EndTurn(
-        override var senderId: String? = null
+        override var senderId: PlayerId? = null
     ) : GameplayIntent()
 
     // --- Dynamic Construction ---
@@ -35,7 +36,7 @@ sealed class GameplayIntent : GameplayMessage() {
     @Serializable
     data class ProposeTrade(
         val offer: TradeOffer,
-        val receiverPlayerId: String? = null, // null = Public
+        val receiverPlayerId: PlayerId = "Server",
         override var senderId: String? = null
     ) : GameplayIntent()
 
@@ -57,7 +58,6 @@ sealed class GameplayIntent : GameplayMessage() {
     @Serializable
     data class MoveRobber(
         val hexA: HexCoord,   // Target Hex
-        val victimId: String?,       // Optional (might trigger simple move)
         override var senderId: String? = null
     ) : GameplayIntent()
 }

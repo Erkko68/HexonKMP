@@ -225,4 +225,25 @@ class GameEngineImpl(
             )
         )
     }
+
+    private suspend fun handleTradeProposal(userId: PlayerId, intent: GameplayIntent.ProposeTrade) {
+        val player = players[userId] ?: return
+        val tradeGive = intent.offer.give
+
+        // Check if player has enough resources to give
+        if (!player.canDeductResources(tradeGive)) return sender.sendToPlayer(
+            userId,
+            GameplayEvent.GameError("Insufficient resources", GameErrorCode.INSUFFICIENT_RESOURCES)
+        )
+
+        // Send trade proposal to the receiver
+        sender.sendToPlayer(
+            intent.receiverPlayerId,
+            GameplayEvent.TradeProposed(
+                tradeId = intent.offer.id,
+                proposerId = userId,
+                offer = intent.offer
+            )
+        )
+    }
 }

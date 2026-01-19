@@ -3,6 +3,8 @@ package eric.bitria.hexon.game
 import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.PlayerSnapshot
 import eric.bitria.hexon.game.data.ResourceId
+import kotlin.collections.component1
+import kotlin.collections.component2
 
 /**
  * INTERNAL ENGINE CLASS
@@ -73,6 +75,14 @@ data class GamePlayer(
     fun totalResourceCount(): Int {
         return resources.values.sum()
     }
+
+    /**
+     * Checks if the player can afford the given cost.
+     * @return true if they can, false otherwise.
+     */
+    fun canDeductResources(cost: Map<ResourceId, Int>): Boolean =
+        cost.all { (res, amount) -> (resources[res] ?: 0) >= amount }
+
 
     /**
      * Converts this private state into the public-safe Snapshot
