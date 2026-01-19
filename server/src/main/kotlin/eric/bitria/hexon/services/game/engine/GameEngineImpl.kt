@@ -9,6 +9,7 @@ import eric.bitria.hexon.game.data.PlacementType
 import eric.bitria.hexon.game.data.PlayerId
 import eric.bitria.hexon.game.data.ResourceDef
 import eric.bitria.hexon.game.data.ResourceId
+import eric.bitria.hexon.game.data.TradeOffer
 import eric.bitria.hexon.game.data.enums.GameErrorCode
 import eric.bitria.hexon.game.data.enums.UpdateReason
 import eric.bitria.hexon.ws.GameMessage
@@ -35,12 +36,13 @@ class GameEngineImpl(
     private lateinit var sender: GameMessageSender
 
     // Internal State
-    private val players = ConcurrentHashMap<String, GamePlayer>()
+    private val players = mutableMapOf<String, GamePlayer>()
     private val board = Board()
     val buildings: Map<String, BuildingDef> =
         gameConfig.buildings.associateBy { it.id }
     val resources: Map<String, ResourceDef> =
         gameConfig.resources.associateBy { it.id }
+    val trades = mutableMapOf<PlayerId, TradeOffer>()
 
     // Game Loop State
     private var turnIndex = 0
@@ -56,7 +58,7 @@ class GameEngineImpl(
         }
 
         // 2. Map Generation (Procedural Logic)
-        initializeBoard()
+        board.initializeBoard()
 
         // 3. Send Configuration & Initial State to Clients
         sender.broadcast(GameplayEvent.GameConfigLoaded(gameConfig))
@@ -69,9 +71,11 @@ class GameEngineImpl(
         // We only care about Gameplay Intents here
         if (message !is GameplayIntent) return
 
-        // Allow Players to Respond to Trade when its not their turn
-        if (message is GameplayIntent.RespondToTrade){
-            handleTradeResponse(userId, message)
+        // Allow Players to Respond or Offer Trades with each other
+        when(message) {
+            is GameplayIntent.ProposeTrade -> return handleTradeProposal(userId, message)
+            is GameplayIntent.RespondToTrade -> return handleTradeResponse(userId, message)
+            else -> {}
         }
 
         // 1. Universal Validation (Is it this player's turn?)
@@ -80,8 +84,8 @@ class GameEngineImpl(
         // 2. Route by Intent Type
         when (message) {
             is GameplayIntent.Build -> handleBuild(userId, message)
-            is GameplayIntent.ProposeTrade -> handleTradeProposal(userId, message)
             is GameplayIntent.MoveRobber -> handleRobberMove(userId, message)
+            is GameplayIntent.ExchangeWithBank -> handleExchangeWithBank(userId, message)
             is GameplayIntent.EndTurn -> handleEndTurn(userId)
             else -> sender.sendToPlayer(userId, GameplayEvent.GameError("Unknown action",
                 GameErrorCode.UNKNOWN_BUILDING))
@@ -139,13 +143,15 @@ class GameEngineImpl(
     }
 
     private suspend fun handleBuild(userId: PlayerId, intent: GameplayIntent.Build) {
+        val player = players[userId] ?: return
+
         val buildingDef = buildings[intent.buildingId]
             ?: return sender.sendToPlayer(
                 userId,
                 GameplayEvent.GameError("Unknown building", GameErrorCode.UNKNOWN_BUILDING)
             )
 
-        if (!players[userId]?.tryDeductResources(buildingDef.cost)!!){
+        if (!player.tryDeductResources(buildingDef.cost)){
             return sender.sendToPlayer(
                 userId,
                 GameplayEvent.GameError("Insufficient resources", GameErrorCode.INSUFFICIENT_RESOURCES)
@@ -204,7 +210,7 @@ class GameEngineImpl(
             ?.let { mapOf(it to 1) } ?: return
 
         // Remove from victim
-        players[victimId]?.addResources(stolenResource)
+        players[victimId]?.tryDeductResources(stolenResource)
         sender.sendToPlayer(
             victimId,
             GameplayEvent.ResourcesUpdated(
@@ -236,14 +242,83 @@ class GameEngineImpl(
             GameplayEvent.GameError("Insufficient resources", GameErrorCode.INSUFFICIENT_RESOURCES)
         )
 
+        // Store new trade for the player
+        trades[userId] = intent.offer
+
         // Send trade proposal to the receiver
         sender.sendToPlayer(
             intent.receiverPlayerId,
             GameplayEvent.TradeProposed(
-                tradeId = intent.offer.id,
-                proposerId = userId,
-                offer = intent.offer
+                offer = intent.offer,
+                senderId = userId // Need to notify from who this trade is coming from
             )
         )
     }
+
+    private suspend fun handleExchangeWithBank(userId: String, intent: GameplayIntent.ExchangeWithBank) {
+        val player = players[userId] ?: return
+
+        fun effectiveRatio(resourceId: String): Int {
+            val specific = player.getPortDiscountRatio(resourceId)
+            if (specific > 0) return specific
+
+            val generic = player.getPortDiscountRatio(null)
+            if (generic > 0) return generic
+
+            return 4
+        }
+
+        var creditsRemaining = intent.get.values.sum()
+        val toDeduct = mutableMapOf<String, Int>()
+
+        for ((resourceId, offered) in intent.give) {
+            if (creditsRemaining <= 0) break
+
+            val ratio = effectiveRatio(resourceId)
+            val creditsFromResource = offered / ratio
+            if (creditsFromResource <= 0) continue
+
+            val creditsUsed = minOf(creditsFromResource, creditsRemaining)
+            toDeduct[resourceId] = creditsUsed * ratio
+            creditsRemaining -= creditsUsed
+        }
+
+        if (creditsRemaining > 0) {
+            sender.sendToPlayer(
+                userId,
+                GameplayEvent.GameError(
+                    "Insufficient trade value.",
+                    GameErrorCode.INSUFFICIENT_RESOURCES
+                )
+            )
+            return
+        }
+
+        if (!player.canDeductResources(toDeduct)) {
+            sender.sendToPlayer(
+                userId,
+                GameplayEvent.GameError(
+                    "Insufficient resources.",
+                    GameErrorCode.INSUFFICIENT_RESOURCES
+                )
+            )
+            return
+        }
+
+        player.tryDeductResources(toDeduct)
+        player.addResources(intent.get)
+
+        val changes =
+            toDeduct.mapValues { -it.value } + intent.get
+
+        sender.sendToPlayer(
+            userId,
+            GameplayEvent.ResourcesUpdated(
+                playerId = userId,
+                changes = changes,
+                reason = UpdateReason.TRADE
+            )
+        )
+    }
+
 }

@@ -77,8 +77,6 @@ sealed class GameplayEvent : GameplayMessage() {
     // --- Trade Interactions ---
     @Serializable
     data class TradeProposed(
-        val tradeId: String,
-        val proposerId: String,
         val offer: TradeOffer,
         override var senderId: String? = "Server"
     ) : GameplayEvent()

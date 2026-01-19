@@ -4,6 +4,7 @@ import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.PlacementType
 import eric.bitria.hexon.game.data.PlayerId
+import eric.bitria.hexon.game.data.PortVertex
 import eric.bitria.hexon.game.data.ResourceId
 
 
@@ -17,8 +18,8 @@ class Board {
     // Value: The building placed there
     private val buildings = mutableMapOf<String, Building>()
 
-    // Key: Normalized Edge ID
-    private val ports = mutableMapOf<String, Port>()
+    // Key: Normalized Vertex ID
+    private val ports = mutableMapOf<PortVertex, Port>()
 
     // Robber State
     var robberLocation: HexCoord = HexCoord(0, 0)
@@ -153,7 +154,7 @@ data class Building(
 )
 
 data class Port(
-    val locationId: String, // The Edge ID where the port is located
+    val locationId: PortVertex, // The Vertex ID where the port is located
     val resourceId: String?, // Null = 3:1 Generic, "wood" = 2:1 Wood
     val ratio: Int           // 2 or 3
 )

@@ -5,6 +5,7 @@ import eric.bitria.hexon.game.data.PlayerSnapshot
 import eric.bitria.hexon.game.data.ResourceId
 import kotlin.collections.component1
 import kotlin.collections.component2
+import kotlin.collections.forEach
 
 /**
  * INTERNAL ENGINE CLASS
@@ -20,6 +21,7 @@ data class GamePlayer(
     // --- Dynamic Inventory ---
     // Maps ResourceId ("wood") to Quantity. Default 0.
     val resources: MutableMap<ResourceId, Int> = mutableMapOf(),
+    val ports: MutableMap<String, Port> = mutableMapOf(),
 
     // Maps BuildingId ("settlement") to Count (e.g., 3 built so far).
     // Used to check limits (e.g., max 5 settlements).
@@ -53,7 +55,7 @@ data class GamePlayer(
 
     /**
      * Helper to safely remove resources.
-     * Returns false if insufficient funds (atomic check).
+     * Returns false if insufficient funds.
      */
     fun tryDeductResources(cost: Map<ResourceId, Int>): Boolean {
         // 1. Check if they have enough
@@ -83,6 +85,12 @@ data class GamePlayer(
     fun canDeductResources(cost: Map<ResourceId, Int>): Boolean =
         cost.all { (res, amount) -> (resources[res] ?: 0) >= amount }
 
+    /**
+     * @param resource is not using typealias `ResourceID` to allow for null values representing generic ratio.
+     * @return The best ratio discount for the given resource.
+     */
+    fun getPortDiscountRatio(resource: String?): Int =
+        ports.values.find { it.resourceId == resource }?.ratio ?: 0
 
     /**
      * Converts this private state into the public-safe Snapshot
