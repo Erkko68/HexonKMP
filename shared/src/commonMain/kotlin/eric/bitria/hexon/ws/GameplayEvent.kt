@@ -64,7 +64,6 @@ sealed class GameplayEvent : GameplayMessage() {
     data class DiceRolled(
         val values: Pair<Int,Int>,
         val sum: Int,
-        val sourcePlayerId: PlayerId,
         override var senderId: String? = "Server"
     ) : GameplayEvent()
 

@@ -20,7 +20,6 @@ import kotlin.collections.forEach
 
 private enum class TurnPhase {
     SETUP,          // Initial settlement placement (Snake draft)
-    WAITING_FOR_ROLL,
     MAIN_PHASE,     // Can build, trade, play cards
     ROBBER_RESOLUTION, // Waiting for a player to move the robber
     GAME_OVER
@@ -79,8 +78,9 @@ class GameEngineImpl(
             else -> {}
         }
 
-        // 1. Universal Validation (Is it this player's turn?)
-        if (!validateTurn(userId, message)) return
+        // 1. Is it this player's turn?
+        if (userId != currentTurnPlayerId) return sender.sendToPlayer(userId, GameplayEvent.GameError("Not your turn",
+            GameErrorCode.NOT_YOUR_TURN))
 
         // 2. Route by Intent Type
         when (message) {
@@ -121,8 +121,7 @@ class GameEngineImpl(
         sender.broadcast(
             GameplayEvent.DiceRolled(
                 values = Pair(roll1, roll2),
-                sum = total,
-                sourcePlayerId = currentTurnPlayerId
+                sum = total
             )
         )
 
@@ -139,6 +138,18 @@ class GameEngineImpl(
                 )
             )
         }
+    }
+
+    private suspend fun handleEndTurn(playerId: PlayerId){
+        // 1. Calculate Next Player
+        turnIndex++
+        currentTurnPlayerId = players.keys.elementAt(turnIndex % players.size)
+
+        // 3. Notify Everyone
+        sender.broadcast(GameplayEvent.TurnChanged(newPlayerId = currentTurnPlayerId))
+
+        // 4. Roll dice
+        rollDice()
     }
 
     private suspend fun handleBuild(userId: PlayerId, intent: GameplayIntent.Build) {
