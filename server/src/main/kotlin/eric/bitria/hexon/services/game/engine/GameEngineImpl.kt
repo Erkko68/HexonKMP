@@ -68,15 +68,15 @@ class GameEngineImpl(
 
     override suspend fun onMessage(userId: String, message: GameMessage) {
         // We only care about Gameplay Intents here
-        if (message !is GameplayIntent) return
+        if (message !is GameplayIntent) return sender.sendToPlayer(userId, GameplayEvent.GameError("Unknown intent action",
+            GameErrorCode.UNKNOW_ACTION))
 
         // Allow Players to Respond or Offer Trades with each other
         when(message) {
             is GameplayIntent.ProposeTrade -> return handleTradeProposal(userId, message)
             is GameplayIntent.RespondToTrade -> return handleTradeResponse(userId, message)
             is GameplayIntent.ConfirmTrade -> return handleTradeConfirmation(userId, message)
-            else -> sender.sendToPlayer(userId, GameplayEvent.GameError("Unknown action",
-                GameErrorCode.UNKNOWN_BUILDING))
+            else -> {}
         }
 
         // 1. Universal Validation (Is it this player's turn?)
@@ -254,13 +254,14 @@ class GameEngineImpl(
     }
 
     private suspend fun handleTradeResponse(userId: PlayerId, intent: GameplayIntent.RespondToTrade) {
+        val player = players[userId] ?: return
+
         val trade = trades[intent.offererId] ?: return sender.sendToPlayer(
             userId,
             GameplayEvent.GameError("No trade found for this player.", GameErrorCode.INVALID_TRADE)
         )
 
-        val player = players[userId]
-        if(!player?.canDeductResources(trade.want)!!){
+        if(!player.canDeductResources(trade.want)){
             return sender.sendToPlayer(
                 userId,
                 GameplayEvent.GameError("Insufficient resources", GameErrorCode.INSUFFICIENT_RESOURCES)
@@ -331,7 +332,6 @@ class GameEngineImpl(
             )
         )
     }
-
 
     private suspend fun handleExchangeWithBank(userId: String, intent: GameplayIntent.ExchangeWithBank) {
         val player = players[userId] ?: return
