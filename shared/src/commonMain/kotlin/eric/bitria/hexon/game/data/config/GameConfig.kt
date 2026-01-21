@@ -1,8 +1,7 @@
 package eric.bitria.hexon.game.data.config
 
-import eric.bitria.hexon.game.BoardConfig
-import eric.bitria.hexon.game.data.BuildingDef
-import eric.bitria.hexon.game.data.ResourceDef
+import eric.bitria.hexon.game.data.def.BuildingDef
+import eric.bitria.hexon.game.data.def.ResourceDef
 import kotlinx.serialization.Serializable
 
 @Serializable

@@ -1,5 +1,6 @@
-package eric.bitria.hexon.game.data
+package eric.bitria.hexon.game.data.def
 
+import eric.bitria.hexon.game.data.ResourceId
 import kotlinx.serialization.Serializable
 
 @Serializable

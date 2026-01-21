@@ -3,12 +3,12 @@ package eric.bitria.hexon.services.game.engine
 import eric.bitria.hexon.game.Board
 import eric.bitria.hexon.game.GameConfigLoader
 import eric.bitria.hexon.game.GamePlayer
-import eric.bitria.hexon.game.data.BuildingDef
+import eric.bitria.hexon.game.data.def.BuildingDef
 import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.config.GameConfig
-import eric.bitria.hexon.game.data.PlacementType
+import eric.bitria.hexon.game.data.def.PlacementType
 import eric.bitria.hexon.game.data.PlayerId
-import eric.bitria.hexon.game.data.ResourceDef
+import eric.bitria.hexon.game.data.def.ResourceDef
 import eric.bitria.hexon.game.data.ResourceId
 import eric.bitria.hexon.game.data.TradeOffer
 import eric.bitria.hexon.game.data.enums.GameErrorCode

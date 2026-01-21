@@ -1,12 +1,13 @@
 package eric.bitria.hexon.game
 
-import eric.bitria.hexon.game.data.BuildingDef
+import eric.bitria.hexon.game.data.def.BuildingDef
 import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.HexCoord
-import eric.bitria.hexon.game.data.PlacementType
+import eric.bitria.hexon.game.data.def.PlacementType
 import eric.bitria.hexon.game.data.PlayerId
+import eric.bitria.hexon.game.data.def.PortDef
 import eric.bitria.hexon.game.data.PortVertex
-import eric.bitria.hexon.game.data.ResourceDef
+import eric.bitria.hexon.game.data.def.ResourceDef
 import eric.bitria.hexon.game.data.ResourceId
 
 class Board(
@@ -21,7 +22,7 @@ class Board(
     // Value: The wrapper containing the Owner ID and the immutable Building Definition
     private val buildings = mutableMapOf<String, PlacedBuilding>()
 
-    private val ports = mutableMapOf<PortVertex, Port>()
+    private val ports = mutableMapOf<PortVertex, PortDef>()
 
     var robberLocation: HexCoord = HexCoord(0, 0)
         private set
@@ -44,14 +45,14 @@ class Board(
         }
     }
 
-    fun addPort(h1: HexCoord, h2: HexCoord, resource: ResourceId?, ratio: Int) {
+    fun addPort(h1: HexCoord, h2: HexCoord, h3: HexCoord, resource: ResourceId?, ratio: Int) {
         if (resource != null) {
             require(availableResources.any { it.id == resource }) {
                 "Resource '$resource' is not defined in the GameConfig."
             }
         }
-        val id = HexCoord.getEdgeId(h1, h2)
-        ports[id] = Port(id, resource, ratio)
+        val id = HexCoord.getVertexId(h1, h2, h3)
+        ports[id] = PortDef(h1, h2, h3, resource, ratio)
     }
 
     // --- Building Logic (Executor) ---
@@ -298,10 +299,4 @@ data class HexTile(
     val coordinate: HexCoord,
     val resourceId: String?, // Null = Desert
     val numberToken: Int    // 7 = Desert
-)
-
-data class Port(
-    val locationId: PortVertex,
-    val resourceId: String?,
-    val ratio: Int
 )

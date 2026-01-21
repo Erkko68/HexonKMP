@@ -1,12 +1,16 @@
 package eric.bitria.hexon.game
 
-import eric.bitria.hexon.game.data.BuildingDef
+import eric.bitria.hexon.game.data.def.BuildingDef
 import eric.bitria.hexon.game.data.HexCoord
-import eric.bitria.hexon.game.data.PlacementType
-import eric.bitria.hexon.game.data.ResourceDef
+import eric.bitria.hexon.game.data.def.PlacementType
+import eric.bitria.hexon.game.data.def.PortDef
+import eric.bitria.hexon.game.data.def.ResourceDef
+import eric.bitria.hexon.game.data.ResourceId
 import eric.bitria.hexon.game.data.config.BoardConfig
 import eric.bitria.hexon.game.data.config.FixedTile
 import eric.bitria.hexon.game.data.config.GameConfig
+import kotlin.math.max
+import kotlin.math.min
 
 object GameConfigLoader {
 
@@ -26,9 +30,11 @@ object GameConfigLoader {
     // ==========================================
 
     private fun defaultBoard(): BoardConfig {
-        // Standard Catan (19 Hexes)
-        // 4 Wood, 4 Sheep, 4 Wheat, 3 Brick, 3 Ore, 1 Desert
-        val resources = mutableListOf<String?>().apply {
+        // 1. Generate Standard Coordinates (Radius 2)
+        val coords = generateHexGrid(2)
+
+        // 2. Resources (19 Hexes)
+        val resources = mutableListOf<ResourceId?>().apply {
             repeat(4) { add("wood") }
             repeat(4) { add("sheep") }
             repeat(4) { add("wheat") }
@@ -37,24 +43,47 @@ object GameConfigLoader {
             add(null) // Desert
         }
 
-        // Standard Tokens (18 Tokens, skipping 7/Desert)
-        // 1x2, 2x3..11, 1x12
+        // 3. Tokens
         val numbers = listOf(5, 2, 6, 3, 8, 10, 9, 12, 11, 4, 8, 10, 9, 4, 5, 6, 3, 11)
 
+        // 4. Ports
+        val ports = mutableListOf<PortDef>().apply {
+            add(PortDef(HexCoord(0, 2),  HexCoord(-1, 2), HexCoord(0, 1),  null, 3))
+            add(PortDef(HexCoord(2, -1), HexCoord(2, -2), HexCoord(1, -1), null, 3))
+            add(PortDef(HexCoord(-1, -1),HexCoord(-2, 0), HexCoord(-1, 0), null, 3))
+            add(PortDef(HexCoord(0, -2), HexCoord(1, -2), HexCoord(0, -1), null, 3))
+            add(PortDef(HexCoord(1, 1),  HexCoord(1, 2),  HexCoord(2, 1),  "sheep", 2))
+            add(PortDef(HexCoord(-2, 2), HexCoord(-2, 1), HexCoord(-1, 1), "brick", 2))
+            add(PortDef(HexCoord(2, 0),  HexCoord(3, -1), HexCoord(2, -1), "ore", 2))
+            add(PortDef(HexCoord(-1, -2),HexCoord(-2, -1),HexCoord(-1, -1),"wood", 2))
+            add(PortDef(HexCoord(-2, 0), HexCoord(-3, 1), HexCoord(-2, 1), "wheat", 2))
+        }
+
         return BoardConfig(
-            mapRadius = 2, // Standard board has radius 2 (Center + Ring 1 + Ring 2)
+            coords = coords, // List passed here
             resources = resources,
             numbers = numbers,
-            // Example: Fixing the Desert to the center (0,0)
             fixedTiles = mapOf(
                 HexCoord(0, 0) to FixedTile(resource = null, number = null)
-            )
+            ),
+            ports = ports
         )
     }
 
-    // ==========================================
-    // GAME DATA DEFINITIONS
-    // ==========================================
+    // --- Helper to generate grid ---
+    private fun generateHexGrid(radius: Int): List<HexCoord> {
+        val coords = mutableListOf<HexCoord>()
+        for (q in -radius..radius) {
+            val r1 = max(-radius, -q - radius)
+            val r2 = min(radius, -q + radius)
+            for (r in r1..r2) {
+                coords.add(HexCoord(q, r))
+            }
+        }
+        return coords
+    }
+
+    // Data Definitions
 
     private fun defaultResources(): List<ResourceDef> {
         return listOf(
