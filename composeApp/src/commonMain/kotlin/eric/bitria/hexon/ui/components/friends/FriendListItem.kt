@@ -28,10 +28,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.utils.toVividColor
 import eric.bitria.hexon.viewmodel.data.Friend
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun FriendListItem(

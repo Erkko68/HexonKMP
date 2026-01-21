@@ -1,34 +1,39 @@
 [versions]
-agp = "8.13.2"
+agp = "9.0.0"
 android-compileSdk = "36"
 android-minSdk = "24"
 android-targetSdk = "35"
 androidx-activity = "1.12.2"
 androidx-lifecycle = "2.9.6"
 coilCompose = "3.3.0"
-composeMultiplatform = "1.9.3"
-composeWebviewMultiplatform = "2.0.3"
+componentsResources = "1.10.0"
+composeMultiplatform = "1.10.0"
 exposedJavaTime = "0.61.0"
+foundation = "1.10.0"
 jakartaMail = "2.0.2"
 javaJwt = "4.5.0"
 koinCompose = "4.1.1"
 kotlin = "2.3.0"
 kotlinxCoroutinesTest = "1.10.2"
-kotlinxSerializationJson = "1.9.0"
+kotlinxSerializationJson = "1.10.0"
 ktor = "3.3.3"
-logback = "1.5.23"
+logback = "1.5.25"
 androidx-navigation = "2.9.1"
+material3 = "1.9.0"
 materialIconsExtended = "1.7.3"
 
-junitPlatform = "6.0.1"
-junitJupiter = "6.0.1"
+junitPlatform = "6.0.2"
+junitJupiter = "6.0.2"
 
 ktlint = "14.0.1"
 
 exposed = "0.61.0"
-postgresql = "42.7.8"
+postgresql = "42.7.9"
 hikaricp = "7.0.2"
 bcrypt = "0.10.2"
+runtime = "1.10.0"
+ui = "1.10.0"
+uiToolingPreview = "1.10.0"
 uuidCreator = "6.1.1"
 coreKtx = "1.17.0"
 multiplatformSettings = "1.3.0"
@@ -43,10 +48,11 @@ junit = "1.3.0"
 [libraries]
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coilCompose" }
-compose-webview-multiplatform = { module = "io.github.kevinnzou:compose-webview-multiplatform", version.ref = "composeWebviewMultiplatform" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "componentsResources" }
 exposed-java-time = { module = "org.jetbrains.exposed:exposed-java-time", version.ref = "exposedJavaTime" }
+foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "foundation" }
 jakarta-mail = { module = "com.sun.mail:jakarta.mail", version.ref = "jakartaMail" }
 java-jwt = { module = "com.auth0:java-jwt", version.ref = "javaJwt" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesTest" }
@@ -90,9 +96,13 @@ kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotl
 exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
 exposed-dao = { module = "org.jetbrains.exposed:exposed-dao", version.ref = "exposed" }
 exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
+material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 bcrypt = { module = "at.favre.lib:bcrypt", version.ref = "bcrypt" }
+runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "runtime" }
+ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "ui" }
+ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "uiToolingPreview" }
 uuid-creator = { module = "com.github.f4b6a3:uuid-creator", version.ref = "uuidCreator" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 
