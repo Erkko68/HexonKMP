@@ -28,7 +28,7 @@ private enum class TurnPhase {
 
 class GameEngineImpl(
     private val sessionId: String,
-    private val gameConfig: GameConfig = GameConfigLoader.default()
+    private val gameConfig: GameConfig = GameConfigLoader.default(sessionId)
 ) : GameEngine {
 
     // Infrastructure
