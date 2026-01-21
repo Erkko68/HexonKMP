@@ -44,7 +44,8 @@ class GameEngineImpl(
         gameConfig.buildingDefs.associateBy { it.id }
     val resources: Map<ResourceId, ResourceDef> =
         gameConfig.resourceDefs.associateBy { it.id }
-    val trades = mutableMapOf<PlayerId, TradeOffer>()
+    private val trades = mutableMapOf<PlayerId, TradeOffer>()
+    private val tradeAcceptances = mutableMapOf<PlayerId, MutableSet<PlayerId>>()
 
     // Game Loop State
     private val playerQueue = mutableListOf<String>()
@@ -282,8 +283,9 @@ class GameEngineImpl(
             GameplayEvent.GameError("Insufficient resources", GameErrorCode.INSUFFICIENT_RESOURCES)
         )
 
-        // Store new trade for the player
+        // Store new trade for the player and initialize set for players response
         trades[userId] = intent.offer
+        tradeAcceptances[userId] = mutableSetOf()
 
         // Send trade proposal to the receiver
         sender.broadcast(
@@ -302,12 +304,25 @@ class GameEngineImpl(
             GameplayEvent.GameError("No trade found for this player.", GameErrorCode.INVALID_TRADE)
         )
 
+        if (userId == intent.offererId) return sender.sendToPlayer(
+            userId,
+            GameplayEvent.GameError("Cannot respond to your own trade.", GameErrorCode.INVALID_TRADE)
+        )
+
         if(!player.canDeductResources(trade.want)){
             return sender.sendToPlayer(
                 userId,
                 GameplayEvent.GameError("Insufficient resources", GameErrorCode.INSUFFICIENT_RESOURCES)
             )
         }
+
+        // 3. NEW: Update the acceptance state
+        tradeAcceptances
+            .getOrPut(intent.offererId) { mutableSetOf() }
+            .apply {
+                if (intent.accepted) add(userId) else remove(userId)
+            }
+
         // Notify original player offer of this player response
         sender.broadcast(
             GameplayEvent.TradeResponse(
@@ -319,58 +334,70 @@ class GameEngineImpl(
     }
 
     private suspend fun handleTradeConfirmation(userId: PlayerId, intent: GameplayIntent.ConfirmTrade) {
+        val offerer = players[userId] ?: return
+        val responder = players[intent.responderId] ?: return
+
+        if (intent.responderId == userId) return sender.sendToPlayer(userId, GameplayEvent.GameError("Cannot confirm your own trade.", GameErrorCode.INVALID_TRADE))
+
+        // 1. Retrieve the active trade
         val trade = trades[userId] ?: return sender.sendToPlayer(
             userId,
-            GameplayEvent.GameError("No trade found for this player.", GameErrorCode.INVALID_TRADE)
+            GameplayEvent.GameError("No active trade found.", GameErrorCode.INVALID_TRADE)
         )
 
-        val player = players[userId]
-        if(!player?.canDeductResources(trade.give)!!){
+        // 2. Verify the responder actually accepted THIS trade
+        val acceptedPlayers = tradeAcceptances[userId] ?: mutableSetOf()
+        if (!acceptedPlayers.contains(intent.responderId)) {
             return sender.sendToPlayer(
                 userId,
-                GameplayEvent.GameError("Insufficient resources", GameErrorCode.INSUFFICIENT_RESOURCES)
+                GameplayEvent.GameError("Player ${intent.responderId} has not accepted this trade.", GameErrorCode.INVALID_TRADE)
             )
         }
 
-        //TODO Store and verify other player accepted
+        // 3. Ensure enough resources
+        if (!offerer.canDeductResources(trade.give)) {
+            return sender.sendToPlayer(userId, GameplayEvent.GameError("You lack resources.", GameErrorCode.INSUFFICIENT_RESOURCES))
+        }
+        if (!responder.canDeductResources(trade.want)) {
+            // Remove them from acceptances so the offerer knows they are invalid now
+            acceptedPlayers.remove(intent.responderId)
+            return sender.sendToPlayer(userId, GameplayEvent.GameError("Responder lacks resources.", GameErrorCode.INSUFFICIENT_RESOURCES))
+        }
 
+        // 4. Execute Swap
+
+        // Deduct from Offerer / Give to Responder
+        offerer.tryDeductResources(trade.give)
+        responder.addResources(trade.give)
+
+        // Deduct from Responder / Give to Offerer
+        responder.tryDeductResources(trade.want)
+        offerer.addResources(trade.want)
+
+        // 5. Cleanup
+        trades.remove(userId)
+        tradeAcceptances.remove(userId)
+
+        // 6. Notify
         sender.broadcast(
             GameplayEvent.TradeAccepted(
-                responderId = intent.responderId, // The player that accepted the trade
-                senderId = userId                 // The user that sent this response
+                responderId = intent.responderId,
+                senderId = userId
             )
         )
 
-        // Switch resources
-        player.tryDeductResources(trade.give)
-        player.addResources(trade.want)
-
-        val changes =
-            trade.give.mapValues { -it.value } + trade.want
-
+        // Send updates to Offerer
+        val offererChanges = trade.give.mapValues { -it.value } + trade.want
         sender.sendToPlayer(
             userId,
-            GameplayEvent.ResourcesUpdated(
-                playerId = userId,
-                changes = changes,
-                reason = UpdateReason.TRADE
-            )
+            GameplayEvent.ResourcesUpdated(userId, offererChanges, UpdateReason.TRADE)
         )
 
-        val otherPlayer = players[intent.responderId]
-        otherPlayer?.tryDeductResources(trade.want)
-        otherPlayer?.addResources(trade.give)
-
-        val otherChanges =
-            trade.want.mapValues { -it.value } + trade.give
-
+        // Send updates to Responder
+        val responderChanges = trade.want.mapValues { -it.value } + trade.give
         sender.sendToPlayer(
             intent.responderId,
-            GameplayEvent.ResourcesUpdated(
-                playerId = userId,
-                changes = otherChanges,
-                reason = UpdateReason.TRADE
-            )
+            GameplayEvent.ResourcesUpdated(intent.responderId, responderChanges, UpdateReason.TRADE)
         )
     }
 
