@@ -208,7 +208,7 @@ class GameSessionImpl(
         broadcast(message, null)
     }
 
-    suspend fun broadcast(message: GameMessage, excludeUserId: String? = null) {
+    override suspend fun broadcast(message: GameMessage, excludeUserId: String?) {
         val json = Json.encodeToString(message)
         val frame = Frame.Text(json)
         connectedPlayers.forEach { (userId, session) ->

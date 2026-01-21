@@ -1,5 +1,6 @@
 package eric.bitria.hexon.ws
 
+import eric.bitria.hexon.game.GamePlayer
 import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.BuildingSnapshot
@@ -19,6 +20,18 @@ sealed class GameplayEvent : GameplayMessage() {
     @Serializable
     data class GameConfigLoaded(
         val config: GameConfig,
+        override var senderId: String? = "Server"
+    ) : GameplayEvent()
+
+    @Serializable
+    data class PlayerJoined(
+        val player: PlayerSnapshot,
+        override var senderId: String? = "Server"
+    ) : GameplayEvent()
+
+    @Serializable
+    data class GamePlayerStats(
+        val player: GamePlayer,
         override var senderId: String? = "Server"
     ) : GameplayEvent()
 

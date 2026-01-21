@@ -37,13 +37,13 @@ class GameEngineImpl(
     // Internal State
     private val players = mutableMapOf<String, GamePlayer>()
     private val board = Board(
-        availableResources = gameConfig.resources,
-        availableBuildings = gameConfig.buildings
+        availableResources = gameConfig.resourceDefs,
+        availableBuildings = gameConfig.buildingDefs
     )
     val buildings: Map<BuildingId, BuildingDef> =
-        gameConfig.buildings.associateBy { it.id }
+        gameConfig.buildingDefs.associateBy { it.id }
     val resources: Map<ResourceId, ResourceDef> =
-        gameConfig.resources.associateBy { it.id }
+        gameConfig.resourceDefs.associateBy { it.id }
     val trades = mutableMapOf<PlayerId, TradeOffer>()
 
     // Game Loop State
@@ -55,16 +55,29 @@ class GameEngineImpl(
     override suspend fun start(lobbyPlayers: List<LobbyPlayer>, sender: GameMessageSender) {
         this.sender = sender
 
-        // 1. Initialize Internal State
-        lobbyPlayers.forEach {
-            players[it.id] = GamePlayer(it.id, it.name, it.color, it.isHost)
-        }
+        // 0. Map Generation (Procedural Logic)
+        board.initialize(gameConfig)
 
-        // 2. Map Generation (Procedural Logic)
-        board.initialize(gameConfig.board)
-
-        // 3. Send Configuration & Initial State to Clients
+        // 1. Send Configuration & Initial State to Clients
         sender.broadcast(GameplayEvent.GameConfigLoaded(gameConfig))
+
+        // 2. Initialize Players
+        lobbyPlayers.forEach { player ->
+            val gamePlayer = GamePlayer(player.id, player.name, player.color, player.isHost)
+            players[player.id] = gamePlayer
+
+            // Send snapshot of this new player to all others
+            sender.broadcast(
+                GameplayEvent.PlayerJoined(gamePlayer.toSnapshot()),
+                excludeUserId = player.id
+            )
+
+            // Send full player state to new player
+            sender.sendToPlayer(
+                player.id,
+                GameplayEvent.GamePlayerStats(gamePlayer)
+            )
+        }
 
         // 4. Kickoff the Loop
         startFirstTurn()

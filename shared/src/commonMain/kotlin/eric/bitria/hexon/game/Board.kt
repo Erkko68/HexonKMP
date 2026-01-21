@@ -1,15 +1,16 @@
 package eric.bitria.hexon.game
 
-import eric.bitria.hexon.game.data.def.BuildingDef
 import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.HexCoord
-import eric.bitria.hexon.game.data.def.PlacementType
 import eric.bitria.hexon.game.data.PlayerId
-import eric.bitria.hexon.game.data.def.PortDef
 import eric.bitria.hexon.game.data.PortVertex
-import eric.bitria.hexon.game.data.def.ResourceDef
 import eric.bitria.hexon.game.data.ResourceId
-import eric.bitria.hexon.game.data.config.BoardConfig
+import eric.bitria.hexon.game.data.config.GameConfig
+import eric.bitria.hexon.game.data.def.BuildingDef
+import eric.bitria.hexon.game.data.def.PlacementType
+import eric.bitria.hexon.game.data.def.PortDef
+import eric.bitria.hexon.game.data.def.ResourceDef
+import kotlin.random.Random
 
 class Board(
     private val availableResources: List<ResourceDef>,
@@ -17,26 +18,34 @@ class Board(
 ) {
 
     // --- State Storage ---
-    private val tiles = mutableMapOf<String, HexTile>()
-    private val buildings = mutableMapOf<String, PlacedBuilding>() // Key: Vertex/Edge ID
-    private val ports = mutableMapOf<PortVertex, PortDef>()
+    internal val tiles = mutableMapOf<String, HexTile>()
+    internal val buildings = mutableMapOf<String, PlacedBuilding>() // Key: Vertex/Edge ID
+    internal val ports = mutableMapOf<PortVertex, PortDef>()
 
     var robberLocation: HexCoord = HexCoord(0, 0)
         private set
 
     // --- Initialization ---
 
-    fun initialize(config: BoardConfig) {
+    fun initialize(config: GameConfig) {
         tiles.clear()
         ports.clear()
         buildings.clear()
 
-        // Prepare "Deck" of tokens
-        val resourcePool = config.resources.toMutableList().apply { shuffle() }
-        val numberPool = config.numbers.toMutableList().apply { shuffle() }
+        // 1. Create a deterministic Random instance using the seed hash
+        val rng = Random(config.seed.hashCode())
 
-        // Place Tiles
-        for (coord in config.coords) {
+        // 2. Prepare "Deck" of tokens using the seeded RNG
+        val resourcePool = config.tileResourcePool.toMutableList().apply {
+            shuffle(rng) // Shuffles identically on all clients
+        }
+
+        val numberPool = config.tileNumberPool.toMutableList().apply {
+            shuffle(rng)
+        }
+
+        // 3. Place Tiles
+        for (coord in config.gridCoords) {
             val fixed = config.fixedTiles[coord]
 
             if (fixed != null) {
@@ -57,7 +66,7 @@ class Board(
             }
         }
 
-        // Place Ports
+        // 4. Place Ports
         config.ports.forEach {
             addPort(it.h1, it.h2, it.h3, it.resourceId, it.ratio)
         }

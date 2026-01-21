@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class GameViewModel : ViewModel() {
-    private val _uiState = MutableStateFlow(GameUIState.ROLLING)
+    private val _uiState = MutableStateFlow(GameUIState.WAITING)
     val uiState: StateFlow<GameUIState> = _uiState.asStateFlow()
 
     private val _players = MutableStateFlow(listOf<Player>())

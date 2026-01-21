@@ -12,7 +12,7 @@ class BoardTest {
     // Helper to create a board with default rules
     private fun createBoard(): Board {
         val config = GameConfigLoader.default()
-        return Board(config.resources, config.buildings)
+        return Board(config.resourceDefs, config.buildingDefs)
     }
 
     // New Helper: Adds a small patch of land to allow placement tests to pass.

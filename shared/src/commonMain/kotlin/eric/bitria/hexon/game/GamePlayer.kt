@@ -4,15 +4,12 @@ import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.PlayerSnapshot
 import eric.bitria.hexon.game.data.ResourceId
 import eric.bitria.hexon.game.data.def.PortDef
+import kotlinx.serialization.Serializable
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.forEach
 
-/**
- * INTERNAL ENGINE CLASS
- * Holds the complete state of a player during the game.
- * This is NEVER sent directly to the client.
- */
+@Serializable
 data class GamePlayer(
     val id: String,
     val name: String,

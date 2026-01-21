@@ -6,4 +6,5 @@ import eric.bitria.hexon.ws.GameMessage
 interface GameMessageSender {
     suspend fun sendToPlayer(playerId: String, message: GameMessage)
     suspend fun broadcast(message: GameMessage)
+    suspend fun broadcast(message: GameMessage, excludeUserId: String? = null)
 }
