@@ -17,6 +17,8 @@ import eric.bitria.hexon.ws.GameMessage
 import eric.bitria.hexon.ws.GameplayEvent
 import eric.bitria.hexon.ws.GameplayIntent
 import eric.bitria.hexon.ws.lobby.LobbyPlayer
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.collections.forEach
 
 private enum class TurnPhase {
@@ -33,6 +35,7 @@ class GameEngineImpl(
 
     // Infrastructure
     private lateinit var sender: GameMessageSender
+    private val mutex = Mutex()
 
     // Internal State
     private val players = mutableMapOf<String, GamePlayer>()
@@ -54,70 +57,78 @@ class GameEngineImpl(
     private var currentPhase: TurnPhase = TurnPhase.SETUP
 
     override suspend fun start(lobbyPlayers: List<LobbyPlayer>, sender: GameMessageSender) {
-        this.sender = sender
+        mutex.withLock {
+            this.sender = sender
 
-        // 0. Map Generation (Procedural Logic)
-        board.initialize(gameConfig)
+            // 0. Map Generation (Procedural Logic)
+            board.initialize(gameConfig)
 
-        // 1. Send Configuration & Initial State to Clients
-        sender.broadcast(GameplayEvent.GameConfigLoaded(gameConfig))
+            // 1. Send Configuration & Initial State to Clients
+            sender.broadcast(GameplayEvent.GameConfigLoaded(gameConfig))
 
-        // 2. Initialize Players
-        lobbyPlayers.forEach { player ->
-            val gamePlayer = GamePlayer(player.id, player.name, player.color, player.isHost)
-            players[player.id] = gamePlayer
+            // 2. Initialize Players
+            lobbyPlayers.forEach { player ->
+                val gamePlayer = GamePlayer(player.id, player.name, player.color, player.isHost)
+                players[player.id] = gamePlayer
 
-            // Send snapshot of this new player to all others
-            sender.broadcast(
-                GameplayEvent.PlayerJoined(gamePlayer.toSnapshot()),
-                excludeUserId = player.id
-            )
+                // Send snapshot of this new player to all others
+                sender.broadcast(
+                    GameplayEvent.PlayerJoined(gamePlayer.toSnapshot()),
+                    excludeUserId = player.id
+                )
 
-            // Send full player state to new player
-            sender.sendToPlayer(
-                player.id,
-                GameplayEvent.GamePlayerStats(gamePlayer)
-            )
+                // Send full player state to new player
+                sender.sendToPlayer(
+                    player.id,
+                    GameplayEvent.GamePlayerStats(gamePlayer)
+                )
+            }
+
+            // 4. Kickoff the Loop
+            startFirstTurn()
         }
-
-        // 4. Kickoff the Loop
-        startFirstTurn()
     }
 
     override suspend fun onMessage(userId: String, message: GameMessage) {
-        // We only care about Gameplay Intents here
-        if (message !is GameplayIntent) return sender.sendToPlayer(userId, GameplayEvent.GameError("Unknown intent action",
-            GameErrorCode.UNKNOW_ACTION))
+        mutex.withLock {
+            // We only care about Gameplay Intents here
+            if (message !is GameplayIntent) return sender.sendToPlayer(userId, GameplayEvent.GameError("Unknown intent action",
+                GameErrorCode.UNKNOW_ACTION))
 
-        // Allow Players to Respond or Offer Trades with each other
-        when(message) {
-            is GameplayIntent.ProposeTrade -> return handleTradeProposal(userId, message)
-            is GameplayIntent.RespondToTrade -> return handleTradeResponse(userId, message)
-            is GameplayIntent.ConfirmTrade -> return handleTradeConfirmation(userId, message)
-            else -> {}
-        }
+            // Allow Players to Respond or Offer Trades with each other
+            when(message) {
+                is GameplayIntent.ProposeTrade -> return handleTradeProposal(userId, message)
+                is GameplayIntent.RespondToTrade -> return handleTradeResponse(userId, message)
+                is GameplayIntent.ConfirmTrade -> return handleTradeConfirmation(userId, message)
+                else -> {}
+            }
 
-        // 1. Is it this player's turn?
-        if (userId != currentTurnPlayerId) return sender.sendToPlayer(userId, GameplayEvent.GameError("Not your turn",
-            GameErrorCode.NOT_YOUR_TURN))
+            // 1. Is it this player's turn?
+            if (userId != currentTurnPlayerId) return sender.sendToPlayer(userId, GameplayEvent.GameError("Not your turn",
+                GameErrorCode.NOT_YOUR_TURN))
 
-        // 2. Route by Intent Type
-        when (message) {
-            is GameplayIntent.Build -> handleBuild(userId, message)
-            is GameplayIntent.MoveRobber -> handleRobberMove(userId, message)
-            is GameplayIntent.ExchangeWithBank -> handleExchangeWithBank(userId, message)
-            is GameplayIntent.EndTurn -> handleEndTurn(userId)
+            // 2. Route by Intent Type
+            when (message) {
+                is GameplayIntent.Build -> handleBuild(userId, message)
+                is GameplayIntent.MoveRobber -> handleRobberMove(userId, message)
+                is GameplayIntent.ExchangeWithBank -> handleExchangeWithBank(userId, message)
+                is GameplayIntent.EndTurn -> handleEndTurn(userId)
+            }
         }
     }
 
     override suspend fun onPlayerLeave(userId: String) {
-        //sender.broadcast(GameMessage.GameInfo("Player $userId disconnected"))
-        // Handle pause or forfeit logic
+        mutex.withLock {
+            // Handle pause logic or cleanup safely
+            // sender.broadcast(GameMessage.GameInfo("Player $userId disconnected"))
+        }
     }
 
     override suspend fun onPlayerRejoin(userId: String) {
-        // Send them the current board state
-        //sender.sendToPlayer(userId, GameMessage.GameInfo("SYNC_STATE"))
+        mutex.withLock {
+            // Handle pause logic or cleanup safely
+            // sender.broadcast(GameMessage.GameInfo("Player $userId disconnected"))
+        }
     }
 
     private suspend fun startFirstTurn(){
