@@ -3,7 +3,7 @@ package eric.bitria.hexon.ws
 import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.BuildingSnapshot
-import eric.bitria.hexon.game.data.GameConfig
+import eric.bitria.hexon.game.data.config.GameConfig
 import eric.bitria.hexon.game.data.PlayerId
 import eric.bitria.hexon.game.data.ResourceId
 import eric.bitria.hexon.game.data.enums.GameErrorCode

@@ -5,8 +5,7 @@ import eric.bitria.hexon.game.GameConfigLoader
 import eric.bitria.hexon.game.GamePlayer
 import eric.bitria.hexon.game.data.BuildingDef
 import eric.bitria.hexon.game.data.BuildingId
-import eric.bitria.hexon.game.data.GameConfig
-import eric.bitria.hexon.game.data.HexCoord
+import eric.bitria.hexon.game.data.config.GameConfig
 import eric.bitria.hexon.game.data.PlacementType
 import eric.bitria.hexon.game.data.PlayerId
 import eric.bitria.hexon.game.data.ResourceDef
