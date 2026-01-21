@@ -72,11 +72,11 @@ object GameConfigLoader {
 
     private fun defaultResourceDef(): List<ResourceDef> {
         return listOf(
-            ResourceDef(id = "wood", name = "Lumber", color = "#2D5A27"),
-            ResourceDef(id = "brick", name = "Brick", color = "#B5391C"),
-            ResourceDef(id = "sheep", name = "Wool", color = "#8EC449"),
-            ResourceDef(id = "wheat", name = "Grain", color = "#F3C51F"),
-            ResourceDef(id = "ore", name = "Ore", color = "#6C7A89")
+            ResourceDef(id = "wood", name = "Lumber"),
+            ResourceDef(id = "brick", name = "Brick"),
+            ResourceDef(id = "sheep", name = "Wool"),
+            ResourceDef(id = "wheat", name = "Grain"),
+            ResourceDef(id = "ore", name = "Ore")
         )
     }
 

@@ -14,7 +14,7 @@ jakartaMail = "2.0.2"
 javaJwt = "4.5.0"
 koinCompose = "4.1.1"
 kotlin = "2.3.0"
-kotlinxCoroutinesTest = "1.10.2"
+kotlinxCoroutines = "1.10.2"
 kotlinxSerializationJson = "1.10.0"
 ktor = "3.3.3"
 logback = "1.5.25"
@@ -55,8 +55,8 @@ exposed-java-time = { module = "org.jetbrains.exposed:exposed-java-time", versio
 foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "foundation" }
 jakarta-mail = { module = "com.sun.mail:jakarta.mail", version.ref = "jakartaMail" }
 java-jwt = { module = "com.auth0:java-jwt", version.ref = "javaJwt" }
-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesTest" }
-kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt" }
 lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }

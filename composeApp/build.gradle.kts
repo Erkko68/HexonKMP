@@ -71,6 +71,7 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.coroutines.core)
 
             // Koin Dependency Injection
             implementation(project.dependencies.platform(libs.koin.bom))

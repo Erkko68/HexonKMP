@@ -9,12 +9,10 @@ import eric.bitria.hexon.api.repository.ApiResult
 import eric.bitria.hexon.api.repository.GameRepository
 import eric.bitria.hexon.api.repository.MatchmakingRepository
 import eric.bitria.hexon.dtos.matchmaking.JoinGameResult
+import eric.bitria.hexon.ws.GameMessage
 import eric.bitria.hexon.ws.LobbyEvent
 import eric.bitria.hexon.ws.LobbyIntent
 import eric.bitria.hexon.ws.lobby.GameMode
-import io.ktor.websocket.DefaultWebSocketSession
-import io.ktor.websocket.close
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -23,6 +21,7 @@ class MatchmakingViewModel(
     private val gameRepository: GameRepository
 ) : ViewModel() {
 
+    // --- UI State ---
     var navigateToGameplay by mutableStateOf(false)
         private set
 
@@ -36,9 +35,15 @@ class MatchmakingViewModel(
         private set
 
     private var matchmakingJob: Job? = null
-    private var socketSession: DefaultWebSocketSession? = null
 
     init {
+        viewModelScope.launch {
+            gameRepository.incomingMessages.collect { message ->
+                handleLobbyMessage(message)
+            }
+        }
+
+        // Begin the matchmaking process
         startMatchmaking()
     }
 
@@ -51,7 +56,14 @@ class MatchmakingViewModel(
                     val response = result.data
                     if (response.status == JoinGameResult.SUCCESS && response.sessionId != null) {
                         statusMessage = "Game found! Connecting..."
-                        connectToSocket(response.sessionId!!)
+
+                        // Delegate connection to the Repository (Singleton).
+                        // This connection will persist after this ViewModel is destroyed.
+                        try {
+                            gameRepository.connect(response.sessionId!!)
+                        } catch (e: Exception) {
+                            statusMessage = "Connection failed: ${e.message}"
+                        }
                     } else {
                         statusMessage = response.message
                     }
@@ -67,53 +79,41 @@ class MatchmakingViewModel(
         }
     }
 
-    private suspend fun connectToSocket(sessionId: String) {
-        try {
-            val session = gameRepository.connect(sessionId)
-            socketSession = session
-
-            gameRepository.observeMessages(session).collect { message ->
-                when (message) {
-                    is LobbyEvent.LobbySnapshot -> {
-                        playersFound = message.lobbyPlayers.size
-                        maxPlayers = message.maxPlayers
-                        statusMessage = "Waiting for players..."
-                    }
-                    is LobbyEvent.PlayerJoined -> {
-                        playersFound++
-                    }
-                    is LobbyEvent.PlayerLeft -> {
-                        playersFound--
-                    }
-                    is LobbyEvent.GameStarted -> {
-                        navigateToGameplay = true
-                    }
-                    is LobbyEvent.LobbyError -> {
-                        statusMessage = message.errorMessage
-                    }
-                    else -> {}
-                }
+    private fun handleLobbyMessage(message: GameMessage) {
+        when (message) {
+            is LobbyEvent.LobbySnapshot -> {
+                playersFound = message.lobbyPlayers.size
+                maxPlayers = message.maxPlayers
+                statusMessage = "Waiting for players..."
             }
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            statusMessage = "Connection lost: ${e.message}"
-        } finally {
-            socketSession?.close()
-            socketSession = null
+            is LobbyEvent.PlayerJoined -> {
+                playersFound++
+            }
+            is LobbyEvent.PlayerLeft -> {
+                playersFound--
+            }
+            is LobbyEvent.GameStarted -> {
+                navigateToGameplay = true
+            }
+            is LobbyEvent.LobbyError -> {
+                statusMessage = message.errorMessage
+            }
+            else -> {}
         }
     }
 
     /**
-     * Called when the user manually cancels matchmaking.
-     * We send a leave intent to the server and the navigation will handle
-     * clearing the ViewModel via onCleared.
+     * Called when the user manually cancels matchmaking (e.g. Back button).
+     * Only HERE do we explicitly disconnect, because the user is aborting the flow.
      */
     fun leaveMatchmaking() {
         viewModelScope.launch {
             try {
-                socketSession?.let { session ->
-                    gameRepository.sendMessage(session, LobbyIntent.LeaveLobby())
-                }
+                // Ideally, tell the server we are leaving
+                gameRepository.sendMessage(LobbyIntent.LeaveLobby())
+
+                // Clean up the connection since we are quitting
+                gameRepository.disconnect()
             } catch (e: Exception) {
                 // Ignore errors during departure
             } finally {
@@ -125,6 +125,5 @@ class MatchmakingViewModel(
     override fun onCleared() {
         super.onCleared()
         matchmakingJob?.cancel()
-        socketSession = null
     }
 }
