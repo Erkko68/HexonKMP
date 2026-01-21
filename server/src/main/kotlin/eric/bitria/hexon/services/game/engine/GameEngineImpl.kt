@@ -3,6 +3,7 @@ package eric.bitria.hexon.services.game.engine
 import eric.bitria.hexon.game.Board
 import eric.bitria.hexon.game.GamePlayer
 import eric.bitria.hexon.game.data.BuildingDef
+import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.GameConfig
 import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.PlacementType
@@ -36,13 +37,14 @@ class GameEngineImpl(
     // Internal State
     private val players = mutableMapOf<String, GamePlayer>()
     private val board = Board()
-    val buildings: Map<String, BuildingDef> =
+    val buildings: Map<BuildingId, BuildingDef> =
         gameConfig.buildings.associateBy { it.id }
-    val resources: Map<String, ResourceDef> =
+    val resources: Map<ResourceId, ResourceDef> =
         gameConfig.resources.associateBy { it.id }
     val trades = mutableMapOf<PlayerId, TradeOffer>()
 
     // Game Loop State
+    private val playerQueue = mutableListOf<String>()
     private var turnIndex = 0
     private var currentTurnPlayerId: String = ""
     private var currentPhase: TurnPhase = TurnPhase.SETUP
@@ -101,6 +103,19 @@ class GameEngineImpl(
         //sender.sendToPlayer(userId, GameMessage.GameInfo("SYNC_STATE"))
     }
 
+    private suspend fun startFirstTurn(){
+        // Populate playerQueue
+        players.forEach { (playerId, _) ->
+            playerQueue.add(playerId)
+        }
+
+        // Get first player
+        playerQueue.shuffle()
+        currentTurnPlayerId = playerQueue.elementAt(turnIndex)
+
+        // Notify first player
+        sender.broadcast(GameplayEvent.TurnChanged(newPlayerId = currentTurnPlayerId))
+    }
     private suspend fun rollDice() {
         // 1. Logic: Generate Random Number
         val roll1 = (1..6).random()
@@ -142,8 +157,8 @@ class GameEngineImpl(
 
     private suspend fun handleEndTurn(playerId: PlayerId){
         // 1. Calculate Next Player
-        turnIndex++
-        currentTurnPlayerId = players.keys.elementAt(turnIndex % players.size)
+        turnIndex = (turnIndex + 1) % playerQueue.size
+        currentTurnPlayerId = playerQueue.elementAt(turnIndex)
 
         // 3. Notify Everyone
         sender.broadcast(GameplayEvent.TurnChanged(newPlayerId = currentTurnPlayerId))

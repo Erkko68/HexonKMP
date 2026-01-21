@@ -58,7 +58,35 @@ class Board {
         return true
     }
 
+    /**
+     * @return The building at the given location ID, or null if none
+     */
     fun getBuildingAt(locId: BuildingId): Building? = buildings[locId]
+
+    /**
+     * @return true if the spot is empty and can be placed
+     */
+    fun canPlaceBuilding(ownerId: String, hexA: HexCoord, hexB: HexCoord, hexC: HexCoord?, type: PlacementType): Boolean {
+        val locId = when (type) {
+            PlacementType.VERTEX -> {
+                if (hexC == null) return false
+                HexCoord.getVertexId(hexA, hexB, hexC)
+            }
+            PlacementType.EDGE -> HexCoord.getEdgeId(hexA, hexB)
+        }
+
+        if (buildings.containsKey(locId)) return false
+
+        return when (type) {
+            PlacementType.VERTEX -> {
+                if (hexC == null) return false
+                checkVertexPlacement(hexA, hexB, hexC)
+            }
+            PlacementType.EDGE -> {
+                checkEdgePlacement(hexA, hexB, ownerId)
+            }
+        }
+    }
 
     // --- Production Logic (The Core) ---
 
@@ -96,8 +124,6 @@ class Board {
         return production
     }
 
-    // --- Helpers ---
-
     /**
      * Moves the robber to the selected HexCoord.
      * @return A list of the affected players.
@@ -108,6 +134,8 @@ class Board {
             .mapNotNull { buildings[it]?.ownerId }
             .distinct()
     }
+
+    // --- Helpers ---
 
     /**
      * Calculates the 6 canonical Vertex IDs surrounding a generic Hex (q,r).
@@ -138,6 +166,85 @@ class Board {
         }
 
         return vertexIds
+    }
+
+    private fun checkVertexPlacement(h1: HexCoord, h2: HexCoord, h3: HexCoord): Boolean {
+        // Rule: Distance Rule. No adjacent vertex can have a building.
+        // The 3 neighbors of Vertex(h1,h2,h3) are the other ends of the 3 edges meeting here.
+        // Edge 1: Shared by h1-h2. The "other" neighbor determines the adjacent vertex.
+
+        val neighbors = listOf(
+            getNeighborVertex(h1, h2, h3), // Neighbor across edge h1-h2
+            getNeighborVertex(h2, h3, h1), // Neighbor across edge h2-h3
+            getNeighborVertex(h3, h1, h2)  // Neighbor across edge h3-h1
+        )
+
+        // If ANY neighbor has a building, return false
+        return neighbors.none { buildings.containsKey(it) }
+    }
+
+    private fun checkEdgePlacement(h1: HexCoord, h2: HexCoord, ownerId: String): Boolean {
+        // Rule: Must connect to a building or road owned by the same player.
+
+        // 1. Find the two endpoints (Vertices) of this edge (h1-h2)
+        val commonNeighbors = getCommonNeighbors(h1, h2)
+        if (commonNeighbors.size != 2) return false // Should be impossible on valid grid
+
+        val endpoint1 = HexCoord.getVertexId(h1, h2, commonNeighbors[0])
+        val endpoint2 = HexCoord.getVertexId(h1, h2, commonNeighbors[1])
+
+        // 2. Check connectivity at either endpoint
+        return isConnectedAtVertex(endpoint1, ownerId, h1, h2, commonNeighbors[0]) ||
+                isConnectedAtVertex(endpoint2, ownerId, h1, h2, commonNeighbors[1])
+    }
+
+    // --- Geometry Helpers ---
+
+    /**
+     * Given a vertex composed of Hexes A, B, and C.
+     * We want to find the adjacent vertex connected via the edge shared by A and B.
+     * Logic: A and B share two vertices. One is (A,B,C). The other is (A,B,X).
+     * We need to find X.
+     */
+    private fun getNeighborVertex(a: HexCoord, b: HexCoord, currentThird: HexCoord): String {
+        // Get all common neighbors of A and B
+        val common = getCommonNeighbors(a, b)
+        // One of them is 'currentThird', we want the other one.
+        val other = common.firstOrNull { it != currentThird } ?: return ""
+        return HexCoord.getVertexId(a, b, other)
+    }
+
+    private fun isConnectedAtVertex(
+        vertexId: String,
+        ownerId: String,
+        h1: HexCoord, h2: HexCoord, h3: HexCoord // The 3 hexes making this vertex
+    ): Boolean {
+        // 1. Owns the building at this vertex?
+        val building = buildings[vertexId]
+        if (building != null && building.ownerId == ownerId) return true
+
+        // 2. Owns an adjacent road?
+        // The edges connected to vertex(h1,h2,h3) are (h1,h3) and (h2,h3).
+        // (We exclude h1,h2 because that's the edge we are currently trying to place)
+        val edgeA = HexCoord.getEdgeId(h1, h3)
+        val edgeB = HexCoord.getEdgeId(h2, h3)
+
+        return (buildings[edgeA]?.ownerId == ownerId) || (buildings[edgeB]?.ownerId == ownerId)
+    }
+
+    private fun getCommonNeighbors(h1: HexCoord, h2: HexCoord): List<HexCoord> {
+        val n1 = getNeighbors(h1) // Util from previous step
+        val n2 = getNeighbors(h2)
+        return n1.intersect(n2.toSet()).toList()
+    }
+
+    // Re-included for context if you didn't add it yet
+    private fun getNeighbors(center: HexCoord): List<HexCoord> {
+        val (q, r) = center
+        return listOf(
+            HexCoord(q + 1, r - 1), HexCoord(q + 1, r), HexCoord(q, r + 1),
+            HexCoord(q - 1, r + 1), HexCoord(q - 1, r), HexCoord(q, r - 1)
+        )
     }
 }
 

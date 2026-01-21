@@ -33,4 +33,7 @@ kotlin {
             implementation(libs.ktor.client.auth)
         }
     }
+    sourceSets.commonTest.dependencies {
+        implementation(kotlin("test"))
+    }
 }
