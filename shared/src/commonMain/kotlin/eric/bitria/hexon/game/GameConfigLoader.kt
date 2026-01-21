@@ -33,14 +33,13 @@ object GameConfigLoader {
         // 1. Generate Standard Coordinates (Radius 2)
         val coords = generateHexGrid(2)
 
-        // 2. Resources (19 Hexes)
+        // 2. Resources
         val resources = mutableListOf<ResourceId?>().apply {
             repeat(4) { add("wood") }
             repeat(4) { add("sheep") }
             repeat(4) { add("wheat") }
             repeat(3) { add("brick") }
             repeat(3) { add("ore") }
-            add(null) // Desert
         }
 
         // 3. Tokens

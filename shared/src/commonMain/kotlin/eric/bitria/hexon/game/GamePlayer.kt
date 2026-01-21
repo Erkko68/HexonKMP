@@ -3,6 +3,7 @@ package eric.bitria.hexon.game
 import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.PlayerSnapshot
 import eric.bitria.hexon.game.data.ResourceId
+import eric.bitria.hexon.game.data.def.PortDef
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.forEach
@@ -21,7 +22,7 @@ data class GamePlayer(
     // --- Dynamic Inventory ---
     // Maps ResourceId ("wood") to Quantity. Default 0.
     val resources: MutableMap<ResourceId, Int> = mutableMapOf(),
-    val ports: MutableMap<String, Port> = mutableMapOf(),
+    val ports: MutableMap<String, PortDef> = mutableMapOf(),
 
     // Maps BuildingId ("settlement") to Count (e.g., 3 built so far).
     // Used to check limits (e.g., max 5 settlements).

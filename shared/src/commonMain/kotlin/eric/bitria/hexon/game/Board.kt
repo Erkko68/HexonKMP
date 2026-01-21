@@ -71,23 +71,11 @@ class Board(
         val resourcePool = config.resources.toMutableList()
         val numberPool = config.numbers.toMutableList()
 
-        // 3. Handle Fixed Tiles
-        // If the config says (0,0) is a Desert, we must remove that specific resource
-        // from the random pool so we don't accidentally place two deserts.
-        config.fixedTiles.forEach { (_, fixedData) ->
-            if (fixedData.resource != null) {
-                resourcePool.remove(fixedData.resource)
-            }
-            if (fixedData.number != null) {
-                numberPool.remove(fixedData.number)
-            }
-        }
-
-        // 4. Shuffle
+        // 3. Shuffle
         resourcePool.shuffle()
         numberPool.shuffle()
 
-        // 5. Place Tiles
+        // 4. Place Tiles
         for (coord in config.coords) {
             val fixed = config.fixedTiles[coord]
 
@@ -113,7 +101,7 @@ class Board(
             }
         }
 
-        // 6. Place Ports
+        // 5. Place Ports
         config.ports.forEach { port ->
             addPort(
                 h1 = port.h1,
@@ -135,31 +123,19 @@ class Board(
         ownerId: String,
         h1: HexCoord, h2: HexCoord, h3: HexCoord
     ): Boolean {
-        // 1. Find Definition & Validate Type
-        val def = availableBuildings.find { it.id == typeId }
-        requireNotNull(def) { "Building Type '$typeId' is not defined in the GameConfig." }
-
-        if (def.type != PlacementType.VERTEX) {
-            throw IllegalArgumentException("Building '$typeId' is not a VERTEX building.")
-        }
-
-        val locId = HexCoord.getVertexId(h1, h2, h3)
-        val existing = buildings[locId]
-
-        // CASE 1: Upgrade Existing Building
-        if (existing != null) {
-            if (existing.ownerId != ownerId) return false
-
-            // Check if this is a valid upgrade (e.g. Settlement -> City)
-            if (existing.def.upgrade == typeId) {
-                buildings[locId] = PlacedBuilding(ownerId, def)
-                return true
-            }
+        // 1. GATEKEEPER: Ask the validator if this is legal
+        if (!canPlaceVertexBuilding(ownerId, h1, h2, h3, typeId)) {
             return false
         }
 
-        // CASE 2: Place New Building
+        // 2. RETRIEVE: We know the building exists because the validator passed
+        // We use 'first' because we trust the ID is valid now.
+        val def = availableBuildings.first { it.id == typeId }
+
+        // 3. EXECUTE: Update the state
+        val locId = HexCoord.getVertexId(h1, h2, h3)
         buildings[locId] = PlacedBuilding(ownerId, def)
+
         return true
     }
 
@@ -171,30 +147,18 @@ class Board(
         ownerId: String,
         h1: HexCoord, h2: HexCoord
     ): Boolean {
-        // 1. Find Definition & Validate Type
-        val def = availableBuildings.find { it.id == typeId }
-        requireNotNull(def) { "Building Type '$typeId' is not defined in the GameConfig." }
-
-        if (def.type != PlacementType.EDGE) {
-            throw IllegalArgumentException("Building '$typeId' is not an EDGE building.")
-        }
-
-        val locId = HexCoord.getEdgeId(h1, h2)
-        val existing = buildings[locId]
-
-        // CASE 1: Upgrade Existing Building (Rare for edges, but supported)
-        if (existing != null) {
-            if (existing.ownerId != ownerId) return false
-
-            if (existing.def.upgrade == typeId) {
-                buildings[locId] = PlacedBuilding(ownerId, def)
-                return true
-            }
+        // 1. GATEKEEPER
+        if (!canPlaceEdgeBuilding(ownerId, h1, h2, typeId)) {
             return false
         }
 
-        // CASE 2: Place New Building
+        // 2. RETRIEVE
+        val def = availableBuildings.first { it.id == typeId }
+
+        // 3. EXECUTE
+        val locId = HexCoord.getEdgeId(h1, h2)
         buildings[locId] = PlacedBuilding(ownerId, def)
+
         return true
     }
 
@@ -207,22 +171,27 @@ class Board(
         h1: HexCoord, h2: HexCoord, h3: HexCoord,
         targetTypeId: BuildingId
     ): Boolean {
-        require(availableBuildings.any { it.id == targetTypeId }) {
-            "Building Type '$targetTypeId' is not defined in the GameConfig."
-        }
+        // A. Geometry & Board Bounds
+        if (h1 == h2 || h1 == h3 || h2 == h3) return false
+        if (!hasTileConnection(h1, h2, h3)) return false
 
+        // B. Definition & Type Validity
+        val def = availableBuildings.find { it.id == targetTypeId } ?: return false
+        if (def.type != PlacementType.VERTEX) return false
+
+        // C. Game Rules (Upgrade vs New)
         val locId = HexCoord.getVertexId(h1, h2, h3)
         val existing = buildings[locId]
 
-        // 1. Check for Upgrade Validity
         if (existing != null) {
+            // Rule: Must own the building to upgrade it
             if (existing.ownerId != ownerId) return false
-            // Simplified: we have the def directly now
+            // Rule: The upgrade path must match
             return existing.def.upgrade == targetTypeId
+        } else {
+            // Rule: Distance Rule (only for new buildings)
+            return checkVertexPlacement(h1, h2, h3)
         }
-
-        // 2. Check Standard Placement (Distance Rule)
-        return checkVertexPlacement(h1, h2, h3)
     }
 
     fun canPlaceEdgeBuilding(
@@ -230,21 +199,24 @@ class Board(
         h1: HexCoord, h2: HexCoord,
         targetTypeId: BuildingId
     ): Boolean {
-        require(availableBuildings.any { it.id == targetTypeId }) {
-            "Building Type '$targetTypeId' is not defined in the GameConfig."
-        }
+        // A. Geometry & Board Bounds
+        if (h1 == h2) return false
+        if (!hasTileConnection(h1, h2)) return false
 
+        // B. Definition & Type Validity
+        val def = availableBuildings.find { it.id == targetTypeId } ?: return false
+        if (def.type != PlacementType.EDGE) return false
+
+        // C. Game Rules
         val locId = HexCoord.getEdgeId(h1, h2)
         val existing = buildings[locId]
 
-        // 1. Check for Upgrade Validity
         if (existing != null) {
             if (existing.ownerId != ownerId) return false
             return existing.def.upgrade == targetTypeId
+        } else {
+            return checkEdgePlacement(h1, h2, ownerId)
         }
-
-        // 2. Check Standard Placement
-        return checkEdgePlacement(h1, h2, ownerId)
     }
 
     // --- Production Logic ---
@@ -351,6 +323,27 @@ class Board(
             HexCoord(q + 1, r - 1), HexCoord(q + 1, r), HexCoord(q, r + 1),
             HexCoord(q - 1, r + 1), HexCoord(q - 1, r), HexCoord(q, r - 1)
         )
+    }
+
+    /**
+     * Checks if an Edge (defined by 2 HexCoords) touches at least one valid tile.
+     * Returns true if either h1 or h2 are present in the board configuration.
+     * Returns false if both are missing (floating on sea).
+     */
+    private fun hasTileConnection(h1: HexCoord, h2: HexCoord): Boolean {
+        return tiles.containsKey(HexCoord.getHexId(h1)) ||
+                tiles.containsKey(HexCoord.getHexId(h2))
+    }
+
+    /**
+     * Checks if a Vertex (defined by 3 HexCoords) touches at least one valid tile.
+     * Returns true if h1, h2, or h3 are present in the board configuration.
+     * Returns false if all three are missing (floating on sea).
+     */
+    private fun hasTileConnection(h1: HexCoord, h2: HexCoord, h3: HexCoord): Boolean {
+        return tiles.containsKey(HexCoord.getHexId(h1)) ||
+                tiles.containsKey(HexCoord.getHexId(h2)) ||
+                tiles.containsKey(HexCoord.getHexId(h3))
     }
 }
 
