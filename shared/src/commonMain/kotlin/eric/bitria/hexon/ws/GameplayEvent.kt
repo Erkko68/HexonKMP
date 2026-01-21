@@ -54,8 +54,15 @@ sealed class GameplayEvent : GameplayMessage() {
 
     @Serializable
     data class ResourcesUpdated(
-        val playerId: PlayerId,
         val changes: Map<ResourceId, Int>, // e.g. {"wood": -1}
+        val reason: UpdateReason,
+        override var senderId: String? = "Server"
+    ) : GameplayEvent()
+
+    @Serializable
+    data class ResourceCountUpdated(
+        val playerId: PlayerId,
+        val changes: Int,
         val reason: UpdateReason,
         override var senderId: String? = "Server"
     ) : GameplayEvent()

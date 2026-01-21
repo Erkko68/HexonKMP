@@ -39,14 +39,13 @@ class GameViewModel(
     val turnPhase: StateFlow<TurnPhase> = _turnPhase.asStateFlow()
 
     // --- Definitions (Derived from Config) ---
-    // UI components can observe these to render the "Cost" cards or "Resource" icons
     private val _gameConfig = MutableStateFlow<GameConfig?>(null)
 
-    val resourceDefs: StateFlow<List<ResourceDef>> = _gameConfig
+    val resourcesDef: StateFlow<List<ResourceDef>> = _gameConfig
         .map { it?.resourceDefs ?: emptyList() }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    val buildingDefs: StateFlow<List<BuildingDef>> = _gameConfig
+    val buildingsDef: StateFlow<List<BuildingDef>> = _gameConfig
         .map { it?.buildingDefs ?: emptyList() }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -108,6 +107,7 @@ class GameViewModel(
 
             // --- Gameplay Updates ---
             is GameplayEvent.ResourcesUpdated -> handleResourcesUpdated(event)
+            is GameplayEvent.ResourceCountUpdated -> handleResourceCountUpdated(event)
             is GameplayEvent.ObjectBuilt -> handleObjectBuilt(event)
             is GameplayEvent.DiceRolled -> { /* Trigger Dice Animation in UI */ }
 
@@ -146,31 +146,22 @@ class GameViewModel(
     }
 
     private fun handleResourcesUpdated(event: GameplayEvent.ResourcesUpdated) {
-        // If it's me, the server sends a GamePlayerStats update usually,
-        // but if we receive partial updates, we apply them here.
-        if (event.playerId == _me.value?.id) {
-            val currentMe = _me.value ?: return
-            currentMe.addResources(event.changes) // Updates internal map
-            _me.value = currentMe // Trigger StateFlow emission
-        } else {
-            // Update Opponent Card Count
-            val currentOpponents = _opponents.value.toMutableMap()
-            val opponent = currentOpponents[event.playerId] ?: return
+        val currentMe = _me.value ?: return
+        currentMe.addResources(event.changes)
+        _me.value = currentMe
+    }
 
-            val totalChange = event.changes.values.sum()
-            // We create a new snapshot with updated count (Data classes are immutable usually)
-            currentOpponents[event.playerId] = opponent.copy(
-                resourceCount = opponent.resourceCount + totalChange
-            )
-            _opponents.value = currentOpponents
-        }
+    private fun handleResourceCountUpdated(event: GameplayEvent.ResourceCountUpdated){
+        val player = _opponents.value[event.playerId] ?: return
+        player.resourceCount += event.changes
+        _opponents.value = _opponents.value.toMutableMap()
     }
 
     private fun handleObjectBuilt(event: GameplayEvent.ObjectBuilt) {
         val board = _board.value ?: return
 
         // Update Board Visuals
-        val def = buildingDefs.value.firstOrNull { it.id == event.buildingId } ?: return
+        val def = buildingsDef.value.firstOrNull { it.id == event.buildingId } ?: return
 
         if (event.hexC != null) {
             board.placeVertexBuilding(def.id, event.playerId, event.hexA, event.hexB, event.hexC!!)

@@ -171,15 +171,9 @@ class GameEngineImpl(
         production.forEach { (playerId, resources) ->
             // Store Player Resources
             players[playerId]?.addResources(resources)
-            // Notify Resources Update
-            sender.sendToPlayer(
-                playerId,
-                GameplayEvent.ResourcesUpdated(
-                    playerId = playerId,
-                    changes = resources,
-                    reason = UpdateReason.PRODUCTION
-                )
-            )
+
+            // Notify using the helper
+            notifyResourceChanges(playerId, resources, UpdateReason.PRODUCTION)
         }
     }
 
@@ -228,6 +222,10 @@ class GameEngineImpl(
             return sender.sendToPlayer(userId, GameplayEvent.GameError("Placement failed (Internal Logic)", GameErrorCode.INVALID_PLACEMENT))
         }
 
+        // Notify resource deduction for building
+        val deduction = def.cost.mapValues { -it.value }
+        notifyResourceChanges(userId, deduction, UpdateReason.BUILD)
+
         sender.broadcast(
             GameplayEvent.ObjectBuilt(
                 playerId = userId,
@@ -261,26 +259,20 @@ class GameEngineImpl(
             .randomOrNull()
             ?.let { mapOf(it to 1) } ?: return
 
-        // Remove from victim
+        // 1. Remove from victim
         players[victimId]?.tryDeductResources(stolenResource)
-        sender.sendToPlayer(
+        notifyResourceChanges(
             victimId,
-            GameplayEvent.ResourcesUpdated(
-                playerId = victimId,
-                changes = stolenResource,
-                reason = UpdateReason.THEFT
-            )
+            stolenResource.mapValues { -it.value },
+            UpdateReason.THEFT
         )
 
-        // Give to robber player
+        // 2. Give to robber player
         players[userId]?.addResources(stolenResource)
-        sender.sendToPlayer(
+        notifyResourceChanges(
             userId,
-            GameplayEvent.ResourcesUpdated(
-                playerId = userId,
-                changes = stolenResource,
-                reason = UpdateReason.THEFT
-            )
+            stolenResource,
+            UpdateReason.THEFT
         )
     }
 
@@ -397,19 +389,15 @@ class GameEngineImpl(
             )
         )
 
-        // Send updates to Offerer
-        val offererChanges = trade.give.mapValues { -it.value } + trade.want
-        sender.sendToPlayer(
-            userId,
-            GameplayEvent.ResourcesUpdated(userId, offererChanges, UpdateReason.TRADE)
-        )
+        // 7. Send Updates using helper
 
-        // Send updates to Responder
+        // Offerer lost 'give' and gained 'want'
+        val offererChanges = trade.give.mapValues { -it.value } + trade.want
+        notifyResourceChanges(userId, offererChanges, UpdateReason.TRADE)
+
+        // Responder lost 'want' and gained 'give'
         val responderChanges = trade.want.mapValues { -it.value } + trade.give
-        sender.sendToPlayer(
-            intent.responderId,
-            GameplayEvent.ResourcesUpdated(intent.responderId, responderChanges, UpdateReason.TRADE)
-        )
+        notifyResourceChanges(intent.responderId, responderChanges, UpdateReason.TRADE)
     }
 
     private suspend fun handleExchangeWithBank(userId: String, intent: GameplayIntent.ExchangeWithBank) {
@@ -465,17 +453,47 @@ class GameEngineImpl(
         player.tryDeductResources(toDeduct)
         player.addResources(intent.get)
 
-        val changes =
-            toDeduct.mapValues { -it.value } + intent.get
+        // Map deductions to negative values for the change log
+        val changes = toDeduct.mapValues { -it.value } + intent.get
 
+        notifyResourceChanges(userId, changes, UpdateReason.TRADE)
+    }
+
+
+    // --- Helper Function for Resource Notifications ---
+
+    /**
+     * Sends private details to the affected player and public counts to everyone else.
+     * @param playerId The player whose resources changed.
+     * @param changes Map of resource ID to amount (positive for gain, negative for loss).
+     * @param reason The reason for the update.
+     */
+    private suspend fun notifyResourceChanges(
+        playerId: PlayerId,
+        changes: Map<ResourceId, Int>,
+        reason: UpdateReason
+    ) {
+        // 1. Send detailed update (Specific Cards) to the Player
         sender.sendToPlayer(
-            userId,
+            playerId,
             GameplayEvent.ResourcesUpdated(
-                playerId = userId,
                 changes = changes,
-                reason = UpdateReason.TRADE
+                reason = reason
             )
         )
+
+        // 2. Send generic update (Card Count) to Everyone Else
+        val netChange = changes.values.sum()
+        if (netChange != 0) {
+            sender.broadcast(
+                GameplayEvent.ResourceCountUpdated(
+                    playerId = playerId,
+                    changes = netChange,
+                    reason = reason
+                ),
+                excludeUserId = playerId
+            )
+        }
     }
 
 }
