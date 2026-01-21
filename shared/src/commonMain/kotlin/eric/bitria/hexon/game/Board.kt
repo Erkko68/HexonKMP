@@ -9,6 +9,7 @@ import eric.bitria.hexon.game.data.def.PortDef
 import eric.bitria.hexon.game.data.PortVertex
 import eric.bitria.hexon.game.data.def.ResourceDef
 import eric.bitria.hexon.game.data.ResourceId
+import eric.bitria.hexon.game.data.config.BoardConfig
 
 class Board(
     private val availableResources: List<ResourceDef>,
@@ -53,6 +54,75 @@ class Board(
         }
         val id = HexCoord.getVertexId(h1, h2, h3)
         ports[id] = PortDef(h1, h2, h3, resource, ratio)
+    }
+
+    /**
+     * Populates the current board instance with tiles and ports based on the config.
+     * * @param config The layout configuration (coords, pools, fixed tiles).
+     * @param randomize If true, shuffles the resource and number pools.
+     */
+    fun initialize(config: BoardConfig) {
+        // 1. Clear previous state (optional, but good for safety)
+        tiles.clear()
+        ports.clear()
+
+        // 2. Prepare Pools
+        // We clone the config lists to create a "deck" of available tokens
+        val resourcePool = config.resources.toMutableList()
+        val numberPool = config.numbers.toMutableList()
+
+        // 3. Handle Fixed Tiles
+        // If the config says (0,0) is a Desert, we must remove that specific resource
+        // from the random pool so we don't accidentally place two deserts.
+        config.fixedTiles.forEach { (_, fixedData) ->
+            if (fixedData.resource != null) {
+                resourcePool.remove(fixedData.resource)
+            }
+            if (fixedData.number != null) {
+                numberPool.remove(fixedData.number)
+            }
+        }
+
+        // 4. Shuffle
+        resourcePool.shuffle()
+        numberPool.shuffle()
+
+        // 5. Place Tiles
+        for (coord in config.coords) {
+            val fixed = config.fixedTiles[coord]
+
+            if (fixed != null) {
+                // CASE A: Fixed Tile (e.g. Center Desert)
+                // We default null numbers to 0 (which represents "no number token")
+                addTile(coord, fixed.resource, fixed.number ?: 0)
+            } else {
+                // CASE B: Random Tile
+                if (resourcePool.isNotEmpty()) {
+                    val resource = resourcePool.removeAt(0)
+
+                    // Logic: If resource is Desert (null), it gets no number (0).
+                    // Otherwise, draw the next number from the pool.
+                    val number = if (resource == null) 0 else {
+                        if (numberPool.isNotEmpty()) numberPool.removeAt(0) else 0
+                    }
+
+                    addTile(coord, resource, number)
+                } else {
+                    throw IllegalStateException("Warning: Config has more coordinates than resources available.")
+                }
+            }
+        }
+
+        // 6. Place Ports
+        config.ports.forEach { port ->
+            addPort(
+                h1 = port.h1,
+                h2 = port.h2,
+                h3 = port.h3,
+                resource = port.resourceId,
+                ratio = port.ratio
+            )
+        }
     }
 
     // --- Building Logic (Executor) ---

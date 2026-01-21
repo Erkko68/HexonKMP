@@ -61,7 +61,7 @@ class GameEngineImpl(
         }
 
         // 2. Map Generation (Procedural Logic)
-        board.initializeBoard()
+        board.initialize(gameConfig.board)
 
         // 3. Send Configuration & Initial State to Clients
         sender.broadcast(GameplayEvent.GameConfigLoaded(gameConfig))

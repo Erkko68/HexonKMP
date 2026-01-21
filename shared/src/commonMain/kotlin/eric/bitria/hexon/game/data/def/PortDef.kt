@@ -5,9 +5,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class PortDef(
-    val hexA: HexCoord,
-    val hexB: HexCoord,
-    val hexC: HexCoord,
+    val h1: HexCoord,
+    val h2: HexCoord,
+    val h3: HexCoord,
     val resourceId: String?,
     val ratio: Int
 )
