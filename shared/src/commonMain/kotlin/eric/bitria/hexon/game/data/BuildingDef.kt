@@ -8,6 +8,9 @@ data class BuildingDef(
     val name: String,         // "Settlement"
     val type: PlacementType,  // VERTEX or EDGE
     val cost: Map<ResourceId, Int>, // {"wood": 1, "brick": 1, ...}
+    val upgrade: BuildingId? = null, // Id of the upgrade of this building
+    val downgrade: BuildingId? = null, // Id of the downgrade of this building
+    val production: Int,
     val points: Int,          // 1
     val limitPerPlayer: Int   // 5
 )

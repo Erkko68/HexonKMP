@@ -1,6 +1,7 @@
 package eric.bitria.hexon.services.game.engine
 
 import eric.bitria.hexon.game.Board
+import eric.bitria.hexon.game.GameConfigLoader
 import eric.bitria.hexon.game.GamePlayer
 import eric.bitria.hexon.game.data.BuildingDef
 import eric.bitria.hexon.game.data.BuildingId
@@ -36,7 +37,10 @@ class GameEngineImpl(
 
     // Internal State
     private val players = mutableMapOf<String, GamePlayer>()
-    private val board = Board()
+    private val board = Board(
+        availableResources = gameConfig.resources,
+        availableBuildings = gameConfig.buildings
+    )
     val buildings: Map<BuildingId, BuildingDef> =
         gameConfig.buildings.associateBy { it.id }
     val resources: Map<ResourceId, ResourceDef> =
@@ -169,42 +173,41 @@ class GameEngineImpl(
 
     private suspend fun handleBuild(userId: PlayerId, intent: GameplayIntent.Build) {
         val player = players[userId] ?: return
+        val def = buildings[intent.buildingId]
+            ?: return sender.sendToPlayer(userId, GameplayEvent.GameError("Unknown building", GameErrorCode.UNKNOWN_BUILDING))
 
-        val buildingDef = buildings[intent.buildingId]
-            ?: return sender.sendToPlayer(
-                userId,
-                GameplayEvent.GameError("Unknown building", GameErrorCode.UNKNOWN_BUILDING)
-            )
-
-        if (!player.tryDeductResources(buildingDef.cost)){
-            return sender.sendToPlayer(
-                userId,
-                GameplayEvent.GameError("Insufficient resources", GameErrorCode.INSUFFICIENT_RESOURCES)
-            )
+        if (!player.tryDeductResources(def.cost)) {
+            return sender.sendToPlayer(userId, GameplayEvent.GameError("Insufficient resources", GameErrorCode.INSUFFICIENT_RESOURCES))
         }
 
-        // Convert HexCoords to String ID
-        val locationId = if(buildingDef.type == PlacementType.EDGE){
-            HexCoord.getEdgeId(intent.hexA, intent.hexB)
-        } else {
-            if (intent.hexC == null) return sender.sendToPlayer(
-                userId,
-                GameplayEvent.GameError("Invalid placement, expected building type Vertex but coord C was null", GameErrorCode.INVALID_PLACEMENT)
-            )
-            HexCoord.getVertexId(intent.hexA, intent.hexB, intent.hexC!!)
+        val success = when (def.type) {
+            PlacementType.VERTEX -> {
+                val h3 = intent.hexC ?: return sender.sendToPlayer(
+                    userId, GameplayEvent.GameError("Vertex building requires 3 coordinates", GameErrorCode.INVALID_PLACEMENT)
+                )
+                // Validate Rules (skip if Setup phase)
+                if (currentPhase != TurnPhase.SETUP && !board.canPlaceVertexBuilding(userId, intent.hexA, intent.hexB, h3, def.id)) {
+                    return sender.sendToPlayer(userId, GameplayEvent.GameError("Invalid placement rule", GameErrorCode.INVALID_PLACEMENT))
+                }
+                board.placeVertexBuilding(def.id, userId, intent.hexA, intent.hexB, h3)
+            }
+            PlacementType.EDGE -> {
+                // Validate Rules
+                if (!board.canPlaceEdgeBuilding(userId, intent.hexA, intent.hexB, def.id)) {
+                    return sender.sendToPlayer(userId, GameplayEvent.GameError("Invalid placement rule", GameErrorCode.INVALID_PLACEMENT))
+                }
+                board.placeEdgeBuilding(def.id, userId, intent.hexA, intent.hexB)
+            }
         }
 
-        board.placeBuilding(
-            buildingDef.id,
-            userId,
-            locationId,
-            buildingDef.type
-        )
+        if (!success) {
+            return sender.sendToPlayer(userId, GameplayEvent.GameError("Placement failed (Internal Logic)", GameErrorCode.INVALID_PLACEMENT))
+        }
 
         sender.broadcast(
             GameplayEvent.ObjectBuilt(
                 playerId = userId,
-                buildingId = buildingDef.id,
+                buildingId = def.id,
                 hexA = intent.hexA,
                 hexB = intent.hexB,
                 hexC = intent.hexC

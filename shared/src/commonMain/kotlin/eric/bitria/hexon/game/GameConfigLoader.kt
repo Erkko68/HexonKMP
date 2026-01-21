@@ -1,4 +1,4 @@
-package eric.bitria.hexon.services.game.engine
+package eric.bitria.hexon.game
 
 import eric.bitria.hexon.game.data.BuildingDef
 import eric.bitria.hexon.game.data.GameConfig
@@ -32,11 +32,11 @@ object GameConfigLoader {
 
     private fun defaultResources(): List<ResourceDef> {
         return listOf(
-            ResourceDef(id = "wood",  name = "Lumber", color = "#2D5A27"),
-            ResourceDef(id = "brick", name = "Brick",  color = "#B5391C"),
-            ResourceDef(id = "sheep", name = "Wool",   color = "#8EC449"),
-            ResourceDef(id = "wheat", name = "Grain",  color = "#F3C51F"),
-            ResourceDef(id = "ore",   name = "Ore",    color = "#6C7A89")
+            ResourceDef(id = "wood", name = "Lumber", color = "#2D5A27"),
+            ResourceDef(id = "brick", name = "Brick", color = "#B5391C"),
+            ResourceDef(id = "sheep", name = "Wool", color = "#8EC449"),
+            ResourceDef(id = "wheat", name = "Grain", color = "#F3C51F"),
+            ResourceDef(id = "ore", name = "Ore", color = "#6C7A89")
         )
     }
 
@@ -52,6 +52,7 @@ object GameConfigLoader {
                     "brick" to 1
                 ),
                 points = 0, // Points are calculated via "Longest Road", not inherent
+                production = 0,
                 limitPerPlayer = 15
             ),
 
@@ -66,6 +67,8 @@ object GameConfigLoader {
                     "wheat" to 1,
                     "sheep" to 1
                 ),
+                upgrade = "city",
+                production = 1,
                 points = 1,
                 limitPerPlayer = 5
             ),
@@ -79,6 +82,7 @@ object GameConfigLoader {
                     "wheat" to 2,
                     "ore" to 3
                 ),
+                production = 2,
                 points = 2,
                 limitPerPlayer = 4
             )
