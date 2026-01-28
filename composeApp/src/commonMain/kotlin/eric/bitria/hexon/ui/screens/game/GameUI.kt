@@ -32,8 +32,7 @@ import eric.bitria.hexon.ui.components.game.VictoryPointsIndicator
 import eric.bitria.hexon.ui.components.game.trade.TradePanel
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.game.GameViewModel
-import eric.bitria.hexon.viewmodel.enums.GameUIState
-import eric.bitria.hexon.viewmodel.enums.next
+import eric.bitria.hexon.viewmodel.game.TurnPhase
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -41,12 +40,12 @@ fun GameUI(
     onExitClicked: () -> Unit,
     viewModel: GameViewModel = koinViewModel()
 ) {
-    val players by viewModel.players.collectAsState()
-    val resources by viewModel.resources.collectAsState()
-    val assets by viewModel.assets.collectAsState()
-    val progressCards by viewModel.progressCards.collectAsState()
-    val victoryPoints by viewModel.victoryPoints.collectAsState()
-    val uiState by viewModel.uiState.collectAsState()
+//    val players by viewModel.players.collectAsState()
+//    val resources by viewModel.resources.collectAsState()
+//    val assets by viewModel.assets.collectAsState()
+//    val progressCards by viewModel.progressCards.collectAsState()
+//    val victoryPoints by viewModel.victoryPoints.collectAsState()
+//    val uiState by viewModel..collectAsState()
 
     val dimensions = HexonTheme.dimensions
     val spacing = dimensions.spacing
@@ -77,11 +76,11 @@ fun GameUI(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    PlayerTurn(
-                        players = players,
-                        modifier = Modifier.weight(1f).fillMaxHeight()
-                            .padding(horizontal = spacing.small)
-                    )
+//                    PlayerTurn(
+//                        players = players,
+//                        modifier = Modifier.weight(1f).fillMaxHeight()
+//                            .padding(horizontal = spacing.small)
+//                    )
 
                     OptionsButton(
                         onExitClicked = onExitClicked,
@@ -95,10 +94,10 @@ fun GameUI(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    VictoryPointsIndicator(
-                        victoryPoints = victoryPoints,
-                        modifier = Modifier.height(rowHeight * 0.65f)
-                    )
+//                    VictoryPointsIndicator(
+//                        victoryPoints = victoryPoints,
+//                        modifier = Modifier.height(rowHeight * 0.65f)
+//                    )
                 }
             }
 
@@ -108,13 +107,13 @@ fun GameUI(
                 verticalArrangement = Arrangement.spacedBy(spacing.medium),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (uiState == GameUIState.TRADING) {
-                    TradePanel(
-                        players = players,
-                        onPlayerClicked = {},
-                        modifier = Modifier.height(rowHeight * 1.1f)
-                    )
-                }
+//                if (uiState == TurnPhase.TRADE) {
+//                    TradePanel(
+//                        players = players,
+//                        onPlayerClicked = {},
+//                        modifier = Modifier.height(rowHeight * 1.1f)
+//                    )
+//                }
 
                 Row(
                     modifier = Modifier
@@ -127,41 +126,41 @@ fun GameUI(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
                     ) {
-                        Row(
-                            modifier = Modifier.height(rowHeight),
-                            horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall)
-                        ) {
-                            val activeItems = if (uiState == GameUIState.TRADING) resources else assets
-                            activeItems.forEach { item ->
-                                ItemCard(itemCardData = item)
-                            }
-                        }
-
-                        val scrollState = rememberScrollState()
-                        Row(
-                            modifier = Modifier
-                                .height(rowHeight)
-                                .horizontalScroll(scrollState),
-                            horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            resources.forEach { resource ->
-                                ItemCard(itemCardData = resource)
-                            }
-
-                            if (progressCards.isNotEmpty()) {
-                                VerticalDivider(
-                                    modifier = Modifier
-                                        .fillMaxHeight(0.6f)
-                                        .padding(horizontal = spacing.extraSmall),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                )
-
-                                progressCards.forEach { progressCard ->
-                                    ItemCard(itemCardData = progressCard)
-                                }
-                            }
-                        }
+//                        Row(
+//                            modifier = Modifier.height(rowHeight),
+//                            horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+//                        ) {
+//                            val activeItems = if (uiState == TurnPhase.TRADE) resources else assets
+//                            activeItems.forEach { item ->
+//                                ItemCard(itemCardData = item)
+//                            }
+//                        }
+//
+//                        val scrollState = rememberScrollState()
+//                        Row(
+//                            modifier = Modifier
+//                                .height(rowHeight)
+//                                .horizontalScroll(scrollState),
+//                            horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall),
+//                            verticalAlignment = Alignment.CenterVertically
+//                        ) {
+//                            resources.forEach { resource ->
+//                                ItemCard(itemCardData = resource)
+//                            }
+//
+//                            if (progressCards.isNotEmpty()) {
+//                                VerticalDivider(
+//                                    modifier = Modifier
+//                                        .fillMaxHeight(0.6f)
+//                                        .padding(horizontal = spacing.extraSmall),
+//                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+//                                )
+//
+//                                progressCards.forEach { progressCard ->
+//                                    ItemCard(itemCardData = progressCard)
+//                                }
+//                            }
+//                        }
                     }
 
                     Column(
@@ -172,14 +171,14 @@ fun GameUI(
                             icon = Icons.Filled.SwapHoriz,
                             color = MaterialTheme.colorScheme.tertiary,
                             description = "Trade",
-                            onClick = { viewModel.onTradeActionClick() },
+                            onClick = { },
                             modifier = Modifier.size(rowHeight)
                         )
                         ControlButton(
                             icon = Icons.AutoMirrored.Filled.ArrowForward,
                             color = MaterialTheme.colorScheme.primary,
                             description = "Next Phase",
-                            onClick = { viewModel.setUIState(uiState.next())},
+                            onClick = { },
                             modifier = Modifier.size(rowHeight)
                         )
                     }

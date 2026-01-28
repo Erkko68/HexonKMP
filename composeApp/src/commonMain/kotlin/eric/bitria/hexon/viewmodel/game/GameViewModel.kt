@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 enum class TurnPhase {
     SETUP,          // Initial settlement placement
     WAITING,        // Waiting for server/other players
+    TRADE,
     MAIN_PHASE,     // Active turn (Build, Trade)
     ROBBER_RESOLUTION, // Discarding or moving robber
     GAME_OVER
@@ -151,10 +152,17 @@ class GameViewModel(
         _me.value = currentMe
     }
 
-    private fun handleResourceCountUpdated(event: GameplayEvent.ResourceCountUpdated){
-        val player = _opponents.value[event.playerId] ?: return
-        player.resourceCount += event.changes
-        _opponents.value = _opponents.value.toMutableMap()
+    private fun handleResourceCountUpdated(event: GameplayEvent.ResourceCountUpdated) {
+        val currentMap = _opponents.value
+        val snapshot = currentMap[event.playerId] ?: return
+
+        val updatedSnapshot = snapshot.copy(
+            resourceCount = snapshot.resourceCount + event.changes
+        )
+
+        _opponents.value = currentMap.toMutableMap().apply {
+            put(event.playerId, updatedSnapshot)
+        }
     }
 
     private fun handleObjectBuilt(event: GameplayEvent.ObjectBuilt) {

@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.view.ViewGroup.LayoutParams
-import android.webkit.ConsoleMessage as AndroidConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -20,30 +19,17 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 @Composable
 internal actual fun ComposeWebViewImpl(
     state: WebViewState,
     modifier: Modifier,
-    controller: WebViewController,
-    javaScriptInterfaces: Map<String, Any>,
-    onCreated: (WebView) -> Unit,
-    onDispose: (WebView) -> Unit,
-    onConsoleMessage: (ConsoleMessage) -> Unit,
     jsBridge: WebViewJsBridge?,
 ) {
     val webView = state.webView
     val lifecycleOwner = LocalLifecycleOwner.current
 
     webView?.let { wv ->
-        LaunchedEffect(wv, controller) {
-            withContext(Dispatchers.Main) {
-                controller.handleNavigationEvents(wv)
-            }
-        }
-
         LaunchedEffect(wv, state, jsBridge) {
             snapshotFlow { state.content }.collect { content ->
                 if (content is WebContent.Data) {
@@ -55,10 +41,6 @@ internal actual fun ComposeWebViewImpl(
                     wv.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
                 }
             }
-        }
-
-        LaunchedEffect(javaScriptInterfaces) {
-            wv.injectJavascriptInterfaces(javaScriptInterfaces)
         }
     }
 
@@ -91,29 +73,8 @@ internal actual fun ComposeWebViewImpl(
                         override fun onProgressChanged(view: WebView?, newProgress: Int) {
                             state.loadingState = if (newProgress == 100) LoadingState.Finished else LoadingState.Loading(newProgress / 100f)
                         }
-
-                        override fun onConsoleMessage(consoleMessage: AndroidConsoleMessage?): Boolean {
-                            consoleMessage?.let {
-                                onConsoleMessage(
-                                    ConsoleMessage(
-                                        message = it.message(),
-                                        sourceId = it.sourceId(),
-                                        lineNumber = it.lineNumber(),
-                                        level = when (it.messageLevel()) {
-                                            AndroidConsoleMessage.MessageLevel.LOG -> ConsoleMessageLevel.LOG
-                                            AndroidConsoleMessage.MessageLevel.DEBUG -> ConsoleMessageLevel.DEBUG
-                                            AndroidConsoleMessage.MessageLevel.WARNING -> ConsoleMessageLevel.WARNING
-                                            AndroidConsoleMessage.MessageLevel.ERROR -> ConsoleMessageLevel.ERROR
-                                            else -> ConsoleMessageLevel.LOG
-                                        }
-                                    )
-                                )
-                            }
-                            return super.onConsoleMessage(consoleMessage)
-                        }
                     }
 
-                    injectJavascriptInterfaces(javaScriptInterfaces)
                     jsBridge?.attach(this)
                 }.also { wv ->
                     if (state.content is WebContent.Data) {
@@ -126,13 +87,11 @@ internal actual fun ComposeWebViewImpl(
                         wv.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
                     }
                     state.webView = wv
-                    onCreated(wv)
                 }
             },
             modifier = Modifier,
             update = { _ -> },
             onRelease = {
-                onDispose(it)
                 state.webView = null
                 it.destroy()
             },
@@ -164,11 +123,6 @@ private fun WebViewContainer(
         val height = if (constraints.hasFixedHeight) LayoutParams.MATCH_PARENT else LayoutParams.WRAP_CONTENT
         content(FrameLayout.LayoutParams(width, height))
     }
-}
-
-@SuppressLint("JavascriptInterface")
-private fun WebView.injectJavascriptInterfaces(interfaces: Map<String, Any>) {
-    interfaces.forEach { (name, obj) -> addJavascriptInterface(obj, name) }
 }
 
 private fun wrapScriptInHtml(script: String, bridgeScript: String?): String = """
