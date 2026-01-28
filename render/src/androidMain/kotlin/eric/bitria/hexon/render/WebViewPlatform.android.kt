@@ -8,14 +8,6 @@ import android.webkit.JavascriptInterface
 
 actual typealias WebView = android.webkit.WebView
 
-actual fun WebView.platformLoadDataWithBaseURL(
-    baseUrl: String?,
-    data: String,
-    mimeType: String?,
-    encoding: String?,
-    historyUrl: String?,
-) = this.loadDataWithBaseURL(baseUrl, data, mimeType, encoding, historyUrl)
-
 actual fun WebView.platformEvaluateJavascript(
     script: String,
     callback: ((String) -> Unit)?,

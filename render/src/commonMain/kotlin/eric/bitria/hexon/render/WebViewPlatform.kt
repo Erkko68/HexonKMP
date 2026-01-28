@@ -5,17 +5,6 @@ package eric.bitria.hexon.render
 expect class WebView
 
 /**
- * Loads the given data with the base URL.
- */
-expect fun WebView.platformLoadDataWithBaseURL(
-    baseUrl: String?,
-    data: String,
-    mimeType: String?,
-    encoding: String?,
-    historyUrl: String?,
-)
-
-/**
  * Evaluates the given JavaScript.
  */
 expect fun WebView.platformEvaluateJavascript(

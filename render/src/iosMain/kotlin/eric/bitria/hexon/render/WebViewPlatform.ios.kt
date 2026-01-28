@@ -1,7 +1,6 @@
 package eric.bitria.hexon.render
 
 import kotlinx.cinterop.ExperimentalForeignApi
-import platform.Foundation.NSURL
 import platform.WebKit.WKScriptMessage
 import platform.WebKit.WKScriptMessageHandlerProtocol
 import platform.WebKit.WKUserContentController
@@ -24,17 +23,6 @@ actual typealias WebView = WKWebView
 
 actual abstract class PlatformContext
 
-
-actual fun WebView.platformLoadDataWithBaseURL(
-    baseUrl: String?,
-    data: String,
-    mimeType: String?,
-    encoding: String?,
-    historyUrl: String?,
-) {
-    loadHTMLString(data, baseURL = baseUrl?.let { NSURL.URLWithString(it) })
-}
-
 actual fun WebView.platformEvaluateJavascript(
     script: String,
     callback: ((String) -> Unit)?,
@@ -53,50 +41,51 @@ actual fun WebView.platformAddJavascriptInterface(
     obj: Any,
     name: String,
 ) {
+    // 1. Cast early. If obj isn't the bridge, we can't use it, so return.
+    val bridge = obj as? NativeWebBridge ?: return
+
+    // 2. Register the Message Handler
     configuration.userContentController.addScriptMessageHandler(
-        scriptMessageHandler =
-            object : NSObject(), WKScriptMessageHandlerProtocol {
-                override fun userContentController(
-                    userContentController: WKUserContentController,
-                    didReceiveScriptMessage: WKScriptMessage,
-                ) {
-                    val body = didReceiveScriptMessage.body as? Map<String, Any?>
-                    if (body != null && obj is NativeWebBridge) {
-                        val method = body["method"] as? String
-                        val data = body["data"] as? String
-                        val callbackId = body["callbackId"] as? String
-                        if (method != null) {
-                            obj.call(method, data, callbackId)
-                        }
-                    }
-                }
-            },
+        scriptMessageHandler = object : NSObject(), WKScriptMessageHandlerProtocol {
+            override fun userContentController(
+                userContentController: WKUserContentController,
+                didReceiveScriptMessage: WKScriptMessage,
+            ) {
+                // Flattened logic using safely casted variables
+                val body = didReceiveScriptMessage.body as? Map<*, *>
+                val method = body?.get("method") as? String ?: return // Guard: method is required
+
+                bridge.call(
+                    methodName = method,
+                    data = body["data"] as? String,
+                    callbackId = body["callbackId"] as? String
+                )
+            }
+        },
         name = name,
     )
 
-    if (obj is NativeWebBridge) {
-        val adapterScript =
-            """
-            window.$name = {
-                call: function(method, data, callbackId) {
-                    var message = {
-                        method: method,
-                        data: data,
-                        callbackId: callbackId
-                    };
-                    window.webkit.messageHandlers.$name.postMessage(message);
-                }
-            };
-            """.trimIndent()
+    // 3. Inject the Adapter Script
+    // We inline the object creation inside postMessage for brevity
+    val adapterScript = """
+        window.$name = {
+            call: function(method, data, callbackId) {
+                window.webkit.messageHandlers.$name.postMessage({
+                    method: method,
+                    data: data,
+                    callbackId: callbackId
+                });
+            }
+        };
+    """.trimIndent()
 
-        val userScript =
-            WKUserScript(
-                source = adapterScript,
-                injectionTime = WKUserScriptInjectionTime.WKUserScriptInjectionTimeAtDocumentStart,
-                forMainFrameOnly = false,
-            )
-        configuration.userContentController.addUserScript(userScript)
-    }
+    configuration.userContentController.addUserScript(
+        WKUserScript(
+            source = adapterScript,
+            injectionTime = WKUserScriptInjectionTime.WKUserScriptInjectionTimeAtDocumentStart,
+            forMainFrameOnly = false,
+        )
+    )
 }
 
 @Target(AnnotationTarget.FUNCTION)
