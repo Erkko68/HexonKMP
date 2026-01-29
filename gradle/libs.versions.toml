@@ -10,6 +10,7 @@ componentsResources = "1.10.0"
 composeMultiplatform = "1.10.0"
 exposedJavaTime = "0.61.0"
 foundation = "1.10.0"
+htmlCoreVersion = "1.10.0"
 jakartaMail = "2.0.2"
 javaJwt = "4.5.0"
 koinCompose = "4.1.1"
@@ -55,6 +56,7 @@ exposed-java-time = { module = "org.jetbrains.exposed:exposed-java-time", versio
 foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "foundation" }
 jakarta-mail = { module = "com.sun.mail:jakarta.mail", version.ref = "jakartaMail" }
 java-jwt = { module = "com.auth0:java-jwt", version.ref = "javaJwt" }
+jetbrains-html-core = { module = "org.jetbrains.compose.html:html-core", version.ref = "htmlCoreVersion" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }

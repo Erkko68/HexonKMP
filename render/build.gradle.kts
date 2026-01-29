@@ -43,6 +43,11 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
         }
+
+        jsMain.dependencies {
+            implementation(libs.jetbrains.html.core)
+            implementation(libs.ui)
+        }
         
         iosMain.dependencies {
             implementation(libs.runtime)

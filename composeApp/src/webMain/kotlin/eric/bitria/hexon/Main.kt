@@ -13,7 +13,7 @@ import eric.bitria.hexon.di.initKoin
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     initKoin()
-    ComposeViewport("compose-root") {
+    ComposeViewport {
         Box(
             modifier = Modifier
                 .fillMaxSize()

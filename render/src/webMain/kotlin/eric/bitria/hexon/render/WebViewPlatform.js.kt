@@ -1,47 +1,44 @@
 package eric.bitria.hexon.render
 
-import kotlinx.browser.window
-import org.w3c.dom.HTMLElement
+import org.w3c.dom.HTMLIFrameElement
 
-// On Web, we just need a handle to satisfy the common API.
-// We don't use 'element' for logic anymore.
-actual class WebView(val element: HTMLElement) {
+
+actual class WebView {
+    // Change to nullable var
+    var iframe: HTMLIFrameElement? = null
     var bridge: NativeWebBridge? = null
-}
-
-actual fun WebView.platformLoadDataWithBaseURL(
-    baseUrl: String?,
-    data: String,
-    mimeType: String?,
-    encoding: String?,
-    historyUrl: String?,
-) {
-    // We intentionally disable this on Web to prevent accidental
-    // overwriting of the entire Compose app (document.body).
-    console.warn("WebView.loadData disabled on Web to protect the main window content.")
 }
 
 actual fun WebView.platformEvaluateJavascript(
     script: String,
     callback: ((String) -> Unit)?,
 ) {
-    // DIRECT EXECUTION: Always run JS on the global window
-    try {
-        val result = window.asDynamic().eval(script)
-
-        // Handle undefined/null results gracefully
-        val strResult = if (result == null || result == undefined) "null" else result.toString()
-        callback?.invoke(strResult)
-    } catch (e: Throwable) {
-        console.error("WebView Eval Error for script: $script", e)
+    val contentWindow = iframe?.contentWindow ?: run {
         callback?.invoke("null")
+        return
     }
+
+    val safeEval = js("""
+        (function(win, s) {
+            try {
+                return win.eval(s);
+            } catch (e) {
+                console.error("WebView JS Eval Error:", e);
+                return null;
+            }
+        })
+    """)
+
+    val result = safeEval(contentWindow, script)
+    callback?.invoke(result?.toString() ?: "null")
 }
 
 actual fun WebView.platformAddJavascriptInterface(
     obj: Any,
     name: String,
 ) {
+    val win = iframe?.contentWindow ?: return
+
     if (obj is NativeWebBridge) {
         this.bridge = obj
 
@@ -50,11 +47,12 @@ actual fun WebView.platformAddJavascriptInterface(
             obj.call(method, data, callbackId)
         }
 
-        window.asDynamic()[name] = jsInterface
+        win.asDynamic()[name] = jsInterface
     } else {
-        window.asDynamic()[name] = obj
+        win.asDynamic()[name] = obj
     }
 }
+
 
 @Target(AnnotationTarget.FUNCTION)
 actual annotation class PlatformJavascriptInterface actual constructor()
