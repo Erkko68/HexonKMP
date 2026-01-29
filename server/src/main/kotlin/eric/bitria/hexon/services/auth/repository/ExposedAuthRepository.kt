@@ -2,13 +2,10 @@ package eric.bitria.hexon.services.auth.repository
 
 import com.github.f4b6a3.uuid.UuidCreator
 import eric.bitria.hexon.database.DatabaseFactory.dbQuery
+import eric.bitria.hexon.database.tables.Sessions
 import eric.bitria.hexon.database.tables.Users
-import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.update
 
 class ExposedAuthRepository : AuthRepository {
 
@@ -33,17 +30,14 @@ class ExposedAuthRepository : AuthRepository {
             it[this.username] = username
             it[this.password] = passwordHash
             it[this.isVerified] = false
-            it[this.refreshTokenHash] = null
         }
 
-        // Return the data class directly
         User(
             id = newId,
             email = email,
             username = username,
             password = passwordHash,
-            isVerified = false,
-            refreshTokenHash = null
+            isVerified = false
         )
     }
 
@@ -68,19 +62,37 @@ class ExposedAuthRepository : AuthRepository {
             .singleOrNull()
     }
 
-
-    override suspend fun updateRefreshToken(userId: String, refreshTokenHash: String?) = dbQuery {
-        Users.update({ Users.id eq userId }) {
+    override suspend fun addRefreshToken(userId: String, refreshTokenHash: String) = dbQuery {
+        Sessions.insert {
+            it[this.id] = UuidCreator.getTimeBasedWithRandom().toString()
+            it[this.userId] = userId
             it[this.refreshTokenHash] = refreshTokenHash
         }
         Unit
     }
 
-    override suspend fun getRefreshTokenHash(userId: String): String? = dbQuery {
-        Users.select(Users.refreshTokenHash)
-            .where { Users.id eq userId }
-            .map { it[Users.refreshTokenHash] }
-            .singleOrNull()
+    // Refresh Tokens
+
+    override suspend fun updateRefreshToken(oldHash: String, newHash: String): Boolean = dbQuery {
+        Sessions.update({ Sessions.refreshTokenHash eq oldHash }) {
+            it[this.refreshTokenHash] = newHash
+        } > 0
+    }
+
+    override suspend fun hasRefreshTokenHash(refreshTokenHash: String): Boolean = dbQuery {
+        Sessions.selectAll()
+            .where { Sessions.refreshTokenHash eq refreshTokenHash }
+            .count() > 0
+    }
+
+    override suspend fun revokeRefreshToken(refreshTokenHash: String) = dbQuery {
+        Sessions.deleteWhere { Sessions.refreshTokenHash eq refreshTokenHash }
+        Unit
+    }
+
+    override suspend fun revokeAllRefreshTokens(userId: String) = dbQuery {
+        Sessions.deleteWhere { Sessions.userId eq userId }
+        Unit
     }
 
     override suspend fun verifyUser(userId: String): Unit = dbQuery {
@@ -101,15 +113,13 @@ class ExposedAuthRepository : AuthRepository {
         Unit
     }
 
-    // --- Helper Mapping ---
     private fun rowToUser(row: ResultRow): User {
         return User(
             id = row[Users.id],
             email = row[Users.email],
             username = row[Users.username],
             password = row[Users.password],
-            isVerified = row[Users.isVerified],
-            refreshTokenHash = row[Users.refreshTokenHash]
+            isVerified = row[Users.isVerified]
         )
     }
 }

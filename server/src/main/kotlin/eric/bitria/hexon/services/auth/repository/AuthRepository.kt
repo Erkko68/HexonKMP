@@ -38,17 +38,32 @@ interface AuthRepository {
     suspend fun findUserByUsername(username: String): User?
 
     /**
-     * Updates the refresh token hash for a specific user.
-     * Used by LoginService (to set initial token) and RefreshService (rotation).
-     * @param refreshTokenHash Nullable because logging out would set this to null.
+     * Adds a new refresh token for a specific user.
+     * Supports multiple active sessions.
      */
-    suspend fun updateRefreshToken(userId: String, refreshTokenHash: String?)
+    suspend fun addRefreshToken(userId: String, refreshTokenHash: String)
+
+    /**
+     * Updates an existing refresh token (used for token rotation).
+     * Replaces oldHash with newHash.
+     */
+    suspend fun updateRefreshToken(oldHash: String, newHash: String): Boolean
 
     /**
      * Retrieves the stored refresh token hash for validation.
-     * Used by RefreshService to check if the incoming token matches the DB.
+     * Used by RefreshService to check if the incoming token exists.
      */
-    suspend fun getRefreshTokenHash(userId: String): String?
+    suspend fun hasRefreshTokenHash(refreshTokenHash: String): Boolean
+
+    /**
+     * Revokes a specific session.
+     */
+    suspend fun revokeRefreshToken(refreshTokenHash: String)
+
+    /**
+     * Revokes all sessions for a specific user.
+     */
+    suspend fun revokeAllRefreshTokens(userId: String)
 
     /**
      * Marks a user as verified.
