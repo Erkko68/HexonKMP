@@ -1,5 +1,7 @@
 package eric.bitria.hexon.render
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -22,77 +24,83 @@ internal actual fun ComposeWebViewImpl(
     modifier: Modifier,
     jsBridge: WebViewJsBridge?,
 ) {
-    // 1. Create the WebView wrapper state
     val webView = remember { WebView() }
 
-    // 2. Render the Iframe
-    WebElementView(
-        // IMPORTANT: The drawBehind modifier "punches a hole" in the canvas
+    // Renders the container Box.
+    // The external modifier is applied here to handle size and positioning.
+    // We use 'drawBehind' with BlendMode.Clear to "punch a hole" in the Compose canvas,
+    // allowing the transparent iframe behind it to be visible.
+    Box(
         modifier = modifier.drawBehind {
-            drawRect(
-                color = Color.Transparent,
-                blendMode = BlendMode.Clear
-            )
-        },
-        factory = {
-            val iframeElement = (document.createElement("iframe") as HTMLIFrameElement).apply {
-                style.apply {
-                    border = "none"
-                    width = "100%"
-                    height = "100%"
+            drawRect(color = Color.Transparent, blendMode = BlendMode.Clear)
+        }
+    ) {
+        WebElementView(
+            modifier = Modifier.fillMaxSize(),
+            factory = {
+                val iframe = (document.createElement("iframe") as HTMLIFrameElement).apply {
+                    style.apply {
+                        border = "none"
+                        width = "100%"
+                        height = "100%"
+                    }
+                    // Visual Hack: Push the iframe explicitly behind the canvas DOM element.
+                    // We use requestAnimationFrame to ensure the element is attached before accessing parentElement.
+                    window.requestAnimationFrame {
+                        (parentElement as? HTMLElement)?.style?.zIndex = "-1"
+                    }
                 }
 
-                // Pushing the iframe container behind the Compose Canvas
-                window.requestAnimationFrame {
-                    (parentElement as? HTMLElement)?.style?.zIndex = "-1"
-                }
+                webView.iframe = iframe
+                state.webView = webView
+                iframe
+            },
+            update = {
+                // No-op: Updates are handled via the srcdoc in LaunchedEffect below.
             }
+        )
+    }
 
-            webView.iframe = iframeElement
-            state.webView = webView
-            iframeElement
-        },
-        update = { }
-    )
-
-    // 3. Lifecycle & Script Injection
+    // Handles content loading and JS Bridge initialization.
+    // This logic creates a strict "Handshake" between Kotlin and JS to prevent race conditions.
     LaunchedEffect(state.content, jsBridge, state.webView) {
         val content = state.content as? WebContent.Data ?: return@LaunchedEffect
-        val currentIframe = state.webView?.iframe ?: return@LaunchedEffect
+        val iframe = state.webView?.iframe ?: return@LaunchedEffect
 
-        currentIframe.onload = {
+        // 1. Setup the Handshake
+        // We attach the bridge and boot the content only AFTER the DOM is fully parsed.
+        iframe.onload = {
             try {
-                // Step A: Initialize the Bridge (Host -> Client)
+                // Step A: Initialize Host -> Client communication.
+                // This injects the native bridge objects (e.g., AppBridgeNative) into the window.
                 jsBridge?.attach(webView)
 
-                // Step B: Boot the Content (Client -> Host)
-                val contentWindow = currentIframe.contentWindow
+                // Step B: Initialize Client -> Host communication.
+                // We manually invoke the 'bootHexon' function defined in the HTML wrapper.
+                // This ensures the user script never runs before Step A is complete.
+                val contentWindow = iframe.contentWindow
                 if (contentWindow != null) {
                     val jsWindow = contentWindow.asDynamic()
 
-                    // Check if the function exists to avoid crashing on blank/error pages
                     if (jsWindow.bootHexon != undefined) {
                         jsWindow.bootHexon()
                     } else {
-                        console.error("Hexon WebView: bootHexon() not found in iframe.")
+                        console.error("Hexon WebView: bootHexon() function missing in iframe.")
                     }
                 }
 
                 state.loadingState = LoadingState.Finished
             } catch (e: Throwable) {
-                console.error("Hexon WebView: Error during iframe initialization", e)
+                console.error("Hexon WebView: Initialization failed", e)
             }
             Unit
         }
 
-        // 4. Inject the HTML (This triggers the load)
-        currentIframe.srcdoc = wrapScriptInHtml(
-            content.data,
-            jsBridge?.jsScript
-        )
+        // 2. Load Content
+        // We inject the HTML, which triggers the 'onload' event defined above.
+        iframe.srcdoc = wrapScriptInHtml(content.data, jsBridge?.jsScript)
     }
 
-    // 5. Cleanup
     DisposableEffect(Unit) {
         onDispose {
             state.webView = null
@@ -103,43 +111,41 @@ internal actual fun ComposeWebViewImpl(
 }
 
 /**
- * Wraps the user script in a 'bootloader' function.
- * The script will NOT execute until bootHexon() is called from Kotlin.
+ * Wraps the user script in a secure HTML structure.
+ * * Key Architecture:
+ * 1. The 'bridgeScript' is placed in <head> to be available immediately.
+ * 2. The 'script' (user content) is wrapped in a global function 'window.bootHexon'.
+ * This prevents the script from auto-executing until the Kotlin side explicitly calls it.
  */
 private fun wrapScriptInHtml(script: String, bridgeScript: String?): String = """
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            html, body {
-                margin: 0;
-                padding: 0;
-                width: 100%;
-                height: 100%;
-                overflow: hidden;
-                background: transparent;
+            html, body { 
+                margin: 0; 
+                padding: 0; 
+                width: 100%; 
+                height: 100%; 
+                overflow: hidden; 
+                background: transparent; 
             }
-            #three-root {
-                position: fixed;
-                inset: 0;
-                display: block;
+            #three-root { 
+                position: fixed; 
+                inset: 0; 
+                display: block; 
             }
         </style>
         <script>
-            // 1. Inject Bridge Definitions (Synchronous)
             ${bridgeScript ?: ""}
         </script>
     </head>
     <body>
         <canvas id="three-root"></canvas>
         <script>
-            // 2. Define the Bootloader
-            // This function encapsulates the user logic.
             window.bootHexon = function() {
                 try {
-                    // Execute User Script
                     $script
                 } catch (e) {
                     console.error("Hexon Content Error:", e);
