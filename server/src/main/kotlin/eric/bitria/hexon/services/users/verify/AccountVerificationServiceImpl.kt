@@ -1,5 +1,6 @@
 package eric.bitria.hexon.services.users.verify
 
+import com.auth0.jwt.JWT
 import eric.bitria.hexon.services.auth.repository.AuthRepository
 import eric.bitria.hexon.services.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
@@ -12,6 +13,9 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import eric.bitria.hexon.services.email.verification.EmailVerificationService
 import eric.bitria.hexon.services.users.profile.ProfileRepository
 import eric.bitria.hexon.utils.TokenHasher
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 class AccountVerificationServiceImpl(
     private val authRepository: AuthRepository,
@@ -37,7 +41,6 @@ class AccountVerificationServiceImpl(
         }
 
         // 3. Verify Code via the Service
-        // This handles Hash Checking, Expiry, and Type Matching
         val isCodeValid = emailVerificationService.verifyCodeByEmail(
             email = request.email,
             code = request.code,
@@ -45,8 +48,6 @@ class AccountVerificationServiceImpl(
         )
 
         if (!isCodeValid) {
-            // Note: Our service returns false for both "Wrong Code" and "Expired".
-            // If you need to distinguish, verifyCodeByEmail would need to return a Result object.
             return VerifyEmailResponse(
                 VerifyEmailResult.INVALID_CODE,
                 "Invalid or expired verification code."
@@ -61,9 +62,16 @@ class AccountVerificationServiceImpl(
         val refreshToken = tokenService.generateRefreshToken(user.id)
 
         // 6. Securely Store Refresh Token Session
-        // Use addRefreshToken for verification as it's the initial session
+        val expiresAt = LocalDateTime.ofInstant(
+            Instant.ofEpochMilli(JWT.decode(refreshToken).expiresAt.time),
+            ZoneId.systemDefault()
+        )
+        
+        // Periodic cleanup
+        authRepository.clearExpiredSessions()
+
         val refreshTokenHash = TokenHasher.hash(refreshToken)
-        authRepository.addRefreshToken(user.id, refreshTokenHash)
+        authRepository.addRefreshToken(user.id, refreshTokenHash, expiresAt)
 
         // 7. Create user profile
         profileRepository.createProfile(user.id)
@@ -80,7 +88,6 @@ class AccountVerificationServiceImpl(
         request: ResendVerificationCodeRequest
     ): ResendVerificationCodeResponse {
 
-        // 1. Check User Existence
         val user = authRepository.findUserByEmail(request.email)
             ?:
             return ResendVerificationCodeResponse(
@@ -88,7 +95,6 @@ class AccountVerificationServiceImpl(
                 "A new verification code has been sent to ${request.email}"
             )
 
-        // 2. Check if Already Verified
         if (user.isVerified) {
             return ResendVerificationCodeResponse(
                 ResendVerificationCodeResult.ALREADY_VERIFIED,
@@ -96,7 +102,6 @@ class AccountVerificationServiceImpl(
             )
         }
 
-        // 3. Generate & Send New Code
         emailVerificationService.sendVerificationCodeByEmail(
             email = request.email,
             type = EmailVerificationType.EMAIL_CONFIRMATION

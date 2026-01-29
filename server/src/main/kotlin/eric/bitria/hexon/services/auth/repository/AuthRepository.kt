@@ -1,5 +1,7 @@
 package eric.bitria.hexon.services.auth.repository
 
+import java.time.LocalDateTime
+
 interface AuthRepository {
 
     /**
@@ -41,13 +43,13 @@ interface AuthRepository {
      * Adds a new refresh token for a specific user.
      * Supports multiple active sessions.
      */
-    suspend fun addRefreshToken(userId: String, refreshTokenHash: String)
+    suspend fun addRefreshToken(userId: String, refreshTokenHash: String, expiresAt: LocalDateTime)
 
     /**
      * Updates an existing refresh token (used for token rotation).
      * Replaces oldHash with newHash.
      */
-    suspend fun updateRefreshToken(oldHash: String, newHash: String): Boolean
+    suspend fun updateRefreshToken(oldHash: String, newHash: String, newExpiresAt: LocalDateTime): Boolean
 
     /**
      * Retrieves the stored refresh token hash for validation.
@@ -64,6 +66,11 @@ interface AuthRepository {
      * Revokes all sessions for a specific user.
      */
     suspend fun revokeAllRefreshTokens(userId: String)
+
+    /**
+     * Deletes all expired sessions from the database.
+     */
+    suspend fun clearExpiredSessions()
 
     /**
      * Marks a user as verified.

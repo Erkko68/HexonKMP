@@ -6,6 +6,8 @@ import eric.bitria.hexon.database.tables.Sessions
 import eric.bitria.hexon.database.tables.Users
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
+import java.time.LocalDateTime
 
 class ExposedAuthRepository : AuthRepository {
 
@@ -62,26 +64,26 @@ class ExposedAuthRepository : AuthRepository {
             .singleOrNull()
     }
 
-    override suspend fun addRefreshToken(userId: String, refreshTokenHash: String) = dbQuery {
+    override suspend fun addRefreshToken(userId: String, refreshTokenHash: String, expiresAt: LocalDateTime) = dbQuery {
         Sessions.insert {
             it[this.id] = UuidCreator.getTimeBasedWithRandom().toString()
             it[this.userId] = userId
             it[this.refreshTokenHash] = refreshTokenHash
+            it[this.expiresAt] = expiresAt
         }
         Unit
     }
 
-    // Refresh Tokens
-
-    override suspend fun updateRefreshToken(oldHash: String, newHash: String): Boolean = dbQuery {
+    override suspend fun updateRefreshToken(oldHash: String, newHash: String, newExpiresAt: LocalDateTime): Boolean = dbQuery {
         Sessions.update({ Sessions.refreshTokenHash eq oldHash }) {
             it[this.refreshTokenHash] = newHash
+            it[this.expiresAt] = newExpiresAt
         } > 0
     }
 
     override suspend fun hasRefreshTokenHash(refreshTokenHash: String): Boolean = dbQuery {
         Sessions.selectAll()
-            .where { Sessions.refreshTokenHash eq refreshTokenHash }
+            .where { (Sessions.refreshTokenHash eq refreshTokenHash) and (Sessions.expiresAt greater LocalDateTime.now()) }
             .count() > 0
     }
 
@@ -92,6 +94,11 @@ class ExposedAuthRepository : AuthRepository {
 
     override suspend fun revokeAllRefreshTokens(userId: String) = dbQuery {
         Sessions.deleteWhere { Sessions.userId eq userId }
+        Unit
+    }
+
+    override suspend fun clearExpiredSessions() = dbQuery {
+        Sessions.deleteWhere { Sessions.expiresAt less LocalDateTime.now() }
         Unit
     }
 

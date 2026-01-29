@@ -6,6 +6,7 @@ import eric.bitria.hexon.database.tables.EmailVerificationCodes
 import eric.bitria.hexon.database.tables.FriendRequests
 import eric.bitria.hexon.database.tables.Friends
 import eric.bitria.hexon.database.tables.Profiles
+import eric.bitria.hexon.database.tables.Sessions
 import eric.bitria.hexon.database.tables.Users
 import io.ktor.server.config.ApplicationConfig
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +33,8 @@ object DatabaseFactory {
         database = Database.connect(dataSource)
 
         transaction(database) {
-            SchemaUtils.create(Users, EmailVerificationCodes, Friends, Profiles, FriendRequests)
+            SchemaUtils.create(Users, EmailVerificationCodes, Friends, Profiles, FriendRequests,
+                Sessions)
         }
     }
 

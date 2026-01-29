@@ -1,6 +1,7 @@
 package eric.bitria.hexon.services.auth.login
 
 import at.favre.lib.crypto.bcrypt.BCrypt
+import com.auth0.jwt.JWT
 import eric.bitria.hexon.services.auth.repository.AuthRepository
 import eric.bitria.hexon.services.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.LoginRequest
@@ -8,6 +9,9 @@ import eric.bitria.hexon.dtos.auth.LoginResponse
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.utils.TokenHasher
 import eric.bitria.hexon.utils.Validators
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 class LoginServiceImpl(
     private val authRepository: AuthRepository,
@@ -47,9 +51,16 @@ class LoginServiceImpl(
         val refreshToken = tokenService.generateRefreshToken(user.id)
 
         // 5. Securely Store Refresh Token Session
-        // Use addRefreshToken for login as it's a new session
+        val expiresAt = LocalDateTime.ofInstant(
+            Instant.ofEpochMilli(JWT.decode(refreshToken).expiresAt.time),
+            ZoneId.systemDefault()
+        )
+        
+        // Periodic cleanup
+        authRepository.clearExpiredSessions()
+
         val refreshTokenHash = TokenHasher.hash(refreshToken)
-        authRepository.addRefreshToken(user.id, refreshTokenHash)
+        authRepository.addRefreshToken(user.id, refreshTokenHash, expiresAt)
 
         // 6. Return Success
         return LoginResponse(
