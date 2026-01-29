@@ -57,7 +57,7 @@ class UserAccountServiceImpl(
         authRepository.updatePassword(userId, newHash)
 
         // Invalidate old refresh tokens
-        authRepository.updateRefreshToken(userId, null)
+        authRepository.revokeAllRefreshTokens(userId)
 
         return ChangePasswordResponse(
             ChangePasswordResult.SUCCESS,
@@ -140,7 +140,7 @@ class UserAccountServiceImpl(
 
         // 4. Security: Revoke all existing sessions (Invalidate Refresh Tokens)
         // This forces the user to log in again on all devices with the new password.
-        authRepository.updateRefreshToken(user.id, null)
+        authRepository.revokeAllRefreshTokens(user.id)
 
         return ResetPasswordResponse(
             ResetPasswordResult.SUCCESS,
