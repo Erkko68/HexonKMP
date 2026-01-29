@@ -1,28 +1,24 @@
 package eric.bitria.hexon.utils
 
-import at.favre.lib.crypto.bcrypt.BCrypt
-import at.favre.lib.crypto.bcrypt.LongPasswordStrategies
+import java.security.MessageDigest
+import java.util.Base64
 
 object TokenHasher {
 
-    // Configure BCrypt to pre-hash long inputs (like JWTs) using SHA-512.
-    private val longTokenStrategy = LongPasswordStrategies.hashSha512(BCrypt.Version.VERSION_2A)
-
-    private val hasher = BCrypt.with(BCrypt.Version.VERSION_2A, longTokenStrategy)
-    private val verifier = BCrypt.verifyer(BCrypt.Version.VERSION_2A, longTokenStrategy)
-
     /**
-     * Hashes a long token (JWT) safely.
+     * Hashes a token deterministically using SHA-256.
+     * Required for database lookups by hash.
      */
     fun hash(token: String): String {
-        // Cost 10 is good for tokens
-        return hasher.hashToString(10, token.toCharArray())
+        val digest = MessageDigest.getInstance("SHA-256")
+        val hashBytes = digest.digest(token.toByteArray())
+        return Base64.getEncoder().encodeToString(hashBytes)
     }
 
     /**
-     * Verifies a long token against a stored hash.
+     * Verifies a token against a stored hash.
      */
     fun verify(token: String, hash: String): Boolean {
-        return verifier.verify(token.toCharArray(), hash).verified
+        return hash(token) == hash
     }
 }

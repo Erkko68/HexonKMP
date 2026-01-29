@@ -5,6 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
 import eric.bitria.hexon.security.JwtConfig
 import java.util.Date
+import java.util.UUID
 
 class JwtTokenService(
     private val config: JwtConfig
@@ -41,6 +42,7 @@ class JwtTokenService(
             .withIssuer(config.issuer)
             .withAudience(config.audience)
             .withSubject(userId)
+            .withJWTId(UUID.randomUUID().toString()) // Added JTI to ensure token uniqueness
             .withIssuedAt(Date(now))
             .withExpiresAt(Date(now + config.refreshTokenTtlMillis))
             .sign(algorithm)
@@ -54,6 +56,4 @@ class JwtTokenService(
             null
         }
     }
-
-
 }

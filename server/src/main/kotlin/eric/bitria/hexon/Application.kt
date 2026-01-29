@@ -53,8 +53,7 @@ fun Application.module() {
         allowHeader(HttpHeaders.Accept)
         
         allowCredentials = true
-        allowHost("localhost:8080")
-        allowHost("127.0.0.1:8080")
+        anyHost()
     }
 
     // 5. Routes
