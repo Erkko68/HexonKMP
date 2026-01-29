@@ -1,5 +1,7 @@
 package eric.bitria.hexon.di
 
+import eric.bitria.hexon.security.CookieConfig
+import eric.bitria.hexon.security.JwtConfig
 import eric.bitria.hexon.services.auth.login.LoginService
 import eric.bitria.hexon.services.auth.login.LoginServiceImpl
 import eric.bitria.hexon.services.auth.refresh.RefreshService
@@ -8,7 +10,6 @@ import eric.bitria.hexon.services.auth.register.RegisterService
 import eric.bitria.hexon.services.auth.register.RegisterServiceImpl
 import eric.bitria.hexon.services.auth.repository.AuthRepository
 import eric.bitria.hexon.services.auth.repository.ExposedAuthRepository
-import eric.bitria.hexon.services.auth.token.JwtConfig
 import eric.bitria.hexon.services.auth.token.JwtTokenService
 import eric.bitria.hexon.services.auth.token.TokenService
 import eric.bitria.hexon.services.email.repository.EmailVerificationRepository
@@ -42,6 +43,7 @@ import org.koin.dsl.module
 fun appModule(config: ApplicationConfig) = module {
     // Configuration
     single { JwtConfig.fromConfig(config) }
+    single { CookieConfig.fromConfig(config) }
     single { SmtpConfig.fromConfig(config) }
 
     // Repositories

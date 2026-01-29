@@ -78,7 +78,8 @@ ktor-server-contentnegotiation = { module = "io.ktor:ktor-server-content-negotia
 ktor-server-cors = { module = "io.ktor:ktor-server-cors-jvm", version.ref = "ktor" }
 ktor-server-sse = { module = "io.ktor:ktor-server-sse-jvm", version.ref = "ktor" }
 ktor-server-websockets = { module = "io.ktor:ktor-server-websockets-jvm", version.ref = "ktor" }
-ktor-serverTestHost = { module = "io.ktor:ktor-server-test-host-jvm", version.ref = "ktor" }
+ktor-server-sessions = { module = "io.ktor:ktor-server-sessions-jvm", version.ref = "ktor" }
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host-jvm", version.ref = "ktor" }
 
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koinCompose" }
 insert-koin-koin-core = { module = "io.insert-koin:koin-core" }

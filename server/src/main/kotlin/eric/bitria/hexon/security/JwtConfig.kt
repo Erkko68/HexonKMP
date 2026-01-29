@@ -1,4 +1,4 @@
-package eric.bitria.hexon.services.auth.token
+package eric.bitria.hexon.security
 
 import io.ktor.server.config.ApplicationConfig
 

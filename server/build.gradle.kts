@@ -20,6 +20,7 @@ dependencies {
     implementation(libs.ktor.server.contentnegotiation)
     implementation(libs.ktor.server.cors)
     implementation(libs.ktor.server.websockets)
+    implementation(libs.ktor.server.sessions)
     implementation(libs.ktor.client.contentnegotiation)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.auth)
@@ -33,7 +34,7 @@ dependencies {
     implementation(libs.koin.ktor)
     implementation(libs.koin.logger.slf4j)
 
-    testImplementation(libs.ktor.serverTestHost)
+    testImplementation(libs.ktor.server.test.host)
 
     // SMTP
     implementation(libs.jakarta.mail)

@@ -1,28 +1,23 @@
 package eric.bitria.hexon
 
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
-import eric.bitria.hexon.services.auth.token.JwtConfig
 import eric.bitria.hexon.database.DatabaseFactory
 import eric.bitria.hexon.di.appModule
 import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.routes.matchmakingRoutes
 import eric.bitria.hexon.routes.socialRoutes
 import eric.bitria.hexon.routes.usersRoutes
+import eric.bitria.hexon.security.configureSecurity
+import eric.bitria.hexon.security.configureSessions
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
-import io.ktor.server.auth.authentication
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
-import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 
@@ -40,6 +35,8 @@ fun Application.module() {
 
     // 3. Install plugins
     install(ContentNegotiation) { json() }
+    configureSessions()
+    configureSecurity()
 
     install(WebSockets)
 
@@ -55,12 +52,10 @@ fun Application.module() {
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.Accept)
         
-        anyHost() // Note: anyHost() doesn't allow allowCredentials = true
+        allowCredentials = true
+        allowHost("localhost:8080")
+        allowHost("127.0.0.1:8080")
     }
-
-    // 4. Configure security (JWT)
-    val jwtConfig by inject<JwtConfig>()
-    configureSecurity(jwtConfig)
 
     // 5. Routes
     routing {
@@ -68,29 +63,5 @@ fun Application.module() {
         usersRoutes()
         socialRoutes()
         matchmakingRoutes()
-    }
-}
-
-fun Application.configureSecurity(jwtConfig: JwtConfig) {
-    authentication {
-        jwt {
-            realm = jwtConfig.realm
-
-            verifier(
-                JWT
-                    .require(Algorithm.HMAC256(jwtConfig.secret))
-                    .withIssuer(jwtConfig.issuer)
-                    .withAudience(jwtConfig.audience)
-                    .build()
-            )
-
-            validate { credential ->
-                if (credential.payload.subject != null) {
-                    JWTPrincipal(credential.payload)
-                } else {
-                    null
-                }
-            }
-        }
     }
 }

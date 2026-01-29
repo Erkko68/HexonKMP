@@ -3,6 +3,7 @@ package eric.bitria.hexon.services.auth.token
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
+import eric.bitria.hexon.security.JwtConfig
 import java.util.Date
 
 class JwtTokenService(
