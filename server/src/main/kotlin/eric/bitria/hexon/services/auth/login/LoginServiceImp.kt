@@ -43,13 +43,13 @@ class LoginServiceImpl(
         }
 
         // 4. Generate Tokens
-        val accessToken = tokenService.generateAccessToken(user.id,user.username)
+        val accessToken = tokenService.generateAccessToken(user.id, user.username)
         val refreshToken = tokenService.generateRefreshToken(user.id)
 
         // 5. Securely Store Refresh Token Session
+        // Use addRefreshToken for login as it's a new session
         val refreshTokenHash = TokenHasher.hash(refreshToken)
-
-        authRepository.updateRefreshToken(user.id, refreshTokenHash)
+        authRepository.addRefreshToken(user.id, refreshTokenHash)
 
         // 6. Return Success
         return LoginResponse(

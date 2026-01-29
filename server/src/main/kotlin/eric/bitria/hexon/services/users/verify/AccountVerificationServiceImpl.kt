@@ -61,9 +61,9 @@ class AccountVerificationServiceImpl(
         val refreshToken = tokenService.generateRefreshToken(user.id)
 
         // 6. Securely Store Refresh Token Session
+        // Use addRefreshToken for verification as it's the initial session
         val refreshTokenHash = TokenHasher.hash(refreshToken)
-
-        authRepository.updateRefreshToken(user.id, refreshTokenHash)
+        authRepository.addRefreshToken(user.id, refreshTokenHash)
 
         // 7. Create user profile
         profileRepository.createProfile(user.id)
