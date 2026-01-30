@@ -61,6 +61,7 @@ kotlin {
             implementation(libs.foundation)
             implementation(libs.material3)
             implementation(libs.ui)
+            implementation(libs.material3.window.size.class1)
             implementation(libs.components.resources)
             implementation(libs.ui.tooling.preview)
             implementation(libs.lifecycle.viewmodel.compose)

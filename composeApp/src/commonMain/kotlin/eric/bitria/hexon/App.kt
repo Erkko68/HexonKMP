@@ -11,22 +11,44 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.DpSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import eric.bitria.hexon.navigation.AuthNavigation
 import eric.bitria.hexon.navigation.MainNavigation
 import eric.bitria.hexon.ui.theme.HexonTheme
 import org.koin.compose.viewmodel.koinViewModel
 
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun App(
     viewModel: AppViewModel = koinViewModel()
 ) {
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
+
+    BoxWithConstraints {
+        val sizeClass = WindowSizeClass.calculateFromSize(
+            DpSize(maxWidth, maxHeight)
+        )
+        when (sizeClass.widthSizeClass) {
+            WindowWidthSizeClass.Compact,
+            WindowWidthSizeClass.Medium -> SinglePaneLayout()
+            WindowWidthSizeClass.Expanded -> TwoPaneLayout()
+        }
+
+    }
+
+
+
 
     HexonTheme {
         Box(
@@ -68,4 +90,14 @@ fun App(
             }
         }
     }
+}
+
+@Composable
+fun SinglePaneLayout(){
+    Text("SinglePaneLayout")
+}
+
+@Composable
+fun TwoPaneLayout(){
+    Text("TwoPaneLayout")
 }

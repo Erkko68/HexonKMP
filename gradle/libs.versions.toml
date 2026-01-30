@@ -21,6 +21,7 @@ ktor = "3.3.3"
 logback = "1.5.25"
 androidx-navigation = "2.9.1"
 material3 = "1.9.0"
+material3WindowSizeClass = "1.9.0"
 materialIconsExtended = "1.7.3"
 
 junitPlatform = "6.0.2"
@@ -100,6 +101,7 @@ exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "e
 exposed-dao = { module = "org.jetbrains.exposed:exposed-dao", version.ref = "exposed" }
 exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
 material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
+material3-window-size-class1 = { module = "org.jetbrains.compose.material3:material3-window-size-class", version.ref = "material3WindowSizeClass" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 bcrypt = { module = "at.favre.lib:bcrypt", version.ref = "bcrypt" }
