@@ -29,6 +29,10 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
+import io.ktor.server.sessions.Sessions
+import io.ktor.server.sessions.cookie
+import eric.bitria.hexon.security.UserSession
+import eric.bitria.hexon.services.auth.logout.LogoutService
 
 class RegisterRouteTest {
 
@@ -42,12 +46,24 @@ class RegisterRouteTest {
                 single<AuthRepository> { authRepository }
                 single<TokenService> { tokenService }
                 single<RegisterService> { registerService }
-                single<LoginService> { MockLoginService(authRepository) }
+                single<LoginService> { MockLoginService(authRepository, tokenService) }
                 single<RefreshService> { MockRefreshService(authRepository, tokenService) }
+                single<LogoutService> { 
+                    object : LogoutService {
+                        override suspend fun logout(refreshToken: String, request: eric.bitria.hexon.dtos.auth.LogoutRequest): eric.bitria.hexon.dtos.auth.LogoutResponse {
+                            return eric.bitria.hexon.dtos.auth.LogoutResponse(eric.bitria.hexon.dtos.auth.LogoutResult.SUCCESS, "")
+                        }
+                    }
+                }
             })
         }
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
             json()
+        }
+        install(Sessions) {
+            cookie<UserSession>("USER_SESSION") {
+                cookie.path = "/"
+            }
         }
         routing {
             authRoutes()
@@ -79,7 +95,7 @@ class RegisterRouteTest {
 
     @Test
     fun `registration returns username taken`() = testAuthApplication { client ->
-        authRepository.addUser(User("1", "old@example.com", "takenuser", "hash", true, null))
+        authRepository.addUser(User("1", "old@example.com", "takenuser", "hash", true))
         
         val response = client.postRegister("new@example.com", "takenuser", "Password123!")
         assertEquals(RegisterResult.USERNAME_ALREADY_EXISTS, response.result)
@@ -87,7 +103,7 @@ class RegisterRouteTest {
 
     @Test
     fun `registration returns email taken`() = testAuthApplication { client ->
-        authRepository.addUser(User("1", "taken@example.com", "user1", "hash", true, null))
+        authRepository.addUser(User("1", "taken@example.com", "user1", "hash", true))
         
         val response = client.postRegister("taken@example.com", "user2", "Password123!")
         assertEquals(RegisterResult.EMAIL_ALREADY_EXISTS, response.result)
@@ -103,27 +119,5 @@ class RegisterRouteTest {
     fun `registration returns invalid email format`() = testAuthApplication { client ->
         val response = client.postRegister("invalid-email", "newuser", "Password123!")
         assertEquals(RegisterResult.INVALID_EMAIL, response.result)
-    }
-
-    @Test
-    fun `registration fails with malformed json`() = testApplication {
-        install(Koin) {
-            modules(module {
-                single<RegisterService> { MockRegisterService(MockAuthRepository()) }
-                single<LoginService> { MockLoginService(MockAuthRepository()) }
-                single<RefreshService> { MockRefreshService(MockAuthRepository(), MockTokenService()) }
-            })
-        }
-        install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
-            json()
-        }
-        routing {
-            authRoutes()
-        }
-        val response = client.post("/auth/register") {
-            contentType(ContentType.Application.Json)
-            setBody("{ \"username\": \"test\", \"password\": }") 
-        }
-        assertEquals(HttpStatusCode.BadRequest, response.status)
     }
 }

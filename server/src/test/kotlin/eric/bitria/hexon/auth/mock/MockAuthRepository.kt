@@ -2,9 +2,17 @@ package eric.bitria.hexon.auth.mock
 
 import eric.bitria.hexon.services.auth.repository.AuthRepository
 import eric.bitria.hexon.services.auth.repository.User
+import java.time.LocalDateTime
 
 class MockAuthRepository : AuthRepository {
     private val users = mutableMapOf<String, User>()
+    private val sessions = mutableListOf<MockSession>()
+
+    data class MockSession(
+        val userId: String,
+        var refreshTokenHash: String,
+        var expiresAt: LocalDateTime
+    )
 
     fun addUser(user: User) {
         users[user.id] = user
@@ -21,7 +29,6 @@ class MockAuthRepository : AuthRepository {
             username = username,
             password = passwordHash,
             isVerified = false,
-            refreshTokenHash = null
         )
         users[user.id] = user
         return user
@@ -32,12 +39,40 @@ class MockAuthRepository : AuthRepository {
     override suspend fun findUserById(userId: String): User? = users[userId]
     override suspend fun findUserByUsername(username: String): User? = users.values.find { it.username == username }
 
-    override suspend fun updateRefreshToken(userId: String, refreshTokenHash: String?) {
-        val user = users[userId] ?: return
-        users[userId] = user.copy(refreshTokenHash = refreshTokenHash)
+    override suspend fun addRefreshToken(
+        userId: String,
+        refreshTokenHash: String,
+        expiresAt: LocalDateTime
+    ) {
+        sessions.add(MockSession(userId, refreshTokenHash, expiresAt))
     }
 
-    override suspend fun getRefreshTokenHash(userId: String): String? = users[userId]?.refreshTokenHash
+    override suspend fun updateRefreshToken(
+        oldHash: String,
+        newHash: String,
+        newExpiresAt: LocalDateTime
+    ): Boolean {
+        val session = sessions.find { it.refreshTokenHash == oldHash } ?: return false
+        session.refreshTokenHash = newHash
+        session.expiresAt = newExpiresAt
+        return true
+    }
+
+    override suspend fun hasRefreshTokenHash(refreshTokenHash: String): Boolean {
+        return sessions.any { it.refreshTokenHash == refreshTokenHash && it.expiresAt.isAfter(LocalDateTime.now()) }
+    }
+
+    override suspend fun revokeRefreshToken(refreshTokenHash: String) {
+        sessions.removeIf { it.refreshTokenHash == refreshTokenHash }
+    }
+
+    override suspend fun revokeAllRefreshTokens(userId: String) {
+        sessions.removeIf { it.userId == userId }
+    }
+
+    override suspend fun clearExpiredSessions() {
+        sessions.removeIf { it.expiresAt.isBefore(LocalDateTime.now()) }
+    }
 
     override suspend fun verifyUser(userId: String) {
         val user = users[userId] ?: return
@@ -51,5 +86,6 @@ class MockAuthRepository : AuthRepository {
 
     override suspend fun deleteUser(userId: String) {
         users.remove(userId)
+        revokeAllRefreshTokens(userId)
     }
 }

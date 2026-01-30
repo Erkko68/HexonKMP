@@ -3,38 +3,38 @@ package eric.bitria.hexon.auth.mock
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import eric.bitria.hexon.services.auth.token.TokenService
-import java.util.Date
-import kotlin.random.Random
+import java.util.*
 
 class MockTokenService : TokenService {
-    private val secret = "secret"
+    private val secret = "test-secret"
+    private val issuer = "hexon-test"
+    private val audience = "hexon-test-audience"
     private val algorithm = Algorithm.HMAC256(secret)
 
     override fun generateAccessToken(userId: String, username: String): String {
         return JWT.create()
+            .withIssuer(issuer)
+            .withAudience(audience)
             .withSubject(userId)
+            .withClaim("username", username)
             .withExpiresAt(Date(System.currentTimeMillis() + 3600000))
             .sign(algorithm)
     }
 
     override fun generateRefreshToken(userId: String): String {
-        // We use a prefix to help validateRefreshToken identify it in this mock
-        return "mock-refresh-token-" + JWT.create()
+        return JWT.create()
+            .withIssuer(issuer)
+            .withAudience(audience)
             .withSubject(userId)
-            .withClaim("nonce", Random.nextInt())
+            .withJWTId(UUID.randomUUID().toString())
             .withExpiresAt(Date(System.currentTimeMillis() + 86400000))
             .sign(algorithm)
     }
 
     override fun validateRefreshToken(token: String): String? {
         return try {
-            val jwtString = if (token.startsWith("mock-refresh-token-")) {
-                token.removePrefix("mock-refresh-token-")
-            } else {
-                token
-            }
-            val verifier = JWT.require(algorithm).build()
-            val decoded = verifier.verify(jwtString)
+            val verifier = JWT.require(algorithm).withIssuer(issuer).build()
+            val decoded = verifier.verify(token)
             decoded.subject
         } catch (e: Exception) {
             null

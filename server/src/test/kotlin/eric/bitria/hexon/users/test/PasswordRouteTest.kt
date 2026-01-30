@@ -5,15 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import eric.bitria.hexon.auth.mock.MockAuthRepository
 import eric.bitria.hexon.auth.mock.MockTokenService
 import eric.bitria.hexon.services.auth.repository.User
-import eric.bitria.hexon.dtos.account.ChangePasswordRequest
-import eric.bitria.hexon.dtos.account.ChangePasswordResponse
-import eric.bitria.hexon.dtos.account.ChangePasswordResult
-import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
-import eric.bitria.hexon.dtos.account.ForgotPasswordResponse
-import eric.bitria.hexon.dtos.account.ForgotPasswordResult
-import eric.bitria.hexon.dtos.account.ResetPasswordRequest
-import eric.bitria.hexon.dtos.account.ResetPasswordResponse
-import eric.bitria.hexon.dtos.account.ResetPasswordResult
+import eric.bitria.hexon.dtos.account.*
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
 import eric.bitria.hexon.email.mock.MockEmailVerificationService
 import eric.bitria.hexon.routes.usersRoutes
@@ -37,12 +29,11 @@ import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.testing.testApplication
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
+import java.time.LocalDateTime
 
 class PasswordRouteTest {
 
@@ -99,7 +90,10 @@ class PasswordRouteTest {
     @Test
     fun `change password success`() = testPasswordApplication { client ->
         val userId = "u1"
-        authRepository.addUser(User(userId, "test@example.com", "user", "OldPass123!", true, "token-hash"))
+        authRepository.addUser(User(userId, "test@example.com", "user", "OldPass123!", true))
+        // Add a mock session to verify it gets revoked
+        val sessionHash = "token-hash"
+        authRepository.addRefreshToken(userId, sessionHash, LocalDateTime.now().plusDays(7))
 
         val response: ChangePasswordResponse = client.post("/users/password/change") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
@@ -109,13 +103,14 @@ class PasswordRouteTest {
 
         assertEquals(ChangePasswordResult.SUCCESS, response.result)
         assertEquals("NewPass123!", authRepository.findUserById(userId)?.password)
-        assertNull(authRepository.getRefreshTokenHash(userId))
+        // Verify session is revoked
+        assertFalse(authRepository.hasRefreshTokenHash(sessionHash))
     }
 
     @Test
     fun `change password fails with wrong old password`() = testPasswordApplication { client ->
         val userId = "u1"
-        authRepository.addUser(User(userId, "test@example.com", "user", "CorrectPass", true, null))
+        authRepository.addUser(User(userId, "test@example.com", "user", "CorrectPass", true))
 
         val response: ChangePasswordResponse = client.post("/users/password/change") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
@@ -140,7 +135,7 @@ class PasswordRouteTest {
     @Test
     fun `change password fails if weak password`() = testPasswordApplication { client ->
         val userId = "u1"
-        authRepository.addUser(User(userId, "t@e.com", "u", "Old123", true, null))
+        authRepository.addUser(User(userId, "t@e.com", "u", "Old123", true))
 
         val response: ChangePasswordResponse = client.post("/users/password/change") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
@@ -165,7 +160,7 @@ class PasswordRouteTest {
     @Test
     fun `forgot password triggers reset code email for existing user`() = testPasswordApplication { client ->
         val email = "reset@example.com"
-        authRepository.addUser(User("u1", email, "user", "pass", true, null))
+        authRepository.addUser(User("u1", email, "user", "pass", true))
 
         val response: ForgotPasswordResponse = client.post("/users/password/forgot") {
             contentType(ContentType.Application.Json)
@@ -193,7 +188,10 @@ class PasswordRouteTest {
     fun `reset password success with valid code`() = testPasswordApplication { client ->
         val email = "reset@example.com"
         val userId = "u1"
-        authRepository.addUser(User(userId, email, "user", "OldPass", true, "active-session"))
+        authRepository.addUser(User(userId, email, "user", "OldPass", true))
+        // Add a mock session to verify it gets revoked
+        val sessionHash = "active-session"
+        authRepository.addRefreshToken(userId, sessionHash, LocalDateTime.now().plusDays(7))
 
         emailService.sendVerificationCodeByEmail(email, EmailVerificationType.PASSWORD_RESET)
         val code = emailService.getSmtpService().getLastEmailTo(email)!!.body.substringAfter(": ").trim()
@@ -205,13 +203,14 @@ class PasswordRouteTest {
 
         assertEquals(ResetPasswordResult.SUCCESS, response.result)
         assertEquals("NewPass123!", authRepository.findUserByEmail(email)?.password)
-        assertNull(authRepository.getRefreshTokenHash(userId))
+        // Verify session is revoked
+        assertFalse(authRepository.hasRefreshTokenHash(sessionHash))
     }
 
     @Test
     fun `reset password fails with invalid code`() = testPasswordApplication { client ->
         val email = "test@example.com"
-        authRepository.addUser(User("u1", email, "user", "pass", true, null))
+        authRepository.addUser(User("u1", email, "user", "pass", true))
 
         val response: ResetPasswordResponse = client.post("/users/password/reset") {
             contentType(ContentType.Application.Json)

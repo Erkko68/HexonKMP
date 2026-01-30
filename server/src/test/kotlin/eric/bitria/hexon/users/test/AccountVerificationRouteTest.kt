@@ -11,6 +11,7 @@ import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import eric.bitria.hexon.email.mock.MockEmailVerificationService
 import eric.bitria.hexon.routes.usersRoutes
+import eric.bitria.hexon.security.UserSession
 import eric.bitria.hexon.services.auth.repository.User
 import eric.bitria.hexon.services.users.account.UserAccountService
 import eric.bitria.hexon.services.users.profile.UserProfileService
@@ -27,6 +28,8 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.jwt
+import io.ktor.server.sessions.Sessions
+import io.ktor.server.sessions.cookie
 import io.ktor.server.testing.testApplication
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -61,6 +64,11 @@ class AccountVerificationRouteTest {
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
             json()
         }
+        install(Sessions) {
+            cookie<UserSession>("USER_SESSION") {
+                cookie.path = "/"
+            }
+        }
         install(Authentication) {
             jwt {
                 validate { null }
@@ -80,7 +88,7 @@ class AccountVerificationRouteTest {
     @Test
     fun `verify email success with correct code`() = testUsersApplication { client ->
         val email = "verify@example.com"
-        authRepository.addUser(User("u1", email, "user", "pass", false, null))
+        authRepository.addUser(User("u1", email, "user", "pass", false))
 
         // 1. Trigger code generation
         emailService.sendVerificationCodeByEmail(email, EmailVerificationType.EMAIL_CONFIRMATION)
@@ -103,7 +111,7 @@ class AccountVerificationRouteTest {
     @Test
     fun `verify email fails with wrong code`() = testUsersApplication { client ->
         val email = "wrong@example.com"
-        authRepository.addUser(User("u1", email, "user", "pass", false, null))
+        authRepository.addUser(User("u1", email, "user", "pass", false))
         emailService.sendVerificationCodeByEmail(email, EmailVerificationType.EMAIL_CONFIRMATION)
 
         val response: VerifyEmailResponse = client.post("/users/email/confirm") {
@@ -118,7 +126,7 @@ class AccountVerificationRouteTest {
     @Test
     fun `resend verification code sends a new email`() = testUsersApplication { client ->
         val email = "resend@example.com"
-        authRepository.addUser(User("u1", email, "user", "pass", false, null))
+        authRepository.addUser(User("u1", email, "user", "pass", false))
 
         val response: ResendVerificationCodeResponse = client.post("/users/email/resend") {
             contentType(ContentType.Application.Json)
@@ -135,7 +143,7 @@ class AccountVerificationRouteTest {
     @Test
     fun `resend verification code fails if already verified`() = testUsersApplication { client ->
         val email = "done@example.com"
-        authRepository.addUser(User("u1", email, "user", "pass", true, null))
+        authRepository.addUser(User("u1", email, "user", "pass", true))
 
         val response: ResendVerificationCodeResponse = client.post("/users/email/resend") {
             contentType(ContentType.Application.Json)

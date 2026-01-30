@@ -91,7 +91,7 @@ class AccountDeletionRouteTest {
     fun `request account deletion sends email code`() = testAccountApplication { client ->
         val userId = "u1"
         val email = "delete@example.com"
-        authRepository.addUser(User(userId, email, "user", "pass", true, null))
+        authRepository.addUser(User(userId, email, "user", "pass", true))
 
         val response: RequestDeleteAccountResponse = client.post("/users/me/delete/initiate") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
@@ -106,7 +106,7 @@ class AccountDeletionRouteTest {
         val userId = "u1"
         val email = "delete@example.com"
         val password = "Password123!"
-        authRepository.addUser(User(userId, email, "user", password, true, null))
+        authRepository.addUser(User(userId, email, "user", password, true))
 
         // Initiate to get the code
         client.post("/users/me/delete/initiate") {
@@ -128,7 +128,7 @@ class AccountDeletionRouteTest {
     fun `confirm account deletion fails with wrong password`() = testAccountApplication { client ->
         val userId = "u1"
         val email = "delete@example.com"
-        authRepository.addUser(User(userId, email, "user", "correct", true, null))
+        authRepository.addUser(User(userId, email, "user", "correct", true))
 
         client.post("/users/me/delete/initiate") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
@@ -149,7 +149,7 @@ class AccountDeletionRouteTest {
     fun `confirm account deletion fails with invalid code`() = testAccountApplication { client ->
         val userId = "u1"
         val email = "delete@example.com"
-        authRepository.addUser(User(userId, email, "user", "pass", true, null))
+        authRepository.addUser(User(userId, email, "user", "pass", true))
 
         val response: ConfirmDeleteAccountResponse = client.delete("/users/me") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")

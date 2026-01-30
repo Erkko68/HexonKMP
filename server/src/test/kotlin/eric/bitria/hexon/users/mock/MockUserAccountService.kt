@@ -27,6 +27,8 @@ class MockUserAccountService(
         val user = authRepository.findUserById(userId)
             ?: return ChangePasswordResponse(ChangePasswordResult.USER_NOT_FOUND, "Not found")
 
+        // In tests we might not use BCrypt for the mock password comparison for simplicity
+        // or assume the mock holds the raw password.
         if (user.password != request.oldPassword) {
             return ChangePasswordResponse(ChangePasswordResult.WRONG_PASSWORD, "Wrong current password")
         }
@@ -36,7 +38,7 @@ class MockUserAccountService(
         }
 
         authRepository.updatePassword(userId, request.newPassword)
-        authRepository.updateRefreshToken(userId, null) // Revoke sessions
+        authRepository.revokeAllRefreshTokens(userId) // Revoke all sessions on password change
 
         return ChangePasswordResponse(ChangePasswordResult.SUCCESS, "Success")
     }
@@ -64,7 +66,7 @@ class MockUserAccountService(
             ?: return ResetPasswordResponse(ResetPasswordResult.USER_NOT_FOUND, "Not found")
 
         authRepository.updatePassword(user.id, request.newPassword)
-        authRepository.updateRefreshToken(user.id, null)
+        authRepository.revokeAllRefreshTokens(user.id) // Revoke all sessions on reset
 
         return ResetPasswordResponse(ResetPasswordResult.SUCCESS, "Success")
     }

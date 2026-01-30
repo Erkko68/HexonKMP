@@ -1,17 +1,15 @@
 package eric.bitria.hexon.users.mock
 
+import com.auth0.jwt.JWT
 import eric.bitria.hexon.services.auth.repository.AuthRepository
 import eric.bitria.hexon.services.auth.token.TokenService
-import eric.bitria.hexon.dtos.auth.EmailVerificationType
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResponse
-import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResult
-import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
-import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
-import eric.bitria.hexon.dtos.auth.VerifyEmailResult
+import eric.bitria.hexon.dtos.auth.*
 import eric.bitria.hexon.services.email.verification.EmailVerificationService
 import eric.bitria.hexon.services.users.verify.AccountVerificationService
 import eric.bitria.hexon.utils.TokenHasher
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 class MockAccountVerificationService(
     private val authRepository: AuthRepository,
@@ -21,7 +19,7 @@ class MockAccountVerificationService(
 
     override suspend fun verifyEmail(request: VerifyEmailRequest): VerifyEmailResponse {
         val user = authRepository.findUserByEmail(request.email)
-            ?: return VerifyEmailResponse(VerifyEmailResult.USER_NOT_FOUND, "Not found")
+            ?: return VerifyEmailResponse(VerifyEmailResult.USER_NOT_FOUND, "User not found")
 
         if (user.isVerified) {
             return VerifyEmailResponse(VerifyEmailResult.ALREADY_VERIFIED, "Already verified")
@@ -38,24 +36,34 @@ class MockAccountVerificationService(
         }
 
         authRepository.verifyUser(user.id)
-        
-        val access = tokenService.generateAccessToken(user.id, user.username)
-        val refresh = tokenService.generateRefreshToken(user.id)
-        authRepository.updateRefreshToken(user.id, TokenHasher.hash(refresh))
 
-        return VerifyEmailResponse(VerifyEmailResult.SUCCESS, "Success", access, refresh)
+        val accessToken = tokenService.generateAccessToken(user.id, user.username)
+        val refreshToken = tokenService.generateRefreshToken(user.id)
+
+        val expiresAt = LocalDateTime.ofInstant(
+            Instant.ofEpochMilli(JWT.decode(refreshToken).expiresAt.time),
+            ZoneId.systemDefault()
+        )
+        val refreshTokenHash = TokenHasher.hash(refreshToken)
+        authRepository.addRefreshToken(user.id, refreshTokenHash, expiresAt)
+
+        return VerifyEmailResponse(
+            VerifyEmailResult.SUCCESS,
+            "Verified",
+            accessToken,
+            refreshToken
+        )
     }
 
     override suspend fun resendVerificationCode(request: ResendVerificationCodeRequest): ResendVerificationCodeResponse {
         val user = authRepository.findUserByEmail(request.email)
-            ?: return ResendVerificationCodeResponse(ResendVerificationCodeResult.SUCCESS, "Sent")
+            ?: return ResendVerificationCodeResponse(ResendVerificationCodeResult.SUCCESS, "Sent (simulated)")
 
         if (user.isVerified) {
             return ResendVerificationCodeResponse(ResendVerificationCodeResult.ALREADY_VERIFIED, "Already verified")
         }
 
         emailVerificationService.sendVerificationCodeByEmail(request.email, EmailVerificationType.EMAIL_CONFIRMATION)
-        
         return ResendVerificationCodeResponse(ResendVerificationCodeResult.SUCCESS, "Sent")
     }
 }
