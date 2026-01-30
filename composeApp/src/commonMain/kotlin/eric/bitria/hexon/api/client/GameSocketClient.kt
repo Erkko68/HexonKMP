@@ -1,12 +1,12 @@
 package eric.bitria.hexon.api.client
 
 import eric.bitria.hexon.BuildKonfig
-import eric.bitria.hexon.api.SessionManager
 import eric.bitria.hexon.ws.GameMessage
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.webSocketSession
-import io.ktor.client.request.header
-import io.ktor.client.request.url
+import io.ktor.http.URLProtocol
+import io.ktor.http.path
+import io.ktor.http.Url
 import io.ktor.websocket.DefaultWebSocketSession
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 interface GameSocketClient {
@@ -24,8 +23,7 @@ interface GameSocketClient {
 }
 
 class KtorGameSocketClient(
-    private val client: HttpClient,
-    private val sessionManager: SessionManager
+    private val client: HttpClient
 ) : GameSocketClient {
 
     private val json = Json {
@@ -35,16 +33,14 @@ class KtorGameSocketClient(
     }
 
     override suspend fun connect(sessionId: String): DefaultWebSocketSession {
-        val host = BuildKonfig.BASE_URL
-            .replace("http://", "")
-            .replace("https://", "")
-            .removeSuffix("/")
-        
-        val protocol = if (BuildKonfig.BASE_URL.startsWith("https")) "wss" else "ws"
-
         return client.webSocketSession {
-            url("$protocol://$host/game/$sessionId")
-            header("Authorization", "Bearer ${sessionManager.getAccessToken()}")
+            url {
+                val base = Url(BuildKonfig.BASE_URL)
+                protocol = if (base.protocol.name == "https") URLProtocol.WSS else URLProtocol.WS
+                host = base.host
+                port = base.port
+                path("game", sessionId)
+            }
         }
     }
 

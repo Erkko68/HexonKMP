@@ -2,6 +2,8 @@ package eric.bitria.hexon.api.client
 
 import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResponse
+import eric.bitria.hexon.dtos.auth.LogoutRequest
+import eric.bitria.hexon.dtos.auth.LogoutResponse
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RegisterRequest
@@ -16,7 +18,8 @@ import io.ktor.http.contentType
 interface AuthClient {
     suspend fun register(request: RegisterRequest): RegisterResponse
     suspend fun login(request: LoginRequest): LoginResponse
-    suspend fun refresh(request: RefreshRequest): RefreshResponse
+    suspend fun refresh(): RefreshResponse
+    suspend fun logout(request: LogoutRequest): LogoutResponse
 }
 
 class KtorAuthClient(
@@ -37,10 +40,17 @@ class KtorAuthClient(
         }.body()
     }
 
-    override suspend fun refresh(request: RefreshRequest): RefreshResponse {
+    override suspend fun refresh(): RefreshResponse {
         return client.post("/auth/refresh") {
+            contentType(ContentType.Application.Json)
+        }.body()
+    }
+
+    override suspend fun logout(request: LogoutRequest): LogoutResponse {
+        return client.post("/auth/logout") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()
     }
+
 }

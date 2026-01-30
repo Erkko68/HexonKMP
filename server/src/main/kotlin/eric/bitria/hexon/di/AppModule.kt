@@ -67,4 +67,5 @@ fun appModule(config: ApplicationConfig) = module {
     single<UserAccountService> { UserAccountServiceImpl(get(), get()) }
     single<SocialService> { SocialServiceImpl(get(), get(), get()) }
     single<MatchmakingService> { MatchmakingServiceImpl(get()) }
+    single<LoginService> { LoginServiceImpl(get(), get()) }
 }

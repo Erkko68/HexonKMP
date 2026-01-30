@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import eric.bitria.hexon.api.SessionState
 import eric.bitria.hexon.navigation.AuthNavigation
 import eric.bitria.hexon.navigation.MainNavigation
 import eric.bitria.hexon.ui.theme.HexonTheme
@@ -53,13 +52,17 @@ fun App(
             ) { state ->
                 when (state) {
                     SessionState.LOADING -> {
-                        // Optional: Splash screen or Loading indicator
+                        // TODO
                     }
                     SessionState.LOGGED_IN -> {
                         MainNavigation()
                     }
                     SessionState.LOGGED_OUT -> {
                         AuthNavigation()
+                    }
+
+                    SessionState.NETWORK_ERROR -> {
+                        // TODO
                     }
                 }
             }

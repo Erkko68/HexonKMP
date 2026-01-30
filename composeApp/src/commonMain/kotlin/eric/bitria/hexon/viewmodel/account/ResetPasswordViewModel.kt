@@ -5,16 +5,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.SessionManager
-import eric.bitria.hexon.dtos.account.ResetPasswordResult
 import eric.bitria.hexon.api.repository.ApiResult
 import eric.bitria.hexon.api.repository.UserRepository
+import eric.bitria.hexon.dtos.account.ResetPasswordResult
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
 
 class ResetPasswordViewModel(
     private val userRepository: UserRepository,
-    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     var email by mutableStateOf("")
@@ -86,7 +84,6 @@ class ResetPasswordViewModel(
                 is ApiResult.Success -> {
                     state = when (result.data) {
                         ResetPasswordResult.SUCCESS -> {
-                            sessionManager.logout()
                             ApiResult.Success(ResetPasswordResult.SUCCESS)
                         }
                         ResetPasswordResult.INVALID_CODE -> ApiResult.Error("Invalid reset code.")

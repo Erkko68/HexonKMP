@@ -5,16 +5,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.SessionManager
-import eric.bitria.hexon.dtos.account.DeleteAccountResult
 import eric.bitria.hexon.api.repository.ApiResult
 import eric.bitria.hexon.api.repository.UserRepository
+import eric.bitria.hexon.dtos.account.DeleteAccountResult
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
 
 class DeleteAccountViewModel(
-    private val userRepository: UserRepository,
-    private val sessionManager: SessionManager
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     var password by mutableStateOf("")
@@ -83,7 +81,6 @@ class DeleteAccountViewModel(
                 is ApiResult.Success -> {
                     state = when (result.data) {
                         DeleteAccountResult.SUCCESS -> {
-                            sessionManager.logout()
                             ApiResult.Success(DeleteAccountResult.SUCCESS)
                         }
                         DeleteAccountResult.WRONG_PASSWORD -> ApiResult.Error("Incorrect password.")

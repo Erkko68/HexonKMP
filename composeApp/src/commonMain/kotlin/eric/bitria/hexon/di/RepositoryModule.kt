@@ -1,6 +1,5 @@
 package eric.bitria.hexon.di
 
-import eric.bitria.hexon.api.SessionManager
 import eric.bitria.hexon.api.client.AuthClient
 import eric.bitria.hexon.api.client.GameSocketClient
 import eric.bitria.hexon.api.client.KtorAuthClient
@@ -24,15 +23,20 @@ import eric.bitria.hexon.api.repository.UserRepositoryImpl
 import org.koin.dsl.module
 
 val repositoryModule = module {
-    // Session Manager
-    single { SessionManager({ get<AuthClient>() }, get()) }
+
+    single<AuthRepository> {
+        AuthRepositoryImpl(
+            authClient = get(),
+            tokenStore = get()
+        )
+    }
 
     // Clients (API Layer)
     single<AuthClient> { KtorAuthClient(get()) }
     single<UserClient> { KtorUserClient(get()) }
     single<SocialClient> { KtorSocialClient(get()) }
     single<MatchmakingClient> { KtorMatchmakingClient(get()) }
-    single<GameSocketClient> { KtorGameSocketClient(get(), get()) }
+    single<GameSocketClient> { KtorGameSocketClient(get()) }
 
     // Repositories (Domain Layer)
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }

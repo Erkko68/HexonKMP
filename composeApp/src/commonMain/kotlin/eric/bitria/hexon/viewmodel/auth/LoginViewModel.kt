@@ -5,19 +5,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.SessionManager
-import eric.bitria.hexon.dtos.auth.LoginResult
-import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.api.repository.ApiResult
 import eric.bitria.hexon.api.repository.AuthRepository
 import eric.bitria.hexon.api.repository.UserRepository
+import eric.bitria.hexon.dtos.auth.LoginResult
+import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
-    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     // --- Fields ---
@@ -102,7 +100,6 @@ class LoginViewModel(
                 is ApiResult.Success -> {
                     loginState = when (result.data) {
                         LoginResult.SUCCESS -> {
-                            sessionManager.login()
                             ApiResult.Success(LoginResult.SUCCESS)
                         }
                         LoginResult.NOT_VERIFIED -> {

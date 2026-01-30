@@ -1,9 +1,19 @@
 package eric.bitria.hexon.api.repository
 
-import eric.bitria.hexon.api.SessionManager
+import eric.bitria.hexon.api.TokenStore
 import eric.bitria.hexon.api.client.UserClient
-import eric.bitria.hexon.dtos.account.*
-import eric.bitria.hexon.dtos.auth.*
+import eric.bitria.hexon.dtos.account.ChangePasswordRequest
+import eric.bitria.hexon.dtos.account.ChangePasswordResult
+import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountRequest
+import eric.bitria.hexon.dtos.account.DeleteAccountResult
+import eric.bitria.hexon.dtos.account.ForgotPasswordRequest
+import eric.bitria.hexon.dtos.account.ForgotPasswordResult
+import eric.bitria.hexon.dtos.account.ResetPasswordRequest
+import eric.bitria.hexon.dtos.account.ResetPasswordResult
+import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
+import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResult
+import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
+import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import eric.bitria.hexon.dtos.profile.PublicUserProfileResponse
 import eric.bitria.hexon.dtos.profile.UserProfileResponse
 
@@ -21,7 +31,7 @@ interface UserRepository {
 
 class UserRepositoryImpl(
     private val userClient: UserClient,
-    private val sessionManager: SessionManager
+    private val tokenStore: TokenStore
 ) : UserRepository {
 
     override suspend fun getProfile(): ApiResult<UserProfileResponse> {
@@ -34,7 +44,7 @@ class UserRepositoryImpl(
         return safeApiCall {
             val response = userClient.verifyEmail(VerifyEmailRequest(email, code))
             if (response.result == VerifyEmailResult.SUCCESS) {
-                sessionManager.saveTokens(response.accessToken!!, response.refreshToken!!)
+                tokenStore.save(response.accessToken!!)
             }
             response.result
         }
@@ -48,7 +58,11 @@ class UserRepositoryImpl(
 
     override suspend fun changePassword(old: String, new: String): ApiResult<ChangePasswordResult> {
         return safeApiCall {
-            userClient.changePassword(ChangePasswordRequest(old, new)).result
+            val response = userClient.changePassword(ChangePasswordRequest(old, new))
+            if (response.result == ChangePasswordResult.SUCCESS) {
+                tokenStore.clear()
+            }
+            response.result
         }
     }
 
@@ -60,13 +74,21 @@ class UserRepositoryImpl(
 
     override suspend fun resetPassword(email: String, code: String, new: String): ApiResult<ResetPasswordResult> {
         return safeApiCall {
-            userClient.resetPassword(ResetPasswordRequest(email, code, new)).result
+            val response = userClient.resetPassword(ResetPasswordRequest(email, code, new))
+            if (response.result == ResetPasswordResult.SUCCESS) {
+                tokenStore.clear()
+            }
+            response.result
         }
     }
 
     override suspend fun deleteAccount(password: String, code: String): ApiResult<DeleteAccountResult> {
         return safeApiCall {
-            userClient.confirmDeleteAccount(ConfirmDeleteAccountRequest(password, code)).result
+            val response = userClient.confirmDeleteAccount(ConfirmDeleteAccountRequest(password, code))
+            if (response.result == DeleteAccountResult.SUCCESS) {
+                tokenStore.clear()
+            }
+            response.result
         }
     }
 

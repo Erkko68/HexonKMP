@@ -5,6 +5,7 @@ import eric.bitria.hexon.dtos.account.DeleteAccountResult
 import eric.bitria.hexon.dtos.account.ForgotPasswordResult
 import eric.bitria.hexon.dtos.account.ResetPasswordResult
 import eric.bitria.hexon.dtos.auth.LoginResult
+import eric.bitria.hexon.dtos.auth.LogoutResult
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResult
@@ -130,4 +131,10 @@ fun CreateLobbyResult.toHttpStatus() = when (this) {
     CreateLobbyResult.INVALID_MODE,
     CreateLobbyResult.INVALID_MAX_PLAYERS -> HTTPStatusCode.BadRequest
     CreateLobbyResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
+}
+
+fun LogoutResult.toHttpStatus() = when (this) {
+    LogoutResult.SUCCESS -> HTTPStatusCode.OK
+    LogoutResult.INVALID_TOKEN -> HTTPStatusCode.Unauthorized
+    LogoutResult.UNKNOWN_ERROR -> HTTPStatusCode.InternalServerError
 }

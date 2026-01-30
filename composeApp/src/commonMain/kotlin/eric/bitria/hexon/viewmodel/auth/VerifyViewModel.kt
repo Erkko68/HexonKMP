@@ -5,15 +5,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.SessionManager
-import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import eric.bitria.hexon.api.repository.ApiResult
 import eric.bitria.hexon.api.repository.UserRepository
+import eric.bitria.hexon.dtos.auth.VerifyEmailResult
 import kotlinx.coroutines.launch
 
 class VerifyViewModel(
     private val userRepository: UserRepository,
-    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     var email by mutableStateOf("")
@@ -48,7 +46,6 @@ class VerifyViewModel(
                 is ApiResult.Success -> {
                     verifyStatus = when (result.data) {
                         VerifyEmailResult.SUCCESS -> {
-                            sessionManager.login()
                             ApiResult.Success(VerifyEmailResult.SUCCESS)
                         }
                         VerifyEmailResult.INVALID_CODE -> ApiResult.Error("Invalid verification code.")

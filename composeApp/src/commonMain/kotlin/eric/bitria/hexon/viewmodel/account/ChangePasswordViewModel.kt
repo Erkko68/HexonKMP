@@ -5,16 +5,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.dtos.account.ChangePasswordResult
-import eric.bitria.hexon.api.SessionManager
 import eric.bitria.hexon.api.repository.ApiResult
 import eric.bitria.hexon.api.repository.UserRepository
+import eric.bitria.hexon.dtos.account.ChangePasswordResult
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch
 
 class ChangePasswordViewModel(
-    private val userRepository: UserRepository,
-    private val sessionManager: SessionManager
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     var oldPassword by mutableStateOf("")
@@ -79,7 +77,6 @@ class ChangePasswordViewModel(
                 is ApiResult.Success -> {
                     state = when (result.data) {
                         ChangePasswordResult.SUCCESS -> {
-                            sessionManager.logout()
                             ApiResult.Success(ChangePasswordResult.SUCCESS)
                         }
                         ChangePasswordResult.WRONG_PASSWORD -> ApiResult.Error("Old password is incorrect.")

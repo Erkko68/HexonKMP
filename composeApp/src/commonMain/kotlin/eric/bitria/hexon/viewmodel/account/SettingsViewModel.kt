@@ -1,12 +1,19 @@
 package eric.bitria.hexon.viewmodel.account
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.russhwolf.settings.Settings
-import eric.bitria.hexon.api.SessionManager
+import eric.bitria.hexon.api.repository.ApiResult
+import eric.bitria.hexon.api.repository.AuthRepository
+import eric.bitria.hexon.dtos.auth.LogoutResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class SettingsUiState(
     val masterVolume: Float = 1.0f,
@@ -19,11 +26,14 @@ data class SettingsUiState(
 
 class SettingsViewModel(
     private val settingsManager: Settings,
-    private val sessionManager: SessionManager
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    var state by mutableStateOf<ApiResult<LogoutResult>>(ApiResult.Idle)
+        private set
 
     init {
         loadSettings()
@@ -73,6 +83,25 @@ class SettingsViewModel(
     }
 
     fun logout() {
-        sessionManager.logout()
+        viewModelScope.launch {
+            state = ApiResult.Loading
+
+            when (val result = authRepository.logout(true)) {
+                is ApiResult.Success -> {
+                    state = when (result.data) {
+                        LogoutResult.SUCCESS -> ApiResult.Success(LogoutResult.SUCCESS)
+                        LogoutResult.INVALID_TOKEN -> ApiResult.Error("Invalid token.")
+                        LogoutResult.UNKNOWN_ERROR -> ApiResult.Error("An unexpected error occurred.")
+                    }
+                }
+                is ApiResult.NetworkError -> {
+                    state = ApiResult.NetworkError
+                }
+                is ApiResult.Error -> {
+                    state = ApiResult.Error(result.message ?: "Failed to delete account.")
+                }
+                else -> {}
+            }
+        }
     }
 }
