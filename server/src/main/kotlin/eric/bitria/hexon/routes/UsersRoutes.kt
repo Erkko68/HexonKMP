@@ -7,6 +7,8 @@ import eric.bitria.hexon.dtos.account.ResetPasswordRequest
 import eric.bitria.hexon.dtos.auth.ResendVerificationCodeRequest
 import eric.bitria.hexon.services.users.verify.AccountVerificationService
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
+import eric.bitria.hexon.dtos.auth.VerifyEmailResult
+import eric.bitria.hexon.security.UserSession
 import eric.bitria.hexon.services.users.account.UserAccountService
 import eric.bitria.hexon.services.users.profile.UserProfileService
 import eric.bitria.hexon.utils.toHttpStatus
@@ -21,6 +23,8 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import io.ktor.server.sessions.sessions
+import io.ktor.server.sessions.set
 import org.koin.ktor.ext.inject
 
 fun Route.usersRoutes() {
@@ -35,7 +39,12 @@ fun Route.usersRoutes() {
         post("/email/confirm") {
             val request = call.receive<VerifyEmailRequest>()
             val response = accountVerificationService.verifyEmail(request)
-            call.respond(response.result.toHttpStatus(),response)
+
+            if (response.result == VerifyEmailResult.SUCCESS && response.refreshToken != null) {
+                call.sessions.set(UserSession(refreshToken = response.refreshToken!!))
+            }
+
+            call.respond(response.result.toHttpStatus(), response)
         }
 
         post("/email/resend") {
