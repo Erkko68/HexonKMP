@@ -21,9 +21,9 @@ fun Application.configureSessions() {
     install(Sessions) {
         cookie<UserSession>("USER_SESSION") {
             cookie.path = "/"
-            cookie.maxAgeInSeconds = 60 * 60 * 24 * 7 // 7 days
+            cookie.maxAgeInSeconds = cookieConfig.maxAge.toLong()
             cookie.httpOnly = true
-            cookie.secure = false // Set to true in production with HTTPS
+            cookie.secure = false // TODO Set to true in production with HTTPS
             
             transform(SessionTransportTransformerMessageAuthentication(secretSignKey))
         }
