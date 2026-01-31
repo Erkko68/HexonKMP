@@ -1,13 +1,9 @@
 package eric.bitria.hexon.di
 
-import com.russhwolf.settings.Settings
 import eric.bitria.hexon.BuildKonfig
 import eric.bitria.hexon.api.PersistentCookieStorage
 import eric.bitria.hexon.api.TokenStore
 import eric.bitria.hexon.api.client.AuthClient
-import eric.bitria.hexon.api.client.KtorAuthClient
-import eric.bitria.hexon.api.repository.ApiResult
-import eric.bitria.hexon.api.repository.AuthRepository
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.DefaultRequest
@@ -26,21 +22,16 @@ import org.koin.dsl.module
 
 val networkModule = module {
 
-    // 1. Storage Components (Data Layer)
-    single { PersistentCookieStorage(get<Settings>()) }
-    single { TokenStore(get()) }
-
-    // 2. Auth Client wrapper
-    single<AuthClient> { KtorAuthClient(get()) }
-
-    // 3. The HttpClient
     single {
+        val cookieStorage: PersistentCookieStorage by inject()
+        val tokenStore: TokenStore by inject()
+        val authClient: AuthClient by inject()
+
         HttpClient {
             install(WebSockets)
 
-            // A. ENABLE PERSISTENT COOKIES
             install(HttpCookies) {
-                storage = get<PersistentCookieStorage>()
+                storage = cookieStorage
             }
 
             install(DefaultRequest) {
@@ -49,42 +40,38 @@ val networkModule = module {
             }
 
             install(ContentNegotiation) {
-                json(Json {
-                    ignoreUnknownKeys = true
-                    prettyPrint = true
-                    isLenient = true
-                })
+                json(
+                    Json {
+                        ignoreUnknownKeys = true
+                        prettyPrint = true
+                        isLenient = true
+                    }
+                )
             }
 
-            // B. AUTHENTICATION LOGIC
             install(Auth) {
                 bearer {
-                    // 1. Load Token from RAM (for normal requests)
                     loadTokens {
-                        val tokenStore = get<TokenStore>()
-                        val token = tokenStore.get()
-                        if (token != null) BearerTokens(token, "") else null
+                        tokenStore.get()?.let { BearerTokens(it, "") }
                     }
 
-                    // 2. Refresh Logic (for 401 errors)
                     refreshTokens {
-                        // LAZY INJECTION: Break circular dependency
-                        // HttpClient -> AuthRepository -> AuthClient -> HttpClient
-                        val repo = get<AuthRepository>()
+                        // 1. Make the raw API call
+                        val response = authClient.refresh()
 
-                        // Delegate to Repository
-                        val result = repo.refresh()
-
-                        if (result is ApiResult.Success && result.data == RefreshResult.SUCCESS) {
-                            // Repository already updated TokenStore, just read it back
-                            val newToken = get<TokenStore>().get()
-                            BearerTokens(newToken!!, "")
+                        // 2. Check if successful
+                        if (response.result == RefreshResult.SUCCESS && response.accessToken != null) {
+                            // Store Token
+                            tokenStore.save(response.accessToken!!)
+                            // Return the NEW token to Ktor so it can retry the request
+                            BearerTokens(response.accessToken!!, "")
                         } else {
+                            // If refresh fails, clear the local store to force a logout state
+                            tokenStore.clear()
                             null
                         }
                     }
 
-                    // Exclude public endpoints from authentication
                     sendWithoutRequest { request ->
                         val path = request.url.encodedPath
                         path.startsWith("/auth") || path.startsWith("/users/email")

@@ -1,5 +1,8 @@
 package eric.bitria.hexon.di
 
+import com.russhwolf.settings.Settings
+import eric.bitria.hexon.api.PersistentCookieStorage
+import eric.bitria.hexon.api.TokenStore
 import eric.bitria.hexon.api.client.AuthClient
 import eric.bitria.hexon.api.client.GameSocketClient
 import eric.bitria.hexon.api.client.KtorAuthClient
@@ -24,12 +27,9 @@ import org.koin.dsl.module
 
 val repositoryModule = module {
 
-    single<AuthRepository> {
-        AuthRepositoryImpl(
-            authClient = get(),
-            tokenStore = get()
-        )
-    }
+    // Network Headers / Cookies
+    single { PersistentCookieStorage(get<Settings>()) }
+    single { TokenStore(get()) }
 
     // Clients (API Layer)
     single<AuthClient> { KtorAuthClient(get()) }
