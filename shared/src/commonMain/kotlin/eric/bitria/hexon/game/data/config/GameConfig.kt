@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class GameConfig(
     val seed: String,
+    val victoryPoints: Int,
 
     // --- Definitions (Rules) ---
     val resourceDefs: List<ResourceDef>,

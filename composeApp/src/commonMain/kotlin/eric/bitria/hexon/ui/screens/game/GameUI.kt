@@ -1,6 +1,5 @@
 package eric.bitria.hexon.ui.screens.game
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -11,13 +10,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -25,13 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import eric.bitria.hexon.ui.components.game.ControlButton
-import eric.bitria.hexon.ui.components.game.ItemCard
 import eric.bitria.hexon.ui.components.game.OptionsButton
-import eric.bitria.hexon.ui.components.game.PlayerTurn
+import eric.bitria.hexon.ui.components.game.PlayerTurnBar
 import eric.bitria.hexon.ui.components.game.VictoryPointsIndicator
+import eric.bitria.hexon.ui.components.game.assets.BuildingRow
+import eric.bitria.hexon.ui.components.game.assets.ResourceRow
+import eric.bitria.hexon.ui.components.game.assets.TradeResourceRow
 import eric.bitria.hexon.ui.components.game.trade.TradePanel
 import eric.bitria.hexon.ui.theme.HexonTheme
-import eric.bitria.hexon.viewmodel.game.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.game.GameViewModel
 import eric.bitria.hexon.viewmodel.game.TurnPhase
 import org.koin.compose.viewmodel.koinViewModel
@@ -41,12 +39,15 @@ fun GameUI(
     onExitClicked: () -> Unit,
     viewModel: GameViewModel = koinViewModel(),
 ) {
-//    val players by viewModel.players.collectAsState()
-//    val resources by viewModel.resources.collectAsState()
-//    val assets by viewModel.assets.collectAsState()
-//    val progressCards by viewModel.progressCards.collectAsState()
-//    val victoryPoints by viewModel.victoryPoints.collectAsState()
-//    val uiState by viewModel..collectAsState()
+    val players by viewModel.opponents.collectAsState()
+    val maxVictoryPoints by viewModel.victoryPoints.collectAsState()
+    val resources by viewModel.resourcesDef.collectAsState()
+    val buildings by viewModel.buildingsDef.collectAsState()
+    //val progressCards by viewModel.progressCards.collectAsState()
+    val me by viewModel.me.collectAsState()
+    val tradeResources by viewModel.tradeResources.collectAsState()
+    val phase by viewModel.turnPhase.collectAsState()
+    val activePlayerId by viewModel.activePlayerId.collectAsState()
 
     val dimensions = HexonTheme.dimensions
     val spacing = dimensions.spacing
@@ -77,11 +78,13 @@ fun GameUI(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-//                    PlayerTurn(
-//                        players = players,
-//                        modifier = Modifier.weight(1f).fillMaxHeight()
-//                            .padding(horizontal = spacing.small)
-//                    )
+                    PlayerTurnBar(
+                        me = me,
+                        opponents = players,
+                        activePlayerId = activePlayerId,
+                        modifier = Modifier.weight(1f).fillMaxHeight()
+                            .padding(horizontal = spacing.small)
+                    )
 
                     OptionsButton(
                         onExitClicked = onExitClicked,
@@ -95,10 +98,10 @@ fun GameUI(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-//                    VictoryPointsIndicator(
-//                        victoryPoints = victoryPoints,
-//                        modifier = Modifier.height(rowHeight * 0.65f)
-//                    )
+                    VictoryPointsIndicator(
+                        victoryPoints = Pair(me?.victoryPoints ?: 0,maxVictoryPoints),
+                        modifier = Modifier.height(rowHeight * 0.65f)
+                    )
                 }
             }
 
@@ -108,13 +111,13 @@ fun GameUI(
                 verticalArrangement = Arrangement.spacedBy(spacing.medium),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-//                if (uiState == TurnPhase.TRADE) {
-//                    TradePanel(
-//                        players = players,
-//                        onPlayerClicked = {},
-//                        modifier = Modifier.height(rowHeight * 1.1f)
-//                    )
-//                }
+                if (phase == TurnPhase.TRADE) {
+                    TradePanel(
+                        onBankTrade = {},
+                        onPlayerTrade = {},
+                        modifier = Modifier.height(rowHeight * 1.1f)
+                    )
+                }
 
                 Row(
                     modifier = Modifier
@@ -127,42 +130,28 @@ fun GameUI(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
                     ) {
-//                        Row(
-//                            modifier = Modifier.height(rowHeight),
-//                            horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall)
-//                        ) {
-//                            val activeItems = if (uiState == TurnPhase.TRADE) resources else assets
-//                            activeItems.forEach { item ->
-//                                ItemCard(itemCardData = item)
-//                            }
-//                        }
-//
-//                        val scrollState = rememberScrollState()
-//                        Row(
-//                            modifier = Modifier
-//                                .height(rowHeight)
-//                                .horizontalScroll(scrollState),
-//                            horizontalArrangement = Arrangement.spacedBy(spacing.extraSmall),
-//                            verticalAlignment = Alignment.CenterVertically
-//                        ) {
-//                            resources.forEach { resource ->
-//                                ItemCard(itemCardData = resource)
-//                            }
-//
-//                            if (progressCards.isNotEmpty()) {
-//                                VerticalDivider(
-//                                    modifier = Modifier
-//                                        .fillMaxHeight(0.6f)
-//                                        .padding(horizontal = spacing.extraSmall),
-//                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-//                                )
-//
-//                                progressCards.forEach { progressCard ->
-//                                    ItemCard(itemCardData = progressCard)
-//                                }
-//                            }
-//                        }
+                        if (phase == TurnPhase.TRADE){
+                            TradeResourceRow(
+                                selected = tradeResources,
+                                resources = resources,
+                                modifier = Modifier.height(rowHeight)
+                            )
+                        } else {
+                            BuildingRow(
+                                buildings = buildings,
+                                modifier = Modifier.height(rowHeight)
+                            )
+                        }
+
+                        // --- Resources Row  ---
+                        ResourceRow(
+                            me = me,
+                            selected = tradeResources,
+                            resources = resources,
+                            modifier = Modifier.height(rowHeight)
+                        )
                     }
+
 
                     Column(
                         modifier = Modifier.fillMaxHeight(),

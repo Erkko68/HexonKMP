@@ -16,6 +16,7 @@ object GameConfigLoader {
     fun default(seed: String = "default"): GameConfig {
         return GameConfig(
             seed = seed,
+            victoryPoints = 10,
             // Rules
             resourceDefs = defaultResourceDef(),
             buildingDefs = defaultBuildingDef(),

@@ -6,7 +6,9 @@ import eric.bitria.hexon.api.repository.GameRepository
 import eric.bitria.hexon.game.Board
 import eric.bitria.hexon.game.GamePlayer
 import eric.bitria.hexon.game.data.HexCoord
+import eric.bitria.hexon.game.data.PlayerId
 import eric.bitria.hexon.game.data.PlayerSnapshot
+import eric.bitria.hexon.game.data.ResourceId
 import eric.bitria.hexon.game.data.config.GameConfig
 import eric.bitria.hexon.game.data.def.BuildingDef
 import eric.bitria.hexon.game.data.def.PlacementType
@@ -54,6 +56,9 @@ class GameViewModel(
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     // --- Game Data ---
+    private val _maxVictoryPoints = MutableStateFlow(0)
+    val victoryPoints: StateFlow<Int> = _maxVictoryPoints.asStateFlow()
+
     private val _board = MutableStateFlow<Board?>(null)
     val board: StateFlow<Board?> = _board.asStateFlow()
 
@@ -61,12 +66,15 @@ class GameViewModel(
     private val _me = MutableStateFlow<GamePlayer?>(null)
     val me: StateFlow<GamePlayer?> = _me.asStateFlow()
 
-    // Opponents State (Public info: name, color, card counts, VPs)
-    private val _opponents = MutableStateFlow<Map<String, PlayerSnapshot>>(emptyMap())
-    val opponents: StateFlow<Map<String, PlayerSnapshot>> = _opponents.asStateFlow()
+    private val _tradeResources = MutableStateFlow<Map<ResourceId, Int>>(emptyMap())
+    val tradeResources: StateFlow<Map<ResourceId, Int>> = _tradeResources.asStateFlow()
 
-    private val _activePlayerId = MutableStateFlow<String?>(null)
-    val activePlayerId: StateFlow<String?> = _activePlayerId.asStateFlow()
+    // Opponents State (Public info: name, color, card counts, VPs)
+    private val _opponents = MutableStateFlow<Map<PlayerId, PlayerSnapshot>>(emptyMap())
+    val opponents: StateFlow<Map<PlayerId, PlayerSnapshot>> = _opponents.asStateFlow()
+
+    private val _activePlayerId = MutableStateFlow<PlayerId?>(null)
+    val activePlayerId: StateFlow<PlayerId?> = _activePlayerId.asStateFlow()
 
     init {
         // Listen to scene events
@@ -142,6 +150,7 @@ class GameViewModel(
         }
 
         _board.value = board
+        _maxVictoryPoints.value = config.victoryPoints
 
         syncScene(board) // just render
     }
