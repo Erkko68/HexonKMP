@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -26,9 +28,9 @@ import eric.bitria.hexon.ui.components.game.OptionsButton
 import eric.bitria.hexon.ui.components.game.PlayerTurnBar
 import eric.bitria.hexon.ui.components.game.VictoryPointsIndicator
 import eric.bitria.hexon.ui.components.game.assets.BuildingRow
+import eric.bitria.hexon.ui.components.game.assets.PlayerResourceRow
 import eric.bitria.hexon.ui.components.game.assets.ResourceRow
 import eric.bitria.hexon.ui.components.game.assets.TradeResourceRow
-import eric.bitria.hexon.ui.components.game.trade.TradePanel
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.game.GameViewModel
 import eric.bitria.hexon.viewmodel.game.TurnPhase
@@ -114,14 +116,6 @@ fun GameUI(
                 verticalArrangement = Arrangement.spacedBy(spacing.medium),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (phase == TurnPhase.TRADE) {
-                    TradePanel(
-                        onBankTrade = {},
-                        onPlayerTrade = {},
-                        modifier = Modifier.height(rowHeight * 1.1f)
-                    )
-                }
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -134,10 +128,19 @@ fun GameUI(
                         verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
                     ) {
                         if (phase == TurnPhase.TRADE){
-                            TradeResourceRow(
-                                selected = requestedResources,
+                            ResourceRow(
                                 resources = resources,
                                 onClick = { resourceId -> viewModel.onRequestedResourceSelected(resourceId) },
+                                modifier = Modifier.height(rowHeight)
+                            )
+                            TradeResourceRow(
+                                selected = requestedResources,
+                                onClick = { resourceId -> viewModel.onRequestedResourceDeselected(resourceId) },
+                                modifier = Modifier.height(rowHeight)
+                            )
+                            TradeResourceRow(
+                                selected = offeredResources,
+                                onClick = { resourceId -> viewModel.onOfferedResourceDeselected(resourceId) },
                                 modifier = Modifier.height(rowHeight)
                             )
                         } else {
@@ -149,10 +152,9 @@ fun GameUI(
                         }
 
                         // --- Resources Row  ---
-                        ResourceRow(
+                        PlayerResourceRow(
                             me = me,
                             selected = offeredResources,
-                            resources = resources,
                             onClick = { resourceId -> viewModel.onOfferedResourceSelected(resourceId) },
                             modifier = Modifier.height(rowHeight)
                         )
@@ -170,13 +172,30 @@ fun GameUI(
                             onClick = { },
                             modifier = Modifier.size(rowHeight)
                         )
-                        ControlButton(
-                            icon = Icons.AutoMirrored.Filled.ArrowForward,
-                            color = MaterialTheme.colorScheme.primary,
-                            description = "Next Phase",
-                            onClick = { },
-                            modifier = Modifier.size(rowHeight)
-                        )
+                        if (phase == TurnPhase.TRADE) {
+                            ControlButton(
+                                icon = Icons.Default.AccountBalance,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                description = "Bank Trade",
+                                onClick = { },
+                                modifier = Modifier.size(rowHeight)
+                            )
+                            ControlButton(
+                                icon = Icons.Default.Group,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                description = "Trade with Players",
+                                onClick = { },
+                                modifier = Modifier.size(rowHeight)
+                            )
+                        } else {
+                            ControlButton(
+                                icon = Icons.AutoMirrored.Filled.ArrowForward,
+                                color = MaterialTheme.colorScheme.primary,
+                                description = "Next Phase",
+                                onClick = { },
+                                modifier = Modifier.size(rowHeight)
+                            )
+                        }
                     }
                 }
             }

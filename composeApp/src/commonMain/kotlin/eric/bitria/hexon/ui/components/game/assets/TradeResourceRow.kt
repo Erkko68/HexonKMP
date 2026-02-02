@@ -9,14 +9,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import eric.bitria.hexon.game.GamePlayer
 import eric.bitria.hexon.game.data.ResourceId
-import eric.bitria.hexon.game.data.def.ResourceDef
+import kotlin.collections.component1
 
 @Composable
 fun TradeResourceRow(
     selected: Map<ResourceId, Int>,
-    resources: List<ResourceDef>,
     onClick: (ResourceId) -> Unit = {},
     modifier: Modifier
 ) {
@@ -27,12 +25,11 @@ fun TradeResourceRow(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        resources.forEach { resource ->
+        selected.forEach { (resourceId, count) ->
             ResourceCard(
-                count = selected[resource.id]?: 0,
-                selected = 0,
-                resource = resource,
-                onClick = { onClick(resource.id) },
+                count = count,
+                resource = resourceId,
+                onClick = { onClick(resourceId) },
                 modifier = Modifier.fillMaxHeight()
             )
         }

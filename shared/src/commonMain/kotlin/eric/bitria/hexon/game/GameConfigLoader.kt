@@ -17,6 +17,7 @@ object GameConfigLoader {
         return GameConfig(
             seed = seed,
             victoryPoints = 10,
+            tradeRatio = 4,
             // Rules
             resourceDefs = defaultResourceDef(),
             buildingDefs = defaultBuildingDef(),

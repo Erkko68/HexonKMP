@@ -214,11 +214,59 @@ class GameViewModel(
         }
     }
 
+    fun onOfferedResourceDeselected(resourceId: ResourceId) {
+        val currentCount = _offeredResources.value[resourceId] ?: 0
+        if (currentCount > 0) {
+            _offeredResources.value = _offeredResources.value.toMutableMap().apply {
+                put(resourceId, currentCount - 1)
+                if (this[resourceId] == 0) remove(resourceId)
+            }
+        }
+    }
+
     fun onRequestedResourceSelected(resourceId: ResourceId) {
         _requestedResources.update { current ->
             val newCount = (current[resourceId] ?: 0) + 1
             current.toMutableMap().apply { put(resourceId, newCount) }
         }
+    }
+
+    fun onRequestedResourceDeselected(resourceId: ResourceId) {
+        val currentCount = _requestedResources.value[resourceId] ?: 0
+        if (currentCount > 0) {
+            _requestedResources.value = _requestedResources.value.toMutableMap().apply {
+                put(resourceId, currentCount - 1)
+                if (this[resourceId] == 0) remove(resourceId)
+            }
+        }
+    }
+
+
+    /**
+     * Checks if the currently selected resources constitute a valid bank trade.
+     * Uses the shared GamePlayer logic to ensure Client/Server consistency.
+     */
+    fun canSendBankExchange(): Boolean {
+        val player = _me.value ?: return false
+        val config = _gameConfig.value ?: return false
+
+        val offered = _offeredResources.value
+        val requested = _requestedResources.value
+
+        // 1. Basic validation: Must actually want something
+        if (requested.isEmpty() || requested.values.sum() == 0) {
+            return false
+        }
+
+        // 2. Use the shared math logic from GamePlayer
+        // This returns NULL if the 'offered' value isn't high enough to buy the 'requested' items.
+        val cost = player.calculateBankExchangeCost(
+            give = offered,
+            get = requested,
+            defaultRatio = config.tradeRatio
+        )
+
+        return cost != null
     }
 
 

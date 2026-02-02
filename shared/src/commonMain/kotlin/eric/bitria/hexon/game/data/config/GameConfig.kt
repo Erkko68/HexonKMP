@@ -11,6 +11,7 @@ import kotlinx.serialization.Serializable
 data class GameConfig(
     val seed: String,
     val victoryPoints: Int,
+    val tradeRatio: Int,
 
     // --- Definitions (Rules) ---
     val resourceDefs: List<ResourceDef>,

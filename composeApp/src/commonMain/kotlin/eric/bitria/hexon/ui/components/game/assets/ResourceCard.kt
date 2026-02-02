@@ -20,14 +20,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.game.GamePlayer
+import eric.bitria.hexon.game.data.ResourceId
 import eric.bitria.hexon.game.data.def.ResourceDef
 import eric.bitria.hexon.ui.utils.TextCanvas
 
 @Composable
 fun ResourceCard(
     count: Int,
-    selected: Int = 0,
-    resource: ResourceDef,
+    resource: ResourceId,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
@@ -46,7 +46,7 @@ fun ResourceCard(
             // Center icon placeholder
             Icon(
                 imageVector = Icons.Default.LocalFlorist,
-                contentDescription = resource.name,
+                contentDescription = resource,
                 tint = Color.Black,
                 modifier = Modifier
                     .fillMaxSize(0.65f)
@@ -55,7 +55,7 @@ fun ResourceCard(
 
             // Top-left: quantity
             TextCanvas(
-                text = count.toString(),
+                text = if (count > 0) count.toString() else "",
                 textStyle = TextStyle(
                     fontSize = (height * 0.25f).value.sp,
                     fontWeight = FontWeight.Bold,
@@ -65,21 +65,6 @@ fun ResourceCard(
                     .align(Alignment.TopStart)
                     .padding(start = height * 0.07f, top = height * 0.05f)
             )
-
-            // Optional: top-right selected count
-            if (selected > 0) {
-                TextCanvas(
-                    text = selected.toString(),
-                    textStyle = TextStyle(
-                        fontSize = (height * 0.25f).value.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Red
-                    ),
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(end = height * 0.07f, top = height * 0.05f)
-                )
-            }
         }
     }
 }

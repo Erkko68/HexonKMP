@@ -403,59 +403,27 @@ class GameEngineImpl(
     private suspend fun handleExchangeWithBank(userId: String, intent: GameplayIntent.ExchangeWithBank) {
         val player = players[userId] ?: return
 
-        fun effectiveRatio(resourceId: String): Int {
-            val specific = player.getPortDiscountRatio(resourceId)
-            if (specific > 0) return specific
+        // Pass gameConfig.tradeRatio here
+        val toDeduct = player.calculateBankExchangeCost(
+            give = intent.give,
+            get = intent.get,
+            defaultRatio = gameConfig.tradeRatio
+        )
 
-            val generic = player.getPortDiscountRatio(null)
-            if (generic > 0) return generic
-
-            return 4
-        }
-
-        var creditsRemaining = intent.get.values.sum()
-        val toDeduct = mutableMapOf<String, Int>()
-
-        for ((resourceId, offered) in intent.give) {
-            if (creditsRemaining <= 0) break
-
-            val ratio = effectiveRatio(resourceId)
-            val creditsFromResource = offered / ratio
-            if (creditsFromResource <= 0) continue
-
-            val creditsUsed = minOf(creditsFromResource, creditsRemaining)
-            toDeduct[resourceId] = creditsUsed * ratio
-            creditsRemaining -= creditsUsed
-        }
-
-        if (creditsRemaining > 0) {
-            sender.sendToPlayer(
-                userId,
-                GameplayEvent.GameError(
-                    "Insufficient trade value.",
-                    GameErrorCode.INSUFFICIENT_RESOURCES
-                )
-            )
+        if (toDeduct == null) {
+            sender.sendToPlayer(userId, GameplayEvent.GameError("Insufficient trade value.", GameErrorCode.INSUFFICIENT_RESOURCES))
             return
         }
 
         if (!player.canDeductResources(toDeduct)) {
-            sender.sendToPlayer(
-                userId,
-                GameplayEvent.GameError(
-                    "Insufficient resources.",
-                    GameErrorCode.INSUFFICIENT_RESOURCES
-                )
-            )
+            sender.sendToPlayer(userId, GameplayEvent.GameError("Insufficient resources.", GameErrorCode.INSUFFICIENT_RESOURCES))
             return
         }
 
         player.tryDeductResources(toDeduct)
         player.addResources(intent.get)
 
-        // Map deductions to negative values for the change log
         val changes = toDeduct.mapValues { -it.value } + intent.get
-
         notifyResourceChanges(userId, changes, UpdateReason.TRADE)
     }
 

@@ -91,6 +91,50 @@ data class GamePlayer(
         ports.values.find { it.resourceId == resource }?.ratio ?: 0
 
     /**
+     * Determines the best trade ratio for a specific resource.
+     * @param defaultRatio The base game ratio (usually 4), passed from GameConfig.
+     */
+    fun getEffectiveTradeRatio(resourceId: ResourceId, defaultRatio: Int): Int {
+        val specific = getPortDiscountRatio(resourceId)
+        if (specific > 0) return specific
+
+        val generic = getPortDiscountRatio(null)
+        if (generic > 0) return generic
+
+        return defaultRatio
+    }
+
+    /**
+     * Calculates the exact best-value resources to deduct for a bank exchange.
+     * @param defaultRatio The base game ratio (usually 4), passed from GameConfig.
+     */
+    fun calculateBankExchangeCost(
+        give: Map<ResourceId, Int>,
+        get: Map<ResourceId, Int>,
+        defaultRatio: Int
+    ): Map<ResourceId, Int>? {
+
+        var creditsRemaining = get.values.sum()
+        val toDeduct = mutableMapOf<ResourceId, Int>()
+
+        for ((resourceId, offeredAmount) in give) {
+            if (creditsRemaining <= 0) break
+
+            // Pass the defaultRatio down here
+            val ratio = getEffectiveTradeRatio(resourceId, defaultRatio)
+
+            val creditsFromResource = offeredAmount / ratio
+            if (creditsFromResource <= 0) continue
+
+            val creditsUsed = minOf(creditsFromResource, creditsRemaining)
+            toDeduct[resourceId] = creditsUsed * ratio
+            creditsRemaining -= creditsUsed
+        }
+
+        return if (creditsRemaining > 0) null else toDeduct
+    }
+
+    /**
      * Converts this private state into the public-safe Snapshot
      * used for GameEvents.
      */
