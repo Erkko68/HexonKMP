@@ -9,13 +9,12 @@ import eric.bitria.hexon.database.tables.Profiles
 import eric.bitria.hexon.database.tables.Sessions
 import eric.bitria.hexon.database.tables.Users
 import io.ktor.server.config.ApplicationConfig
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 
 object DatabaseFactory {
@@ -80,7 +79,7 @@ object DatabaseFactory {
         )
 
     suspend fun <T> dbQuery(block: suspend () -> T): T =
-        newSuspendedTransaction(Dispatchers.IO, database) {
+        suspendTransaction {
             block()
         }
 }

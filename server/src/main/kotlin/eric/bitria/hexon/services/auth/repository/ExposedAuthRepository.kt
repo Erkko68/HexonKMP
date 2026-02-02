@@ -4,9 +4,15 @@ import com.github.f4b6a3.uuid.UuidCreator
 import eric.bitria.hexon.database.DatabaseFactory.dbQuery
 import eric.bitria.hexon.database.tables.Sessions
 import eric.bitria.hexon.database.tables.Users
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greater
+import org.jetbrains.exposed.v1.core.less
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import java.time.LocalDateTime
 
 class ExposedAuthRepository : AuthRepository {

@@ -1,7 +1,8 @@
 package eric.bitria.hexon.database.tables
 
-import org.jetbrains.exposed.sql.ReferenceOption
-import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.core.Table
+
 
 object Profiles : Table("profiles") {
     val userId = reference("user_id", Users.id, onDelete = ReferenceOption.CASCADE)

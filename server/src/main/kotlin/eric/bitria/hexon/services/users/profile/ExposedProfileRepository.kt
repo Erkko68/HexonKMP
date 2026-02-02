@@ -3,11 +3,13 @@ package eric.bitria.hexon.services.users.profile
 import eric.bitria.hexon.database.DatabaseFactory.dbQuery
 import eric.bitria.hexon.database.tables.Profiles
 import eric.bitria.hexon.database.tables.Users
-import org.jetbrains.exposed.sql.JoinType
-import org.jetbrains.exposed.sql.SqlExpressionBuilder
-import org.jetbrains.exposed.sql.insertIgnore
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.plus
+import org.jetbrains.exposed.v1.jdbc.insertIgnore
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
+
 
 class ExposedProfileRepository : ProfileRepository {
 
@@ -40,13 +42,9 @@ class ExposedProfileRepository : ProfileRepository {
         Profiles.update({ Profiles.userId eq userId }) {
             if (isWin) {
                 // Atomic increment: games_won = games_won + 1
-                with(SqlExpressionBuilder) {
-                    it.update(gamesWon, gamesWon + 1)
-                }
+                it.update(gamesWon, gamesWon + 1)
             } else {
-                with(SqlExpressionBuilder) {
-                    it.update(gamesLost, gamesLost + 1)
-                }
+                it.update(gamesLost, gamesLost + 1)
             }
         }
     }

@@ -3,13 +3,13 @@ package eric.bitria.hexon.services.email.repository
 import eric.bitria.hexon.database.DatabaseFactory.dbQuery
 import eric.bitria.hexon.database.tables.EmailVerificationCodes
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
-import org.jetbrains.exposed.sql.SqlExpressionBuilder
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.update
-import org.jetbrains.exposed.sql.upsert
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.less
+import org.jetbrains.exposed.v1.core.plus
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.jdbc.upsert
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import kotlin.time.Instant
@@ -52,10 +52,9 @@ class ExposedEmailVerificationRepository : EmailVerificationRepository {
     }
 
     override suspend fun incrementAttempts(email: String) = dbQuery {
-        with(SqlExpressionBuilder) {
-            EmailVerificationCodes.update({ EmailVerificationCodes.email eq email }) {
-                it.update(attempts, attempts + 1)
-            }
+
+        EmailVerificationCodes.update({ EmailVerificationCodes.email eq email }) {
+            it.update(attempts, attempts + 1)
         }
         Unit
     }

@@ -3,8 +3,13 @@ package eric.bitria.hexon.services.social.repository
 import eric.bitria.hexon.database.DatabaseFactory.dbQuery
 import eric.bitria.hexon.database.tables.FriendRequests
 import eric.bitria.hexon.database.tables.Users
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.insertIgnore
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
 
 class ExposedFriendRequestRepository : FriendRequestRepository {
 

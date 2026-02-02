@@ -94,6 +94,10 @@ kotlin {
             implementation(libs.ktor.client.darwin)
         }
     }
+
+    sourceSets.all {
+        languageSettings.enableLanguageFeature("ExplicitBackingFields")
+    }
 }
 
 buildkonfig {

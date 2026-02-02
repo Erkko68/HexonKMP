@@ -1,9 +1,9 @@
 package eric.bitria.hexon.database.tables
 
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
-import org.jetbrains.exposed.sql.ReferenceOption
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.javatime.datetime
+import org.jetbrains.exposed.v1.core.ReferenceOption
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.javatime.datetime
 
 object EmailVerificationCodes : Table("email_verification_codes") {
     val email = varchar("email", 64)
