@@ -19,45 +19,37 @@ sealed class LobbyEvent : LobbyMessage() {
         val lobbyPlayers: List<LobbyPlayer>,
         val maxPlayers: Int,
         val availableColors: List<String>,
-        override val senderId: String? = "Server"
     ) : LobbyEvent()
 
     /** Incremental Update: A new player entered */
     @Serializable
     data class PlayerJoined(
-        val lobbyPlayer: LobbyPlayer,
-        override val senderId: String? = "Server"
+        val lobbyPlayer: LobbyPlayer
     ) : LobbyEvent()
 
     /** Incremental Update: A player left */
     @Serializable
     data class PlayerLeft(
-        val playerId: String,
-        override val senderId: String? = "Server"
+        val playerId: String
     ) : LobbyEvent()
 
     /** Incremental Update: Someone changed ready status, color, etc. */
     @Serializable
     data class PlayerUpdated(
-        val lobbyPlayer: LobbyPlayer,
-        override val senderId: String? = "Server"
+        val lobbyPlayer: LobbyPlayer
     ) : LobbyEvent()
 
     /** * Transition: The host started the game.
      * Clients should now switch scenes to the Game Board.
      */
     @Serializable
-    data class GameStarted(
-        val initialTurnPlayerId: String,
-        override val senderId: String? = "Server"
-    ) : LobbyEvent()
+    data object GameStarted: LobbyEvent()
 
     /** specific errors related to lobby (e.g., "Color already taken") */
     @Serializable
     data class LobbyError(
         val errorMessage: String,
-        val code: LobbyErrorCode,
-        override val senderId: String? = "Server"
+        val code: LobbyErrorCode
     ) : LobbyEvent()
 }
 

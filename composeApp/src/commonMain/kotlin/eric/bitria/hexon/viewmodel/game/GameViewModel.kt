@@ -88,8 +88,8 @@ class GameViewModel(
     private val _trades = MutableStateFlow<Map<PlayerId, TradeOffer>>(emptyMap())
     val trades: StateFlow<Map<PlayerId, TradeOffer>> = _trades.asStateFlow()
 
-    private val _tradeResponses = MutableStateFlow<Map<PlayerId, Boolean>>(emptyMap())
-    val tradeResponses: StateFlow<Map<PlayerId, Boolean>> = _tradeResponses.asStateFlow()
+    private val _tradeResponses = MutableStateFlow<Map<PlayerId, Boolean?>>(emptyMap())
+    val tradeResponses: StateFlow<Map<PlayerId, Boolean?>> = _tradeResponses.asStateFlow()
 
     init {
         // Listen to scene events
@@ -217,6 +217,18 @@ class GameViewModel(
             _turnPhase.value = TurnPhase.MAIN_PHASE
         } else {
             _turnPhase.value = TurnPhase.WAITING
+        }
+    }
+
+    fun onEndTurn() {
+        viewModelScope.launch {
+            repository.sendMessage(GameplayIntent.EndTurn)
+        }
+    }
+
+    fun onExitGame() {
+        viewModelScope.launch {
+            repository.disconnect()
         }
     }
 

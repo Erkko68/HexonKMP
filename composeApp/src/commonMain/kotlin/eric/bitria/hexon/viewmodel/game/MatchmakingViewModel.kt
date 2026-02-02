@@ -14,6 +14,8 @@ import eric.bitria.hexon.ws.LobbyEvent
 import eric.bitria.hexon.ws.LobbyIntent
 import eric.bitria.hexon.ws.lobby.GameMode
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class MatchmakingViewModel(
@@ -22,8 +24,8 @@ class MatchmakingViewModel(
 ) : ViewModel() {
 
     // --- UI State ---
-    var navigateToGameplay by mutableStateOf(false)
-        private set
+    private val _navigateToGameplay = MutableStateFlow(false)
+    val navigateToGameplay = _navigateToGameplay.asStateFlow()
 
     var playersFound by mutableStateOf(0)
         private set
@@ -93,7 +95,8 @@ class MatchmakingViewModel(
                 playersFound--
             }
             is LobbyEvent.GameStarted -> {
-                navigateToGameplay = true
+                statusMessage = "Starting Game..."
+                _navigateToGameplay.value = true
             }
             is LobbyEvent.LobbyError -> {
                 statusMessage = message.errorMessage
@@ -110,7 +113,7 @@ class MatchmakingViewModel(
         viewModelScope.launch {
             try {
                 // Ideally, tell the server we are leaving
-                gameRepository.sendMessage(LobbyIntent.LeaveLobby())
+                gameRepository.sendMessage(LobbyIntent.LeaveLobby)
 
                 // Clean up the connection since we are quitting
                 gameRepository.disconnect()

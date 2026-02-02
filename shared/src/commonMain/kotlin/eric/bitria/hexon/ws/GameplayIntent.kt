@@ -12,9 +12,7 @@ sealed class GameplayIntent : GameplayMessage() {
     // --- Turn Management ---
 
     @Serializable
-    data class EndTurn(
-        val senderId: PlayerId
-    ) : GameplayIntent()
+    data object EndTurn: GameplayIntent()
 
     // --- Dynamic Construction ---
     @Serializable

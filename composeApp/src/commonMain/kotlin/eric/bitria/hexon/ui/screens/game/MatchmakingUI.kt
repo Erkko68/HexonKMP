@@ -22,7 +22,7 @@ fun MatchmakingUI(
     onGameStarted: () -> Unit,
     viewModel: MatchmakingViewModel = koinViewModel()
 ) {
-    if (viewModel.navigateToGameplay) {
+    if (viewModel.navigateToGameplay.value) {
         LaunchedEffect(Unit) {
             onGameStarted()
         }

@@ -9,24 +9,18 @@ import kotlinx.serialization.Serializable
 sealed class LobbyIntent : LobbyMessage() {
 
     @Serializable
-    data class LeaveLobby(
-        override val senderId: String? = null
-    ) : LobbyIntent()
+    data object LeaveLobby: LobbyIntent()
 
     @Serializable
     data class ToggleReady(
         val isReady: Boolean,
-        override val senderId: String? = null
     ) : LobbyIntent()
 
     @Serializable
     data class ChangeColor(
         val newColor: String,
-        override val senderId: String? = null
     ) : LobbyIntent()
 
     @Serializable
-    data class RequestStartGame(
-        override val senderId: String? = null
-    ) : LobbyIntent()
+    data object RequestStartGame : LobbyIntent()
 }

@@ -92,7 +92,10 @@ fun GameUI(
                     )
 
                     OptionsButton(
-                        onExitClicked = onExitClicked,
+                        onExitClicked = {
+                            onExitClicked()
+                            viewModel.onExitGame()
+                        },
                         onAboutClicked = {},
                         modifier = Modifier.fillMaxHeight()
                             .padding(end = spacing.small)
@@ -193,8 +196,8 @@ fun GameUI(
                             ControlButton(
                                 icon = Icons.AutoMirrored.Filled.ArrowForward,
                                 color = MaterialTheme.colorScheme.primary,
-                                description = "Next Phase",
-                                onClick = { },
+                                description = "End Turn",
+                                onClick = { viewModel.onEndTurn() },
                                 modifier = Modifier.size(rowHeight)
                             )
                         }

@@ -186,8 +186,6 @@ class GameSessionImpl(
                     }
 
                     is LobbyIntent.LeaveLobby -> {
-                        // Safe call: We are already inside the lock,
-                        // so we call the internal version directly.
                         removePlayerInternal(userId)
                     }
                 }
@@ -239,6 +237,9 @@ class GameSessionImpl(
         val newEngine = GameEngineImpl(sessionId)
         this.engine = newEngine
         isGameStarted = true
+
+        // Notify Game Started
+        broadcast(LobbyEvent.GameStarted)
 
         // Startup logic
         val engineLobbyPlayers = players.values.map { lobbyPlayer ->

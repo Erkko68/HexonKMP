@@ -38,8 +38,8 @@ class GameRepositoryImpl(
     // Scope for background listening.
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    // Hot Flow for messages
-    private val _incomingMessages = MutableSharedFlow<GameMessage>(extraBufferCapacity = 64)
+    // Flow for messages with initial buffering.
+    private val _incomingMessages = MutableSharedFlow<GameMessage>(replay = 8)
     override val incomingMessages: Flow<GameMessage> = _incomingMessages.asSharedFlow()
 
     override suspend fun connect(sessionId: String) {

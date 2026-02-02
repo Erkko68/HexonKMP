@@ -33,6 +33,8 @@ class GameSceneViewModel : ViewModel() {
                 println("Engine Ready. Sending initial commands.")
                 isEngineReady = true
             }
+
+            is GameEvent.PlacedBuilding -> TODO()
         }
         viewModelScope.launch {
             _gameEvents.emit(event)

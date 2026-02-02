@@ -113,7 +113,7 @@ class GameEngineImpl(
                 is GameplayIntent.Build -> handleBuild(userId, message)
                 is GameplayIntent.MoveRobber -> handleRobberMove(userId, message)
                 is GameplayIntent.ExchangeWithBank -> handleExchangeWithBank(userId, message)
-                is GameplayIntent.EndTurn -> handleEndTurn(userId)
+                is GameplayIntent.EndTurn -> handleEndTurn()
             }
         }
     }
@@ -178,7 +178,7 @@ class GameEngineImpl(
         }
     }
 
-    private suspend fun handleEndTurn(playerId: PlayerId){
+    private suspend fun handleEndTurn(){
         // 1. Calculate Next Player
         turnIndex = (turnIndex + 1) % playerQueue.size
         currentTurnPlayerId = playerQueue.elementAt(turnIndex)
