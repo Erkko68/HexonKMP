@@ -9,7 +9,10 @@ import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.PlayerSnapshot
 import eric.bitria.hexon.game.data.config.GameConfig
 import eric.bitria.hexon.game.data.def.BuildingDef
+import eric.bitria.hexon.game.data.def.PlacementType
 import eric.bitria.hexon.game.data.def.ResourceDef
+import eric.bitria.hexon.render.GameCommand
+import eric.bitria.hexon.render.GameEvent
 import eric.bitria.hexon.ws.GameMessage
 import eric.bitria.hexon.ws.GameplayEvent
 import eric.bitria.hexon.ws.GameplayIntent
@@ -32,7 +35,7 @@ enum class TurnPhase {
 
 class GameViewModel(
     private val repository: GameRepository,
-    private val sessionId: String
+    private val sceneViewModel: GameSceneViewModel
 ) : ViewModel() {
 
     // --- UI States ---
@@ -66,17 +69,14 @@ class GameViewModel(
     val activePlayerId: StateFlow<String?> = _activePlayerId.asStateFlow()
 
     init {
-        // 1. Connect (Idempotent: if Matchmaking already connected, this just ensures it's active)
+        // Listen to scene events
         viewModelScope.launch {
-            try {
-                repository.connect(sessionId)
-            } catch (e: Exception) {
-                println("Connection failed: ${e.message}")
-                // Handle error (e.g. navigate back)
+            sceneViewModel.gameEvents.collect { event ->
+                handleSceneEvent(event)
             }
         }
 
-        // 2. Listen to the Repository's Hot Flow
+        // Listen to the Repository's Flow
         viewModelScope.launch {
             repository.incomingMessages.collect { message ->
                 handleMessage(message)
@@ -84,37 +84,49 @@ class GameViewModel(
         }
     }
 
-    // --- Message Handling ---
+    // Read Messages Emitted by the Scene
+    private fun handleSceneEvent(event: GameEvent) {
+        when (event) {
+            is GameEvent.Initialised -> {
+                // The engine reinitialized, sync Board
+                _board.value?.let(::syncScene)
+            }
+        }
+    }
 
+    // Read Messages Emitted by the Server
     private fun handleMessage(message: GameMessage) {
         if (message is GameplayEvent) {
             handleGameplayEvent(message)
         }
     }
 
+    // Logic
+
     private fun handleGameplayEvent(event: GameplayEvent) {
         when (event) {
             is GameplayEvent.GameConfigLoaded -> initializeGame(event.config)
-
-            // Opponent Joining (Public Info)
             is GameplayEvent.PlayerJoined -> addOpponent(event.player)
-
-            // My Data (Private Info)
             is GameplayEvent.GamePlayerStats -> updateMyStats(event.player)
-
             is GameplayEvent.TurnChanged -> {
                 _activePlayerId.value = event.newPlayerId
+                if (event.newPlayerId == _me.value?.id) {
+                    _turnPhase.value = TurnPhase.MAIN_PHASE
+                } else {
+                    _turnPhase.value = TurnPhase.WAITING
+                }
             }
-
-            // --- Gameplay Updates ---
             is GameplayEvent.ResourcesUpdated -> handleResourcesUpdated(event)
             is GameplayEvent.ResourceCountUpdated -> handleResourceCountUpdated(event)
             is GameplayEvent.ObjectBuilt -> handleObjectBuilt(event)
-            is GameplayEvent.DiceRolled -> { /* Trigger Dice Animation in UI */ }
-
+            is GameplayEvent.DiceRolled -> {
+                 sceneViewModel.sendCommand(GameCommand.DiceRolled(
+                     values = event.values,
+                     sum = event.values.first + event.values.second
+                 ))
+            }
             is GameplayEvent.GameError -> {
                 println("Game Error: ${event.message}")
-                // Trigger UI Snackbar
             }
             else -> {}
         }
@@ -125,18 +137,56 @@ class GameViewModel(
     private fun initializeGame(config: GameConfig) {
         _gameConfig.value = config
 
-        // Deterministic Board Generation
-        val clientBoard = Board(config.resourceDefs, config.buildingDefs)
-        clientBoard.initialize(config)
+        val board = Board(config.resourceDefs, config.buildingDefs).apply {
+            initialize(config)
+        }
 
-        _board.value = clientBoard
-        _turnPhase.value = TurnPhase.SETUP
+        _board.value = board
+
+        syncScene(board) // just render
     }
 
-    private fun addOpponent(snapshot: PlayerSnapshot) {
-        // If the snapshot is ME, ignore it (we use GamePlayer for me)
-        if (snapshot.id == _me.value?.id) return
+    private fun syncScene(board: Board) {
+        // Tiles
+        board.tiles.values.forEach { tile ->
+            sceneViewModel.sendCommand(
+                GameCommand.SetHex(
+                    coord = tile.coordinate,
+                    resource = tile.resourceId,
+                    number = tile.numberToken
+                )
+            )
+        }
 
+        // Buildings
+        board.buildings.forEach { (location, building) ->
+
+            val coords = when (building.def.type) {
+                PlacementType.VERTEX -> HexCoord.fromVertexId(location).toList()
+                PlacementType.EDGE   -> HexCoord.fromEdgeId(location).toList()
+            }
+
+            sceneViewModel.sendCommand(
+                GameCommand.PlaceBuilding(
+                    player = building.ownerId,
+                    buildingId = building.def.id,
+                    hexA = coords[0],
+                    hexB = coords[1],
+                    hexC = coords.getOrNull(2)
+                )
+            )
+        }
+
+        board.ports.values.forEach {
+            sceneViewModel.sendCommand(GameCommand.SetPort(it))
+        }
+    }
+
+
+    // Game UI
+
+    private fun addOpponent(snapshot: PlayerSnapshot) {
+        if (snapshot.id == _me.value?.id) return
         val current = _opponents.value.toMutableMap()
         current[snapshot.id] = snapshot
         _opponents.value = current
@@ -155,11 +205,9 @@ class GameViewModel(
     private fun handleResourceCountUpdated(event: GameplayEvent.ResourceCountUpdated) {
         val currentMap = _opponents.value
         val snapshot = currentMap[event.playerId] ?: return
-
         val updatedSnapshot = snapshot.copy(
             resourceCount = snapshot.resourceCount + event.changes
         )
-
         _opponents.value = currentMap.toMutableMap().apply {
             put(event.playerId, updatedSnapshot)
         }
@@ -167,56 +215,29 @@ class GameViewModel(
 
     private fun handleObjectBuilt(event: GameplayEvent.ObjectBuilt) {
         val board = _board.value ?: return
-
-        // Update Board Visuals
         val def = buildingsDef.value.firstOrNull { it.id == event.buildingId } ?: return
 
+        // Update Logical Board
         if (event.hexC != null) {
             board.placeVertexBuilding(def.id, event.playerId, event.hexA, event.hexB, event.hexC!!)
         } else {
             board.placeEdgeBuilding(def.id, event.playerId, event.hexA, event.hexB)
         }
 
-        // Trigger board refresh
+        // Send Command to Renderer
+        sceneViewModel.sendCommand(GameCommand.PlaceBuilding(
+            player = event.playerId,
+            buildingId = event.buildingId,
+            hexA = event.hexA,
+            hexB = event.hexB,
+            hexC = event.hexC
+        ))
+
         _board.value = board
 
-        // Update Victory Points (Simple Client-side tracking)
-        // Ideally, server sends a "ScoreUpdated" event to be authoritative.
         if (event.playerId == _me.value?.id) {
             _me.value!!.victoryPoints += def.points
-        } else {
-            // opponent.victoryPoints += def.points
         }
-    }
-
-    // --- User Actions (Sending Intents) ---
-
-    private fun sendIntent(intent: GameplayIntent) {
-        viewModelScope.launch {
-            repository.sendMessage(intent)
-        }
-    }
-
-    fun onBuildRoadClicked(h1: HexCoord, h2: HexCoord) {
-        sendIntent(GameplayIntent.Build(
-            buildingId = "road",
-            hexA = h1,
-            hexB = h2,
-            hexC = null
-        ))
-    }
-
-    fun onBuildSettlementClicked(h1: HexCoord, h2: HexCoord, h3: HexCoord) {
-        sendIntent(GameplayIntent.Build(
-            buildingId = "settlement",
-            hexA = h1,
-            hexB = h2,
-            hexC = h3
-        ))
-    }
-
-    fun onEndTurnClicked() {
-        sendIntent(GameplayIntent.EndTurn())
     }
 
     override fun onCleared() {

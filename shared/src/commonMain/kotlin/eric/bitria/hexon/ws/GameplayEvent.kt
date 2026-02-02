@@ -83,7 +83,6 @@ sealed class GameplayEvent : GameplayMessage() {
     @Serializable
     data class DiceRolled(
         val values: Pair<Int,Int>,
-        val sum: Int,
         override var senderId: String? = "Server"
     ) : GameplayEvent()
 

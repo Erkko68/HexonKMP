@@ -41,32 +41,14 @@ class AppViewModel(
 
     fun checkSession() {
         viewModelScope.launch {
-            _sessionState.value = SessionState.LOADING
-
-            if (!tokenStore.hasSessionCookie()) {
-                _sessionState.value = SessionState.LOGGED_OUT
-                return@launch
+            val state = when (val result = authRepository.refresh()) {
+                is ApiResult.Success ->
+                    if (result.data == RefreshResult.SUCCESS) null else SessionState.LOGGED_OUT
+                is ApiResult.NetworkError -> SessionState.NETWORK_ERROR
+                else -> SessionState.LOGGED_OUT
             }
 
-            // Standard Repository Call
-            when (val result = authRepository.refresh()) {
-                is ApiResult.Success -> {
-                    if (result.data == RefreshResult.SUCCESS) {
-                        // Success! TokenStore is updated. Observer (1) sets LOGGED_IN.
-                    } else {
-                        // Token expired or invalid
-                        _sessionState.value = SessionState.LOGGED_OUT
-                    }
-                }
-                is ApiResult.NetworkError -> {
-                    // Optional: Show "Retry" screen
-                    _sessionState.value = SessionState.NETWORK_ERROR
-                }
-                is ApiResult.Error -> {
-                    _sessionState.value = SessionState.LOGGED_OUT
-                }
-                else -> { _sessionState.value = SessionState.LOGGED_OUT }
-            }
+            state?.let { _sessionState.value = it }
         }
     }
 }

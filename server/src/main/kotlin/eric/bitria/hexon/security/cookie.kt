@@ -24,6 +24,7 @@ fun Application.configureSessions() {
             cookie.maxAgeInSeconds = cookieConfig.maxAge.toLong()
             cookie.httpOnly = true
             cookie.secure = false // TODO Set to true in production with HTTPS
+            cookie.extensions["SameSite"] = "Lax"
             
             transform(SessionTransportTransformerMessageAuthentication(secretSignKey))
         }

@@ -1,12 +1,47 @@
 package eric.bitria.hexon.render
 
+import eric.bitria.hexon.game.data.BuildingId
+import eric.bitria.hexon.game.data.HexCoord
+import eric.bitria.hexon.game.data.PlayerId
+import eric.bitria.hexon.game.data.config.GameConfig
+import eric.bitria.hexon.game.data.def.PortDef
 import kotlinx.serialization.Serializable
 
 sealed interface GameCommand {
 
-    @Serializable
-    data class UpdateSpeed(val speed: Float) : GameCommand
+    // Gameplay
 
     @Serializable
-    data class MoveCamera(val x: Float, val y: Float) : GameCommand
+    data class PlaceBuilding(
+        val player: PlayerId, val buildingId: BuildingId,
+        val hexA: HexCoord,
+        val hexB: HexCoord,
+        val hexC: HexCoord? = null
+    ) : GameCommand
+
+    @Serializable
+    data class DiceRolled(
+        val values: Pair<Int,Int>,
+        val sum: Int
+    ) : GameCommand
+
+    @Serializable
+    data class RobberUpdated(
+        val location: HexCoord
+    ) : GameCommand
+
+    // Board Initialization
+
+    @Serializable
+    data class SetHex(
+        val coord: HexCoord,
+        val resource: String?,
+        val number: Int
+    ) : GameCommand
+
+    @Serializable
+    data class SetPort(
+        val port: PortDef
+    ) : GameCommand
+
 }

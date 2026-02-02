@@ -18,9 +18,9 @@ class Board(
 ) {
 
     // --- State Storage ---
-    internal val tiles = mutableMapOf<String, HexTile>()
-    internal val buildings = mutableMapOf<String, PlacedBuilding>() // Key: Vertex/Edge ID
-    internal val ports = mutableMapOf<PortVertex, PortDef>()
+    val tiles = mutableMapOf<String, HexTile>()
+    val buildings = mutableMapOf<String, PlacedBuilding>() // Key: Vertex/Edge ID
+    val ports = mutableMapOf<PortVertex, PortDef>()
 
     var robberLocation: HexCoord = HexCoord(0, 0)
         private set

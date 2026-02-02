@@ -144,6 +144,7 @@ class GameEngineImpl(
         // Notify first player
         sender.broadcast(GameplayEvent.TurnChanged(newPlayerId = currentTurnPlayerId))
     }
+
     private suspend fun rollDice() {
         // 1. Logic: Generate Random Number
         val roll1 = (1..6).random()
@@ -164,7 +165,6 @@ class GameEngineImpl(
         sender.broadcast(
             GameplayEvent.DiceRolled(
                 values = Pair(roll1, roll2),
-                sum = total
             )
         )
 

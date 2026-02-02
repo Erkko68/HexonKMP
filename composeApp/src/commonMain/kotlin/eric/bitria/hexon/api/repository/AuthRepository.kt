@@ -29,11 +29,6 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun refresh(): ApiResult<RefreshResult> {
-        // Check if we have a cookie on disk before making a network call.
-        if (!tokenStore.hasSessionCookie()) {
-            return ApiResult.Success(RefreshResult.INVALID_TOKEN)
-        }
-
         return safeApiCall {
             val response = authClient.refresh()
 

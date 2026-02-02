@@ -45,8 +45,11 @@ fun HexonGameView(
     LaunchedEffect(commands) {
         commands.collect { command ->
             when (command) {
-                is GameCommand.UpdateSpeed -> bridge.emit("updateSpeed", command)
-                is GameCommand.MoveCamera -> bridge.emit("moveCamera", command)
+                is GameCommand.DiceRolled -> bridge.emit("diceRolled", command)
+                is GameCommand.RobberUpdated -> bridge.emit("robberUpdated", command)
+                is GameCommand.PlaceBuilding -> bridge.emit("placeBuilding", command)
+                is GameCommand.SetHex -> bridge.emit("setHex", command)
+                is GameCommand.SetPort -> bridge.emit("setPort", command)
             }
         }
     }

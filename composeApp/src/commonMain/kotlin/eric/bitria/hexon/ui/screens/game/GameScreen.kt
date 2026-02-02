@@ -71,8 +71,7 @@ fun GameScreen(
                     LobbyUI(
                         onExitClicked = {
                             nestedNavController.popBackStack()
-                        },
-                        viewModel = koinViewModel()
+                        }
                     )
                 }
 
@@ -80,8 +79,7 @@ fun GameScreen(
                     GameUI(
                         onExitClicked = {
                             nestedNavController.popBackStack()
-                        },
-                        viewModel = koinViewModel()
+                        }
                     )
                 }
             }

@@ -31,6 +31,7 @@ import eric.bitria.hexon.ui.components.game.PlayerTurn
 import eric.bitria.hexon.ui.components.game.VictoryPointsIndicator
 import eric.bitria.hexon.ui.components.game.trade.TradePanel
 import eric.bitria.hexon.ui.theme.HexonTheme
+import eric.bitria.hexon.viewmodel.game.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.game.GameViewModel
 import eric.bitria.hexon.viewmodel.game.TurnPhase
 import org.koin.compose.viewmodel.koinViewModel
@@ -38,7 +39,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun GameUI(
     onExitClicked: () -> Unit,
-    viewModel: GameViewModel = koinViewModel()
+    viewModel: GameViewModel = koinViewModel(),
 ) {
 //    val players by viewModel.players.collectAsState()
 //    val resources by viewModel.resources.collectAsState()

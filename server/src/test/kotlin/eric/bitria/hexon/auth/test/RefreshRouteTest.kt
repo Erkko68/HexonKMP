@@ -101,7 +101,7 @@ class RefreshRouteTest {
     @Test
     fun `refresh fails with no session cookie`() = testAuthApplication { client ->
         val response = client.post("/auth/refresh")
-        assertEquals(HttpStatusCode.Unauthorized, response.status)
+        assertEquals(HttpStatusCode.BadRequest, response.status)
     }
 
     @Test

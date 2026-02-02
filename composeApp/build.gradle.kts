@@ -110,7 +110,7 @@ buildkonfig {
     }
 
     defaultConfigs("staging") {
-        buildConfigField(STRING, "BASE_URL", "http://192.168.100.207:8080")
+        buildConfigField(STRING, "BASE_URL", "http://192.168.100.254:8080")
     }
 
     defaultConfigs("release") {

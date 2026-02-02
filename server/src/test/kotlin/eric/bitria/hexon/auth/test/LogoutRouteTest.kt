@@ -102,7 +102,7 @@ class LogoutRouteTest {
         
         // 4. Verify cookie is cleared (attempting refresh should fail with 401)
         val refreshResp = client.post("/auth/refresh")
-        assertEquals(HttpStatusCode.Unauthorized, refreshResp.status)
+        assertEquals(HttpStatusCode.BadRequest, refreshResp.status)
     }
 
     @Test
