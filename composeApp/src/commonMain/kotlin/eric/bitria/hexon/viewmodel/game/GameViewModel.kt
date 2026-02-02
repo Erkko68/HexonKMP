@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.api.repository.GameRepository
 import eric.bitria.hexon.game.Board
 import eric.bitria.hexon.game.GamePlayer
+import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.PlayerId
 import eric.bitria.hexon.game.data.PlayerSnapshot
@@ -17,7 +18,6 @@ import eric.bitria.hexon.game.data.def.ResourceDef
 import eric.bitria.hexon.render.GameCommand
 import eric.bitria.hexon.render.GameCommand.*
 import eric.bitria.hexon.render.GameEvent
-import eric.bitria.hexon.ws.GameMessage
 import eric.bitria.hexon.ws.GameplayEvent
 import eric.bitria.hexon.ws.GameplayIntent
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -88,6 +88,9 @@ class GameViewModel(
     private val _trades = MutableStateFlow<Map<PlayerId, TradeOffer>>(emptyMap())
     val trades: StateFlow<Map<PlayerId, TradeOffer>> = _trades.asStateFlow()
 
+    private val _tradeResponses = MutableStateFlow<Map<PlayerId, Boolean>>(emptyMap())
+    val tradeResponses: StateFlow<Map<PlayerId, Boolean>> = _tradeResponses.asStateFlow()
+
     init {
         // Listen to scene events
         viewModelScope.launch {
@@ -99,7 +102,9 @@ class GameViewModel(
         // Listen to the Repository's Flow
         viewModelScope.launch {
             repository.incomingMessages.collect { message ->
-                handleMessage(message)
+                if (message is GameplayEvent) {
+                    handleGameplayEvent(message)
+                }
             }
         }
     }
@@ -111,13 +116,9 @@ class GameViewModel(
                 // The engine reinitialized, sync Board
                 _board.value?.let(::syncScene)
             }
-        }
-    }
-
-    // Read Messages Emitted by the Server
-    private fun handleMessage(message: GameMessage) {
-        if (message is GameplayEvent) {
-            handleGameplayEvent(message)
+            is GameEvent.PlacedBuilding -> {
+                onBuildingPlaced(event.buildingId, event.hexA, event.hexB, event.hexC)
+            }
         }
     }
 
@@ -125,37 +126,37 @@ class GameViewModel(
 
     private fun handleGameplayEvent(event: GameplayEvent) {
         when (event) {
+            // Game Flow
             is GameplayEvent.GameConfigLoaded -> initializeGame(event.config)
             is GameplayEvent.PlayerJoined -> addOpponent(event.player)
             is GameplayEvent.GamePlayerStats -> updateMyStats(event.player)
-            is GameplayEvent.TurnChanged -> {
-                _activePlayerId.value = event.newPlayerId
-                if (event.newPlayerId == _me.value?.id) {
-                    _turnPhase.value = TurnPhase.MAIN_PHASE
-                } else {
-                    _turnPhase.value = TurnPhase.WAITING
-                }
-            }
+            is GameplayEvent.TurnChanged -> onTurnChanged(event)
+            is GameplayEvent.GameSnapshot -> onGameSnapshot(event)
+
+            // Resources
+            is GameplayEvent.DiceRolled -> handleDiceRolled(event)
             is GameplayEvent.ResourcesUpdated -> handleResourcesUpdated(event)
             is GameplayEvent.ResourceCountUpdated -> handleResourceCountUpdated(event)
+
+            // Robber
+            is GameplayEvent.RobberUpdated -> onRobberUpdated(event)
+
+            // Buildings
             is GameplayEvent.ObjectBuilt -> handleObjectBuilt(event)
-            is GameplayEvent.DiceRolled -> {
-                 sceneViewModel.sendCommand(
-                     DiceRolled(
-                         values = event.values,
-                         sum = event.values.first + event.values.second
-                     )
-                 )
-            }
+
+            // Trade
+            is GameplayEvent.TradeProposed -> onTradeProposed(event)
+            is GameplayEvent.TradeResponse -> onTradeResponse(event)
+            is GameplayEvent.TradeCompleted -> onTradeCompleted(event)
+            is GameplayEvent.TradeCancelled -> onTradeCancelled(event)
+
+            // End Game
+            is GameplayEvent.GameOver -> TODO()
+
+            // Errors
             is GameplayEvent.GameError -> {
                 println("Game Error: ${event.message}")
             }
-            is GameplayEvent.GameSnapshot -> TODO()
-            is GameplayEvent.RobberUpdated -> TODO()
-            is GameplayEvent.TradeAccepted -> TODO()
-            is GameplayEvent.TradeProposed -> onTradeProposed(event)
-            is GameplayEvent.TradeResponse -> TODO()
-            is GameplayEvent.GameOver -> TODO()
         }
     }
 
@@ -210,8 +211,27 @@ class GameViewModel(
         }
     }
 
+    private fun onTurnChanged(event: GameplayEvent.TurnChanged) {
+        _activePlayerId.value = event.newPlayerId
+        if (event.newPlayerId == _me.value?.id) {
+            _turnPhase.value = TurnPhase.MAIN_PHASE
+        } else {
+            _turnPhase.value = TurnPhase.WAITING
+        }
+    }
+
+    private fun onGameSnapshot(event: GameplayEvent.GameSnapshot) {
+        // TODO for both Client and Server
+    }
+
+    // --- Robber ---
+    private fun onRobberUpdated(event: GameplayEvent.RobberUpdated){
+
+    }
+
     // --- Trade ---
 
+    // UI
     fun onOfferedResourceSelected(resourceId: ResourceId) {
         val player = _me.value ?: return
 
@@ -261,6 +281,7 @@ class GameViewModel(
         }
     }
 
+    // Intent
     fun sendBankExchange() {
         viewModelScope.launch {
             repository.sendMessage(
@@ -280,6 +301,46 @@ class GameViewModel(
                 GameplayIntent.ProposeTrade(
                     give = _offeredResources.value,
                     want = _requestedResources.value
+                )
+            )
+        }
+    }
+
+    /**
+     * Respond to another player's trade offer
+     */
+    fun sendTradeResponse(player: PlayerId, accepted: Boolean) {
+        viewModelScope.launch {
+            repository.sendMessage(
+                GameplayIntent.RespondToTrade(
+                    offererId = player,
+                    accepted = accepted
+                )
+            )
+        }
+    }
+
+    /**
+     * Confirm other player accepted response on my trade
+     */
+    fun sendTradeConfirmation(responderId: PlayerId) {
+        viewModelScope.launch {
+            repository.sendMessage(
+                GameplayIntent.ConfirmTrade(
+                    responderId = responderId,
+                )
+            )
+        }
+    }
+
+    /**
+     * Cancel my trade
+     */
+    fun sendCancelTrade() {
+        viewModelScope.launch {
+            repository.sendMessage(
+                GameplayIntent.CancelTrade(
+                    offererId = _me.value?.id ?: return@launch
                 )
             )
         }
@@ -313,13 +374,34 @@ class GameViewModel(
         return player.canProposeTrade(_offeredResources.value, _requestedResources.value)
     }
 
+    // Event
     fun onTradeProposed(event: GameplayEvent.TradeProposed) {
+        // Store new Trade
         _trades.value = _trades.value.toMutableMap().apply {
-            put(event.senderId, TradeOffer(event.give, event.want))
+            put(event.offererId, TradeOffer(event.give, event.want))
         }
     }
 
-    // Game UI
+    fun onTradeResponse(event: GameplayEvent.TradeResponse) {
+        // Store new Trade
+        _tradeResponses.value = _tradeResponses.value.toMutableMap().apply {
+            put(event.offererId, event.accepted)
+        }
+    }
+
+    fun onTradeCompleted(event: GameplayEvent.TradeCompleted){
+        _trades.value = _trades.value.toMutableMap().apply {
+            remove(event.offererId)
+        }
+    }
+
+    fun onTradeCancelled(event: GameplayEvent.TradeCancelled){
+        _trades.value = _trades.value.toMutableMap().apply {
+            remove(event.offererId)
+        }
+    }
+
+    // --- Players ---
 
     private fun addOpponent(snapshot: PlayerSnapshot) {
         if (snapshot.id == _me.value?.id) return
@@ -330,6 +412,17 @@ class GameViewModel(
 
     private fun updateMyStats(updatedMe: GamePlayer) {
         _me.value = updatedMe
+    }
+
+    // --- Resources ---
+
+    private fun handleDiceRolled(event: GameplayEvent.DiceRolled){
+        sceneViewModel.sendCommand(
+            DiceRolled(
+                values = event.values,
+                sum = event.values.first + event.values.second
+            )
+        )
     }
 
     private fun handleResourcesUpdated(event: GameplayEvent.ResourcesUpdated) {
@@ -349,6 +442,48 @@ class GameViewModel(
         }
     }
 
+
+    // --- Buildings ---
+
+    // Intent
+    fun showAvailableBuildingPositions(buildingId: BuildingId) {
+        val player = _me.value ?: return
+        val board = _board.value ?: return
+        val building = buildingsDef.value.firstOrNull { it.id == buildingId } ?: return
+
+        val command = when (building.type) {
+            PlacementType.EDGE -> {
+                val locations = board.getAvailableEdgePlacements(player.id, building.id)
+                ShowEdgeBuildingPositions(buildingId, locations)
+            }
+            PlacementType.VERTEX -> {
+                val locations = board.getAvailableVertexPlacements(player.id, building.id)
+                ShowVertexBuildingPositions(buildingId, locations)
+            }
+        }
+
+        sceneViewModel.sendCommand(command)
+    }
+
+    fun onBuildingPlaced(
+        buildingId: BuildingId,
+        h1: HexCoord,
+        h2: HexCoord,
+        h3: HexCoord? = null
+    ) {
+        viewModelScope.launch {
+            repository.sendMessage(
+                GameplayIntent.Build(
+                    buildingId = buildingId,
+                    h1 = h1,
+                    h2 = h2,
+                    h3 = h3
+                )
+            )
+        }
+    }
+
+    // Event
     private fun handleObjectBuilt(event: GameplayEvent.ObjectBuilt) {
         val board = _board.value ?: return
         val def = buildingsDef.value.firstOrNull { it.id == event.buildingId } ?: return

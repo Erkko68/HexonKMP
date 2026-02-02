@@ -146,7 +146,7 @@ fun GameUI(
                         } else {
                             BuildingRow(
                                 buildings = buildings,
-                                onClick = { },
+                                onClick = { buildingId -> viewModel.showAvailableBuildingPositions(buildingId) },
                                 modifier = Modifier.height(rowHeight)
                             )
                         }

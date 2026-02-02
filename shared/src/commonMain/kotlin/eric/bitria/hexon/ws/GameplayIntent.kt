@@ -4,7 +4,6 @@ import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.PlayerId
 import eric.bitria.hexon.game.data.ResourceId
-import eric.bitria.hexon.game.data.TradeOffer
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -14,7 +13,7 @@ sealed class GameplayIntent : GameplayMessage() {
 
     @Serializable
     data class EndTurn(
-        override var senderId: PlayerId? = null
+        val senderId: PlayerId
     ) : GameplayIntent()
 
     // --- Dynamic Construction ---
@@ -25,11 +24,9 @@ sealed class GameplayIntent : GameplayMessage() {
         // Coordinates:
         // For EDGE: hexA, hexB required. hexC must be null.
         // For VERTEX: hexA, hexB, hexC required.
-        val hexA: HexCoord,
-        val hexB: HexCoord,
-        val hexC: HexCoord? = null,
-
-        override var senderId: String? = null
+        val h1: HexCoord,
+        val h2: HexCoord,
+        val h3: HexCoord? = null,
     ) : GameplayIntent()
 
     // --- Trade ---
@@ -37,34 +34,33 @@ sealed class GameplayIntent : GameplayMessage() {
     data class ProposeTrade(
         val give: Map<ResourceId, Int>,
         val want: Map<ResourceId, Int>,
-        override var senderId: String? = null
     ) : GameplayIntent()
 
     @Serializable
     data class RespondToTrade(
         val offererId: PlayerId,
         val accepted: Boolean,
-        override var senderId: String? = null
     ) : GameplayIntent()
 
     @Serializable
     data class ConfirmTrade(
         val responderId: PlayerId,
-        val accepted: Boolean,
-        override var senderId: String? = null
+    ) : GameplayIntent()
+
+    @Serializable
+    data class CancelTrade(
+        val offererId: PlayerId
     ) : GameplayIntent()
 
     @Serializable
     data class ExchangeWithBank(
         val give: Map<ResourceId, Int>,
         val get: Map<ResourceId, Int>,
-        override var senderId: String? = null
     ) : GameplayIntent()
 
     // --- Robber ---
     @Serializable
     data class MoveRobber(
         val hexA: HexCoord,   // Target Hex
-        override var senderId: String? = null
     ) : GameplayIntent()
 }

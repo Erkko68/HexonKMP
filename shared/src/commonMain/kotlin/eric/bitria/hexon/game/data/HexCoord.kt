@@ -37,12 +37,12 @@ data class HexCoord(val q: Int, val r: Int) : Comparable<HexCoord> {
 
         fun getHexId(h: HexCoord): String = h.toString()
 
-        fun getEdgeId(h1: HexCoord, h2: HexCoord): String {
+        fun getEdgeId(h1: HexCoord, h2: HexCoord): EdgeId {
             val sorted = listOf(h1, h2).sorted()
             return "${sorted[0]}|${sorted[1]}" // e.g. "0,0|1,-1"
         }
 
-        fun getVertexId(h1: HexCoord, h2: HexCoord, h3: HexCoord): String {
+        fun getVertexId(h1: HexCoord, h2: HexCoord, h3: HexCoord): VertexId {
             val sorted = listOf(h1, h2, h3).sorted()
             return "${sorted[0]}|${sorted[1]}|${sorted[2]}" // e.g. "0,0|0,1|1,0"
         }
@@ -54,13 +54,13 @@ data class HexCoord(val q: Int, val r: Int) : Comparable<HexCoord> {
                     HexCoord(it[0].toInt(), it[1].toInt())
                 }
 
-        fun fromEdgeId(id: String): Pair<HexCoord, HexCoord> =
+        fun fromEdgeId(id: EdgeId): Pair<HexCoord, HexCoord> =
             id.split("|")
                 .map(::fromHexId)
                 .also { require(it.size == 2) { "Invalid Edge id: $id" } }
                 .let { it[0] to it[1] }
 
-        fun fromVertexId(id: String): Triple<HexCoord, HexCoord, HexCoord> =
+        fun fromVertexId(id: VertexId): Triple<HexCoord, HexCoord, HexCoord> =
             id.split("|")
                 .map(::fromHexId)
                 .also { require(it.size == 3) { "Invalid Vertex id: $id" } }

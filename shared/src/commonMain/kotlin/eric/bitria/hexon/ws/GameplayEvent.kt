@@ -19,19 +19,16 @@ sealed class GameplayEvent : GameplayMessage() {
     @Serializable
     data class GameConfigLoaded(
         val config: GameConfig,
-        override var senderId: String? = "Server"
     ) : GameplayEvent()
 
     @Serializable
     data class PlayerJoined(
         val player: PlayerSnapshot,
-        override var senderId: String? = "Server"
     ) : GameplayEvent()
 
     @Serializable
     data class GamePlayerStats(
         val player: GamePlayer,
-        override var senderId: String? = "Server"
     ) : GameplayEvent()
 
     @Serializable
@@ -41,21 +38,18 @@ sealed class GameplayEvent : GameplayMessage() {
         val currentTurnPlayerId: String,
         val diceResult: List<Int>? = null,
         val robberLocation: HexCoord? = null,
-        override var senderId: String? = "Server"
     ) : GameplayEvent()
 
     // --- State Changes ---
     @Serializable
     data class RobberUpdated(
         val location: HexCoord,
-        override var senderId: String? = "Server"
     ): GameplayEvent()
 
     @Serializable
     data class ResourcesUpdated(
         val changes: Map<ResourceId, Int>, // e.g. {"wood": -1}
         val reason: UpdateReason,
-        override var senderId: String? = "Server"
     ) : GameplayEvent()
 
     @Serializable
@@ -63,7 +57,6 @@ sealed class GameplayEvent : GameplayMessage() {
         val playerId: PlayerId,
         val changes: Int,
         val reason: UpdateReason,
-        override var senderId: String? = "Server"
     ) : GameplayEvent()
 
     @Serializable
@@ -75,20 +68,16 @@ sealed class GameplayEvent : GameplayMessage() {
         val hexA: HexCoord,
         val hexB: HexCoord,
         val hexC: HexCoord? = null,
-
-        override var senderId: String? = "Server"
     ) : GameplayEvent()
 
     @Serializable
     data class DiceRolled(
         val values: Pair<Int,Int>,
-        override var senderId: String? = "Server"
     ) : GameplayEvent()
 
     @Serializable
     data class TurnChanged(
         val newPlayerId: PlayerId,
-        override var senderId: String? = "Server"
     ) : GameplayEvent()
 
     // --- Trade Interactions ---
@@ -96,20 +85,25 @@ sealed class GameplayEvent : GameplayMessage() {
     data class TradeProposed(
         val give: Map<ResourceId, Int>,
         val want: Map<ResourceId, Int>,
-        override var senderId: String = "Server"
+        val offererId: PlayerId
     ) : GameplayEvent()
 
     @Serializable
     data class TradeResponse(
         val offererId: PlayerId,
+        val responderId: PlayerId,
         val accepted: Boolean,
-        override var senderId: String? = "Server"
     ) : GameplayEvent()
 
     @Serializable
-    data class TradeAccepted(
+    data class TradeCompleted(
         val responderId: PlayerId,
-        override var senderId: String? = "Server"
+        val offererId: PlayerId,
+    ) : GameplayEvent()
+
+    @Serializable
+    data class TradeCancelled(
+        val offererId: PlayerId,
     ) : GameplayEvent()
 
     // --- System ---
@@ -117,13 +111,11 @@ sealed class GameplayEvent : GameplayMessage() {
     data class GameError(
         val message: String,
         val code: GameErrorCode,
-        override var senderId: String? = "Server"
     ) : GameplayEvent()
 
     @Serializable
     data class GameOver(
         val winnerId: String,
         val stats: Map<String, String>,
-        override var senderId: String? = "Server"
     ) : GameplayEvent()
 }

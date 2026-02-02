@@ -50,6 +50,8 @@ fun HexonGameView(
                 is GameCommand.PlaceBuilding -> bridge.emit("placeBuilding", command)
                 is GameCommand.SetHex -> bridge.emit("setHex", command)
                 is GameCommand.SetPort -> bridge.emit("setPort", command)
+                is GameCommand.ShowEdgeBuildingPositions -> bridge.emit("showEdgeBuildingPositions", command)
+                is GameCommand.ShowVertexBuildingPositions -> bridge.emit("showVertexBuildingPositions", command)
             }
         }
     }

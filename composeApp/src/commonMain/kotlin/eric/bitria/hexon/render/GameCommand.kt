@@ -1,8 +1,10 @@
 package eric.bitria.hexon.render
 
 import eric.bitria.hexon.game.data.BuildingId
+import eric.bitria.hexon.game.data.EdgeId
 import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.PlayerId
+import eric.bitria.hexon.game.data.VertexId
 import eric.bitria.hexon.game.data.config.GameConfig
 import eric.bitria.hexon.game.data.def.PortDef
 import kotlinx.serialization.Serializable
@@ -42,6 +44,20 @@ sealed interface GameCommand {
     @Serializable
     data class SetPort(
         val port: PortDef
+    ) : GameCommand
+
+    // Display Building Positions
+
+    @Serializable
+    data class ShowVertexBuildingPositions(
+        val buildingId: BuildingId,
+        val availablePositions: List<Triple<HexCoord, HexCoord, HexCoord>>
+    ) : GameCommand
+
+    @Serializable
+    data class ShowEdgeBuildingPositions(
+        val buildingId: BuildingId,
+        val availablePositions: List<Pair<HexCoord, HexCoord>>
     ) : GameCommand
 
 }

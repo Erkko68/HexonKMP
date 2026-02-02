@@ -28,7 +28,6 @@ private enum class TurnPhase {
     GAME_OVER
 }
 
-
 class GameEngineImpl(
     private val sessionId: String,
     private val gameConfig: GameConfig = GameConfigLoader.default(sessionId)
@@ -101,6 +100,7 @@ class GameEngineImpl(
                 is GameplayIntent.ProposeTrade -> return handleTradeProposal(userId, message)
                 is GameplayIntent.RespondToTrade -> return handleTradeResponse(userId, message)
                 is GameplayIntent.ConfirmTrade -> return handleTradeConfirmation(userId, message)
+                is GameplayIntent.CancelTrade -> return handleTradeCancellation(userId)
                 else -> {}
             }
 
@@ -201,21 +201,21 @@ class GameEngineImpl(
 
         val success = when (def.type) {
             PlacementType.VERTEX -> {
-                val h3 = intent.hexC ?: return sender.sendToPlayer(
+                val h3 = intent.h3 ?: return sender.sendToPlayer(
                     userId, GameplayEvent.GameError("Vertex building requires 3 coordinates", GameErrorCode.INVALID_PLACEMENT)
                 )
                 // Validate Rules (skip if Setup phase)
-                if (currentPhase != TurnPhase.SETUP && !board.canPlaceVertexBuilding(userId, intent.hexA, intent.hexB, h3, def.id)) {
+                if (currentPhase != TurnPhase.SETUP && !board.canPlaceVertexBuilding(userId, intent.h1, intent.h2, h3, def.id)) {
                     return sender.sendToPlayer(userId, GameplayEvent.GameError("Invalid placement rule", GameErrorCode.INVALID_PLACEMENT))
                 }
-                board.placeVertexBuilding(def.id, userId, intent.hexA, intent.hexB, h3)
+                board.placeVertexBuilding(def.id, userId, intent.h1, intent.h2, h3)
             }
             PlacementType.EDGE -> {
                 // Validate Rules
-                if (!board.canPlaceEdgeBuilding(userId, intent.hexA, intent.hexB, def.id)) {
+                if (!board.canPlaceEdgeBuilding(userId, intent.h1, intent.h2, def.id)) {
                     return sender.sendToPlayer(userId, GameplayEvent.GameError("Invalid placement rule", GameErrorCode.INVALID_PLACEMENT))
                 }
-                board.placeEdgeBuilding(def.id, userId, intent.hexA, intent.hexB)
+                board.placeEdgeBuilding(def.id, userId, intent.h1, intent.h2)
             }
         }
 
@@ -231,9 +231,9 @@ class GameEngineImpl(
             GameplayEvent.ObjectBuilt(
                 playerId = userId,
                 buildingId = def.id,
-                hexA = intent.hexA,
-                hexB = intent.hexB,
-                hexC = intent.hexC
+                hexA = intent.h1,
+                hexB = intent.h2,
+                hexC = intent.h3
             )
         )
     }
@@ -277,6 +277,8 @@ class GameEngineImpl(
         )
     }
 
+    // --- Trade ---
+
     private suspend fun handleTradeProposal(userId: PlayerId, intent: GameplayIntent.ProposeTrade) {
         val player = players[userId] ?: return
 
@@ -297,7 +299,7 @@ class GameEngineImpl(
             GameplayEvent.TradeProposed(
                 give = intent.give,
                 want = intent.want,
-                senderId = userId // Need to notify from who this trade is coming from
+                offererId = userId // Need to notify from who this trade is coming from
             )
         )
     }
@@ -334,7 +336,7 @@ class GameEngineImpl(
             GameplayEvent.TradeResponse(
                 offererId = intent.offererId, // The original player that sent the trade
                 accepted = intent.accepted,   // Whether they accepted or not
-                senderId = userId             // The user that sent this response
+                responderId = userId,         // The player that responded
             )
         )
     }
@@ -343,15 +345,18 @@ class GameEngineImpl(
         val offerer = players[userId] ?: return
         val responder = players[intent.responderId] ?: return
 
-        if (intent.responderId == userId) return sender.sendToPlayer(userId, GameplayEvent.GameError("Cannot confirm your own trade.", GameErrorCode.INVALID_TRADE))
+        // 1. Validation: Self-trading is impossible here
+        if (intent.responderId == userId) {
+            return sender.sendToPlayer(userId, GameplayEvent.GameError("Cannot trade with yourself.", GameErrorCode.INVALID_TRADE))
+        }
 
-        // 1. Retrieve the active trade
+        // 2. Retrieve the active trade
         val trade = trades[userId] ?: return sender.sendToPlayer(
             userId,
             GameplayEvent.GameError("No active trade found.", GameErrorCode.INVALID_TRADE)
         )
 
-        // 2. Verify the responder actually accepted THIS trade
+        // 3. Verify the responder actually accepted
         val acceptedPlayers = tradeAcceptances[userId] ?: mutableSetOf()
         if (!acceptedPlayers.contains(intent.responderId)) {
             return sender.sendToPlayer(
@@ -360,47 +365,64 @@ class GameEngineImpl(
             )
         }
 
-        // 3. Ensure enough resources
+        // 4. Resource Verification (Double Check)
         if (!offerer.canDeductResources(trade.give)) {
-            return sender.sendToPlayer(userId, GameplayEvent.GameError("You lack resources.", GameErrorCode.INSUFFICIENT_RESOURCES))
+            return sender.sendToPlayer(userId, GameplayEvent.GameError("You lack the resources.", GameErrorCode.INSUFFICIENT_RESOURCES))
         }
         if (!responder.canDeductResources(trade.want)) {
-            // Remove them from acceptances so the offerer knows they are invalid now
+            // Remove invalid responder and notify offerer
             acceptedPlayers.remove(intent.responderId)
-            return sender.sendToPlayer(userId, GameplayEvent.GameError("Responder lacks resources.", GameErrorCode.INSUFFICIENT_RESOURCES))
+            return sender.sendToPlayer(userId, GameplayEvent.GameError("Responder lacks resources. Offer removed.", GameErrorCode.INSUFFICIENT_RESOURCES))
         }
 
-        // 4. Execute Swap
-
-        // Deduct from Offerer / Give to Responder
+        // 5. Execute Swap
+        // Offerer: -Give, +Want
         offerer.tryDeductResources(trade.give)
-        responder.addResources(trade.give)
-
-        // Deduct from Responder / Give to Offerer
-        responder.tryDeductResources(trade.want)
         offerer.addResources(trade.want)
 
-        // 5. Cleanup
+        // Responder: -Want, +Give
+        responder.tryDeductResources(trade.want)
+        responder.addResources(trade.give)
+
+        // 6. Cleanup & Notify
         trades.remove(userId)
         tradeAcceptances.remove(userId)
 
-        // 6. Notify
+        // Broadcast completion so clients update UI (hide trade windows, show animation)
         sender.broadcast(
-            GameplayEvent.TradeAccepted(
+            GameplayEvent.TradeCompleted(
                 responderId = intent.responderId,
-                senderId = userId
+                offererId = userId
             )
         )
 
-        // 7. Send Updates using helper
-
-        // Offerer lost 'give' and gained 'want'
+        // 7. Send Private Inventory Updates
         val offererChanges = trade.give.mapValues { -it.value } + trade.want
         notifyResourceChanges(userId, offererChanges, UpdateReason.TRADE)
 
-        // Responder lost 'want' and gained 'give'
         val responderChanges = trade.want.mapValues { -it.value } + trade.give
         notifyResourceChanges(intent.responderId, responderChanges, UpdateReason.TRADE)
+    }
+
+    private suspend fun handleTradeCancellation(userId: PlayerId) {
+        // 1. Check if they actually have an active trade
+        if (!trades.containsKey(userId)) {
+            return sender.sendToPlayer(
+                userId,
+                GameplayEvent.GameError("No active trade to cancel.", GameErrorCode.INVALID_TRADE)
+            )
+        }
+
+        // 2. Remove the trade and acceptances
+        trades.remove(userId)
+        tradeAcceptances.remove(userId)
+
+        // 3. Notify all clients to close the trade window/remove the icon
+        sender.broadcast(
+            GameplayEvent.TradeCancelled(
+                offererId = userId,
+            )
+        )
     }
 
     private suspend fun handleExchangeWithBank(userId: String, intent: GameplayIntent.ExchangeWithBank) {
