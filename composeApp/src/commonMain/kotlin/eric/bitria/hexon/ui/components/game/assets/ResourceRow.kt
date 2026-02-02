@@ -18,7 +18,8 @@ fun ResourceRow(
     me: GamePlayer?,
     selected: Map<ResourceId, Int>,
     resources: List<ResourceDef>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (ResourceId) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
 
@@ -27,6 +28,7 @@ fun ResourceRow(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Only show resources that exist in the player's map
         resources.mapNotNull { resource ->
             me?.resources?.get(resource.id)?.let { count ->
                 resource to count
@@ -37,7 +39,8 @@ fun ResourceRow(
                 count = count - selectedCount,
                 selected = selectedCount,
                 resource = resource,
-                modifier = Modifier.fillMaxHeight()
+                modifier = Modifier.fillMaxHeight(),
+                onClick = { onClick(resource.id) } // Pass resourceId to parent
             )
         }
     }

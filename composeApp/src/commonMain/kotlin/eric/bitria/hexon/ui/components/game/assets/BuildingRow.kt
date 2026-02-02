@@ -10,11 +10,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import eric.bitria.hexon.game.GamePlayer
+import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.def.BuildingDef
 
 @Composable
 fun BuildingRow(
     buildings: List<BuildingDef>,
+    onClick: (BuildingId) -> Unit = {},
     modifier: Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -25,7 +27,11 @@ fun BuildingRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         buildings.forEach { building ->
-            BuildingCard(building, Modifier.fillMaxHeight())
+            BuildingCard(
+                building = building,
+                onClick = { onClick(building.id) },
+                modifier = Modifier.fillMaxHeight()
+            )
         }
     }
 }

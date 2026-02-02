@@ -17,6 +17,7 @@ import eric.bitria.hexon.game.data.def.ResourceDef
 fun TradeResourceRow(
     selected: Map<ResourceId, Int>,
     resources: List<ResourceDef>,
+    onClick: (ResourceId) -> Unit = {},
     modifier: Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -31,6 +32,7 @@ fun TradeResourceRow(
                 count = selected[resource.id]?: 0,
                 selected = 0,
                 resource = resource,
+                onClick = { onClick(resource.id) },
                 modifier = Modifier.fillMaxHeight()
             )
         }

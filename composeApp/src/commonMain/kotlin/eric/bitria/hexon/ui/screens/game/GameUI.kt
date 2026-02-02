@@ -45,7 +45,10 @@ fun GameUI(
     val buildings by viewModel.buildingsDef.collectAsState()
     //val progressCards by viewModel.progressCards.collectAsState()
     val me by viewModel.me.collectAsState()
-    val tradeResources by viewModel.tradeResources.collectAsState()
+
+    val offeredResources by viewModel.offeredResources.collectAsState()
+    val requestedResources by viewModel.requestedResources.collectAsState()
+
     val phase by viewModel.turnPhase.collectAsState()
     val activePlayerId by viewModel.activePlayerId.collectAsState()
 
@@ -132,13 +135,15 @@ fun GameUI(
                     ) {
                         if (phase == TurnPhase.TRADE){
                             TradeResourceRow(
-                                selected = tradeResources,
+                                selected = requestedResources,
                                 resources = resources,
+                                onClick = { resourceId -> viewModel.onRequestedResourceSelected(resourceId) },
                                 modifier = Modifier.height(rowHeight)
                             )
                         } else {
                             BuildingRow(
                                 buildings = buildings,
+                                onClick = { },
                                 modifier = Modifier.height(rowHeight)
                             )
                         }
@@ -146,12 +151,13 @@ fun GameUI(
                         // --- Resources Row  ---
                         ResourceRow(
                             me = me,
-                            selected = tradeResources,
+                            selected = offeredResources,
                             resources = resources,
+                            onClick = { resourceId -> viewModel.onOfferedResourceSelected(resourceId) },
                             modifier = Modifier.height(rowHeight)
                         )
-                    }
 
+                    }
 
                     Column(
                         modifier = Modifier.fillMaxHeight(),

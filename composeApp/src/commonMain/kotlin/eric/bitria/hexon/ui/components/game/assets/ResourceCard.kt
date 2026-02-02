@@ -1,6 +1,7 @@
 package eric.bitria.hexon.ui.components.game.assets
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
@@ -27,13 +28,15 @@ fun ResourceCard(
     count: Int,
     selected: Int = 0,
     resource: ResourceDef,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
     BoxWithConstraints(
-        modifier = modifier.aspectRatio(1f)
+        modifier = modifier
+            .aspectRatio(1f)
+            .clickable { onClick() } // Make whole card clickable
     ) {
         val height = maxHeight
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -50,7 +53,7 @@ fun ResourceCard(
                     .align(Alignment.Center)
             )
 
-            // Top-left: available quantity
+            // Top-left: quantity
             TextCanvas(
                 text = count.toString(),
                 textStyle = TextStyle(
@@ -63,7 +66,7 @@ fun ResourceCard(
                     .padding(start = height * 0.07f, top = height * 0.05f)
             )
 
-            // Top-right: selected quantity (if > 0)
+            // Optional: top-right selected count
             if (selected > 0) {
                 TextCanvas(
                     text = selected.toString(),

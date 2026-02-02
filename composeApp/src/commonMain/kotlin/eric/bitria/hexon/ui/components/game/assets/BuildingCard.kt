@@ -1,6 +1,7 @@
 package eric.bitria.hexon.ui.components.game.assets
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
@@ -19,16 +20,19 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import eric.bitria.hexon.game.GamePlayer
+import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.def.BuildingDef
 import eric.bitria.hexon.ui.utils.TextCanvas
 
 @Composable
 fun BuildingCard(
     building: BuildingDef,
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(
         modifier = modifier.aspectRatio(1f)
+            .clickable { onClick() }
     ) {
         val height = maxHeight
         Box(

@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 enum class TurnPhase {
@@ -66,8 +67,14 @@ class GameViewModel(
     private val _me = MutableStateFlow<GamePlayer?>(null)
     val me: StateFlow<GamePlayer?> = _me.asStateFlow()
 
-    private val _tradeResources = MutableStateFlow<Map<ResourceId, Int>>(emptyMap())
-    val tradeResources: StateFlow<Map<ResourceId, Int>> = _tradeResources.asStateFlow()
+    // --- Trade ---
+
+    private val _offeredResources = MutableStateFlow<Map<ResourceId, Int>>(emptyMap())
+    val offeredResources: StateFlow<Map<ResourceId, Int>> = _offeredResources.asStateFlow()
+
+    private val _requestedResources = MutableStateFlow<Map<ResourceId, Int>>(emptyMap())
+    val requestedResources: StateFlow<Map<ResourceId, Int>> = _requestedResources.asStateFlow()
+
 
     // Opponents State (Public info: name, color, card counts, VPs)
     private val _opponents = MutableStateFlow<Map<PlayerId, PlayerSnapshot>>(emptyMap())
@@ -188,6 +195,29 @@ class GameViewModel(
 
         board.ports.values.forEach {
             sceneViewModel.sendCommand(GameCommand.SetPort(it))
+        }
+    }
+
+    // --- Trade ---
+
+    fun onOfferedResourceSelected(resourceId: ResourceId) {
+        val player = _me.value ?: return
+
+        val currentCount = _offeredResources.value[resourceId] ?: 0
+        val available = player.resources[resourceId] ?: 0
+
+        if (currentCount < available) {
+            // Increment selected count
+            _offeredResources.value = _offeredResources.value.toMutableMap().apply {
+                put(resourceId, currentCount + 1)
+            }
+        }
+    }
+
+    fun onRequestedResourceSelected(resourceId: ResourceId) {
+        _requestedResources.update { current ->
+            val newCount = (current[resourceId] ?: 0) + 1
+            current.toMutableMap().apply { put(resourceId, newCount) }
         }
     }
 
