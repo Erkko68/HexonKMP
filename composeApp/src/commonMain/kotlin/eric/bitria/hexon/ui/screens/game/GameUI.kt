@@ -169,7 +169,7 @@ fun GameUI(
                             icon = Icons.Filled.SwapHoriz,
                             color = MaterialTheme.colorScheme.tertiary,
                             description = "Trade",
-                            onClick = { },
+                            onClick = { viewModel.switchTradePanel() },
                             modifier = Modifier.size(rowHeight)
                         )
                         if (phase == TurnPhase.TRADE) {
@@ -177,14 +177,16 @@ fun GameUI(
                                 icon = Icons.Default.AccountBalance,
                                 color = MaterialTheme.colorScheme.tertiary,
                                 description = "Bank Trade",
-                                onClick = { },
+                                onClick = { viewModel.sendBankExchange() },
+                                enabled = viewModel.canSendBankExchange(),
                                 modifier = Modifier.size(rowHeight)
                             )
                             ControlButton(
                                 icon = Icons.Default.Group,
                                 color = MaterialTheme.colorScheme.tertiary,
                                 description = "Trade with Players",
-                                onClick = { },
+                                onClick = { viewModel.sendPlayerExchange() },
+                                enabled = viewModel.canSendPlayerTrade(),
                                 modifier = Modifier.size(rowHeight)
                             )
                         } else {

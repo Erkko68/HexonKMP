@@ -24,6 +24,7 @@ fun ControlButton(
     color: Color,
     description: String,
     onClick: () -> Unit,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val shapes = HexonTheme.dimensions.shapes
@@ -44,7 +45,10 @@ fun ControlButton(
                 color = Color.White.copy(alpha = 0.2f),
                 shape = shapes.medium
             )
-            .clickable { onClick() }
+            .clickable(
+                onClick = onClick,
+                enabled = enabled
+            )
             .padding(spacing.small),
         contentAlignment = Alignment.Center
     ){

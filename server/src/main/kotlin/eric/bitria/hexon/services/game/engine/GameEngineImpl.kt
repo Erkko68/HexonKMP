@@ -28,6 +28,7 @@ private enum class TurnPhase {
     GAME_OVER
 }
 
+
 class GameEngineImpl(
     private val sessionId: String,
     private val gameConfig: GameConfig = GameConfigLoader.default(sessionId)
@@ -47,7 +48,7 @@ class GameEngineImpl(
         gameConfig.buildingDefs.associateBy { it.id }
     val resources: Map<ResourceId, ResourceDef> =
         gameConfig.resourceDefs.associateBy { it.id }
-    private val trades = mutableMapOf<PlayerId, TradeOffer>()
+    private val trades = mutableMapOf<PlayerId,TradeOffer>()
     private val tradeAcceptances = mutableMapOf<PlayerId, MutableSet<PlayerId>>()
 
     // Game Loop State
@@ -278,22 +279,24 @@ class GameEngineImpl(
 
     private suspend fun handleTradeProposal(userId: PlayerId, intent: GameplayIntent.ProposeTrade) {
         val player = players[userId] ?: return
-        val tradeGive = intent.offer.give
 
-        // Check if player has enough resources to give
-        if (!player.canDeductResources(tradeGive)) return sender.sendToPlayer(
-            userId,
-            GameplayEvent.GameError("Insufficient resources", GameErrorCode.INSUFFICIENT_RESOURCES)
-        )
+        if (!player.canProposeTrade(intent.give, intent.want)) {
+            sender.sendToPlayer(userId, GameplayEvent.GameError("Invalid trade proposal", GameErrorCode.INVALID_TRADE))
+            return
+        }
 
         // Store new trade for the player and initialize set for players response
-        trades[userId] = intent.offer
+        trades[userId] = TradeOffer(
+            give = intent.give,
+            want = intent.want
+        )
         tradeAcceptances[userId] = mutableSetOf()
 
         // Send trade proposal to the receiver
         sender.broadcast(
             GameplayEvent.TradeProposed(
-                offer = intent.offer,
+                give = intent.give,
+                want = intent.want,
                 senderId = userId // Need to notify from who this trade is coming from
             )
         )

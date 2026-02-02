@@ -84,6 +84,25 @@ data class GamePlayer(
         cost.all { (res, amount) -> (resources[res] ?: 0) >= amount }
 
     /**
+     * Validates if a Player-to-Player trade proposal is legal.
+     *
+     * Rules:
+     * 1. Must offer at least one resource.
+     * 2. Must request at least one resource.
+     * 3. Must actually possess the resources being offered.
+     */
+    fun canProposeTrade(give: Map<ResourceId, Int>, want: Map<ResourceId, Int>): Boolean {
+        // 1. Must offer at least something
+        if (give.isEmpty() || give.values.sum() <= 0) return false
+
+        // 2. Must want at least something
+        if (want.isEmpty() || want.values.sum() <= 0) return false
+
+        // 3. Must have the resources to give
+        return canDeductResources(give)
+    }
+
+    /**
      * @param resource is not using typealias `ResourceID` to allow for null values representing generic ratio.
      * @return The best ratio discount for the given resource.
      */

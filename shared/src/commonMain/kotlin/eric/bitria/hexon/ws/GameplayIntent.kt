@@ -35,7 +35,8 @@ sealed class GameplayIntent : GameplayMessage() {
     // --- Trade ---
     @Serializable
     data class ProposeTrade(
-        val offer: TradeOffer,
+        val give: Map<ResourceId, Int>,
+        val want: Map<ResourceId, Int>,
         override var senderId: String? = null
     ) : GameplayIntent()
 

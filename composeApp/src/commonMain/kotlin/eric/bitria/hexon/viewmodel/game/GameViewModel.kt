@@ -9,11 +9,13 @@ import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.PlayerId
 import eric.bitria.hexon.game.data.PlayerSnapshot
 import eric.bitria.hexon.game.data.ResourceId
+import eric.bitria.hexon.game.data.TradeOffer
 import eric.bitria.hexon.game.data.config.GameConfig
 import eric.bitria.hexon.game.data.def.BuildingDef
 import eric.bitria.hexon.game.data.def.PlacementType
 import eric.bitria.hexon.game.data.def.ResourceDef
 import eric.bitria.hexon.render.GameCommand
+import eric.bitria.hexon.render.GameCommand.*
 import eric.bitria.hexon.render.GameEvent
 import eric.bitria.hexon.ws.GameMessage
 import eric.bitria.hexon.ws.GameplayEvent
@@ -83,6 +85,9 @@ class GameViewModel(
     private val _activePlayerId = MutableStateFlow<PlayerId?>(null)
     val activePlayerId: StateFlow<PlayerId?> = _activePlayerId.asStateFlow()
 
+    private val _trades = MutableStateFlow<Map<PlayerId, TradeOffer>>(emptyMap())
+    val trades: StateFlow<Map<PlayerId, TradeOffer>> = _trades.asStateFlow()
+
     init {
         // Listen to scene events
         viewModelScope.launch {
@@ -135,15 +140,22 @@ class GameViewModel(
             is GameplayEvent.ResourceCountUpdated -> handleResourceCountUpdated(event)
             is GameplayEvent.ObjectBuilt -> handleObjectBuilt(event)
             is GameplayEvent.DiceRolled -> {
-                 sceneViewModel.sendCommand(GameCommand.DiceRolled(
-                     values = event.values,
-                     sum = event.values.first + event.values.second
-                 ))
+                 sceneViewModel.sendCommand(
+                     DiceRolled(
+                         values = event.values,
+                         sum = event.values.first + event.values.second
+                     )
+                 )
             }
             is GameplayEvent.GameError -> {
                 println("Game Error: ${event.message}")
             }
-            else -> {}
+            is GameplayEvent.GameSnapshot -> TODO()
+            is GameplayEvent.RobberUpdated -> TODO()
+            is GameplayEvent.TradeAccepted -> TODO()
+            is GameplayEvent.TradeProposed -> onTradeProposed(event)
+            is GameplayEvent.TradeResponse -> TODO()
+            is GameplayEvent.GameOver -> TODO()
         }
     }
 
@@ -241,11 +253,38 @@ class GameViewModel(
         }
     }
 
+    fun switchTradePanel() {
+        _turnPhase.value = when (_turnPhase.value) {
+            TurnPhase.TRADE -> TurnPhase.MAIN_PHASE
+            TurnPhase.MAIN_PHASE -> TurnPhase.TRADE
+            else -> _turnPhase.value
+        }
+    }
 
-    /**
-     * Checks if the currently selected resources constitute a valid bank trade.
-     * Uses the shared GamePlayer logic to ensure Client/Server consistency.
-     */
+    fun sendBankExchange() {
+        viewModelScope.launch {
+            repository.sendMessage(
+                GameplayIntent.ExchangeWithBank(
+                    give = _offeredResources.value,
+                    get = _requestedResources.value
+                )
+            )
+        }
+        _offeredResources.value = emptyMap()
+        _requestedResources.value = emptyMap()
+    }
+
+    fun sendPlayerExchange() {
+        viewModelScope.launch {
+            repository.sendMessage(
+                GameplayIntent.ProposeTrade(
+                    give = _offeredResources.value,
+                    want = _requestedResources.value
+                )
+            )
+        }
+    }
+
     fun canSendBankExchange(): Boolean {
         val player = _me.value ?: return false
         val config = _gameConfig.value ?: return false
@@ -269,6 +308,16 @@ class GameViewModel(
         return cost != null
     }
 
+    fun canSendPlayerTrade(): Boolean {
+        val player = _me.value ?: return false
+        return player.canProposeTrade(_offeredResources.value, _requestedResources.value)
+    }
+
+    fun onTradeProposed(event: GameplayEvent.TradeProposed) {
+        _trades.value = _trades.value.toMutableMap().apply {
+            put(event.senderId, TradeOffer(event.give, event.want))
+        }
+    }
 
     // Game UI
 

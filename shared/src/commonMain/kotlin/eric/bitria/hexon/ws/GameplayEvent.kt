@@ -1,15 +1,14 @@
 package eric.bitria.hexon.ws
 
 import eric.bitria.hexon.game.GamePlayer
-import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.BuildingSnapshot
-import eric.bitria.hexon.game.data.config.GameConfig
+import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.PlayerId
-import eric.bitria.hexon.game.data.ResourceId
-import eric.bitria.hexon.game.data.enums.GameErrorCode
 import eric.bitria.hexon.game.data.PlayerSnapshot
-import eric.bitria.hexon.game.data.TradeOffer
+import eric.bitria.hexon.game.data.ResourceId
+import eric.bitria.hexon.game.data.config.GameConfig
+import eric.bitria.hexon.game.data.enums.GameErrorCode
 import eric.bitria.hexon.game.data.enums.UpdateReason
 import kotlinx.serialization.Serializable
 
@@ -95,8 +94,9 @@ sealed class GameplayEvent : GameplayMessage() {
     // --- Trade Interactions ---
     @Serializable
     data class TradeProposed(
-        val offer: TradeOffer,
-        override var senderId: String? = "Server"
+        val give: Map<ResourceId, Int>,
+        val want: Map<ResourceId, Int>,
+        override var senderId: String = "Server"
     ) : GameplayEvent()
 
     @Serializable
