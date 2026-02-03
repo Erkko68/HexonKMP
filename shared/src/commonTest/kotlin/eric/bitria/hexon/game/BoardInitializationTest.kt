@@ -13,7 +13,7 @@ class BoardInitializationTest {
     private fun createInitializedBoard(seed: String = "default_test_seed"): Board {
         val config = GameConfigLoader.default(seed)
         // Pass definitions from the flat config
-        val board = Board(config.resourceDefs, config.buildingDefs)
+        val board = Board()
         // Pass the full config to initialize (which contains the seed)
         board.initialize(config)
         return board

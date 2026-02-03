@@ -29,7 +29,7 @@ object GameConfigLoader {
             tileNumberPool = listOf(5, 2, 6, 3, 8, 10, 9, 12, 11, 4, 8, 10, 9, 4, 5, 6, 3, 11),
             // Overrides
             fixedTiles = mapOf(
-                HexCoord(0, 0) to FixedTile(resource = null, number = null)
+                HexCoord(0, 0) to FixedTile(resource = "desert", number = 0)
             )
         )
     }
@@ -48,13 +48,14 @@ object GameConfigLoader {
         return coords
     }
 
-    private fun defaultResourcePool(): List<ResourceId?> {
-        return mutableListOf<ResourceId?>().apply {
+    private fun defaultResourcePool(): List<ResourceId> {
+        return mutableListOf<ResourceId>().apply {
             repeat(4) { add("wood") }
             repeat(4) { add("sheep") }
             repeat(4) { add("wheat") }
             repeat(3) { add("brick") }
             repeat(3) { add("ore") }
+            add("desert")
         }
     }
 

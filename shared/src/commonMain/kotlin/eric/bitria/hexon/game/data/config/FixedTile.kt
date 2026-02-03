@@ -5,6 +5,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class FixedTile(
-    val resource: ResourceId?, // Force a specific resource here
-    val number: Int? = null    // Optional: Force a specific number here
+    val resource: ResourceId, // Force a specific resource here
+    val number: Int           // Optional: Force a specific number here
 )

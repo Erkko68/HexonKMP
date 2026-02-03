@@ -12,7 +12,9 @@ class BoardTest {
     // Helper to create a board with default rules
     private fun createBoard(): Board {
         val config = GameConfigLoader.default()
-        return Board(config.resourceDefs, config.buildingDefs)
+        val board = Board()
+        board.initialize(config)
+        return board
     }
 
     // New Helper: Adds a small patch of land to allow placement tests to pass.
@@ -59,7 +61,7 @@ class BoardTest {
         // Initially at 0,0
         assertEquals(HexCoord(0, 0), board.robberLocation)
 
-        board.addTile(desertCoord, null, 7)
+        board.addTile(desertCoord, "desert", 7)
 
         // Should move to desert
         assertEquals(desertCoord, board.robberLocation)

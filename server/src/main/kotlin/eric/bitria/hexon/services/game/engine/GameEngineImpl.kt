@@ -39,10 +39,7 @@ class GameEngineImpl(
 
     // Internal State
     private val players = mutableMapOf<String, GamePlayer>()
-    private val board = Board(
-        availableResources = gameConfig.resourceDefs,
-        availableBuildings = gameConfig.buildingDefs
-    )
+    private val board = Board()
     val buildings: Map<BuildingId, BuildingDef> =
         gameConfig.buildingDefs.associateBy { it.id }
     val resources: Map<ResourceId, ResourceDef> =

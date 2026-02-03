@@ -23,7 +23,7 @@ data class GameConfig(
 
     // --- Deck / Pools (Randomization) ---
     // Renamed to avoid confusion with 'resourceDefs'
-    val tileResourcePool: List<ResourceId?>,
+    val tileResourcePool: List<ResourceId>,
     val tileNumberPool: List<Int>,
 
     // --- Overrides ---

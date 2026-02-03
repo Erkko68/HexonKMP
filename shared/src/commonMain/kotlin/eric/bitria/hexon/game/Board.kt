@@ -12,10 +12,11 @@ import eric.bitria.hexon.game.data.def.PortDef
 import eric.bitria.hexon.game.data.def.ResourceDef
 import kotlin.random.Random
 
-class Board(
-    private val availableResources: List<ResourceDef>,
-    private val availableBuildings: List<BuildingDef>
-) {
+class Board {
+
+    // --- Definitions ---
+    val availableResources = mutableMapOf<ResourceId,ResourceDef>()
+    val availableBuildings = mutableMapOf<ResourceId,BuildingDef>()
 
     // --- State Storage ---
     val tiles = mutableMapOf<String, HexTile>()
@@ -31,6 +32,15 @@ class Board(
         tiles.clear()
         ports.clear()
         buildings.clear()
+
+        // 0. Initialize Definitions
+        config.resourceDefs.forEach {
+            resourceDef -> availableResources[resourceDef.id] = resourceDef
+        }
+
+        config.buildingDefs.forEach {
+            buildingDef -> availableBuildings[buildingDef.id] = buildingDef
+        }
 
         // 1. Create a deterministic Random instance using the seed hash
         val rng = Random(config.seed.hashCode())
@@ -50,15 +60,12 @@ class Board(
 
             if (fixed != null) {
                 // Fixed Tile
-                addTile(coord, fixed.resource, fixed.number ?: 0)
+                addTile(coord, fixed.resource, fixed.number)
             } else {
                 // Random Tile
-                if (resourcePool.isNotEmpty()) {
+                if (resourcePool.isNotEmpty() && numberPool.isNotEmpty()) {
                     val resource = resourcePool.removeAt(0)
-                    // Desert (null resource) gets 0, otherwise draw next number
-                    val number = if (resource == null) 0 else {
-                        if (numberPool.isNotEmpty()) numberPool.removeAt(0) else 0
-                    }
+                    val number = numberPool.removeAt(0)
                     addTile(coord, resource, number)
                 } else {
                     throw IllegalStateException("Config has more coordinates than resources available.")
@@ -72,22 +79,14 @@ class Board(
         }
     }
 
-    fun addTile(coord: HexCoord, resource: ResourceId?, number: Int) {
-        if (resource != null) validateResource(resource)
-
+    fun addTile(coord: HexCoord, resource: ResourceId, number: Int) {
         tiles[HexCoord.getHexId(coord)] = HexTile(coord, resource, number)
-        if (resource == null) robberLocation = coord
+        if (resource == "desert") robberLocation = coord
     }
 
     fun addPort(h1: HexCoord, h2: HexCoord, h3: HexCoord, resource: ResourceId?, ratio: Int) {
-        if (resource != null) validateResource(resource)
-
         val id = HexCoord.getVertexId(h1, h2, h3)
         ports[id] = PortDef(h1, h2, h3, resource, ratio)
-    }
-
-    private fun validateResource(id: ResourceId) {
-        require(availableResources.any { it.id == id }) { "Resource '$id' is not defined in GameConfig." }
     }
 
     // --- Building Placement ---
@@ -98,7 +97,8 @@ class Board(
     ): Boolean {
         if (!canPlaceVertexBuilding(ownerId, h1, h2, h3, typeId)) return false
 
-        val def = availableBuildings.first { it.id == typeId }
+        val def = availableBuildings[typeId] ?: throw IllegalArgumentException("Unknown building type: $typeId")
+
         buildings[HexCoord.getVertexId(h1, h2, h3)] = PlacedBuilding(ownerId, def)
         return true
     }
@@ -109,7 +109,7 @@ class Board(
     ): Boolean {
         if (!canPlaceEdgeBuilding(ownerId, h1, h2, typeId)) return false
 
-        val def = availableBuildings.first { it.id == typeId }
+        val def = availableBuildings[typeId] ?: throw IllegalArgumentException("Unknown building type: $typeId")
         buildings[HexCoord.getEdgeId(h1, h2)] = PlacedBuilding(ownerId, def)
         return true
     }
@@ -124,7 +124,7 @@ class Board(
         if (h1 == h2 || h1 == h3 || h2 == h3) return false
         if (!hasTileConnection(h1, h2, h3)) return false
 
-        val def = availableBuildings.find { it.id == targetTypeId } ?: return false
+        val def = availableBuildings[targetTypeId] ?: throw IllegalArgumentException("Unknown building type: $targetTypeId")
         if (def.type != PlacementType.VERTEX) return false
 
         val locId = HexCoord.getVertexId(h1, h2, h3)
@@ -143,8 +143,8 @@ class Board(
         if (h1 == h2) return false
         if (!hasTileConnection(h1, h2)) return false
 
-        val def = availableBuildings.find { it.id == targetTypeId } ?: return false
-        if (def.type != PlacementType.EDGE) return false
+        val def = availableBuildings[targetTypeId] ?: throw IllegalArgumentException("Unknown building type: $targetTypeId")
+        if (def.type != PlacementType.EDGE) throw IllegalArgumentException("Unknown building type: $targetTypeId")
 
         val locId = HexCoord.getEdgeId(h1, h2)
         val existing = buildings[locId]

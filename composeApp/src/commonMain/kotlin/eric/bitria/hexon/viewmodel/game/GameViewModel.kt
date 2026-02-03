@@ -164,7 +164,7 @@ class GameViewModel(
     private fun initializeGame(config: GameConfig) {
         _gameConfig.value = config
 
-        val boardInstance = Board(config.resourceDefs, config.buildingDefs).apply {
+        val boardInstance = Board().apply {
             initialize(config)
         }
 
