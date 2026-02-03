@@ -1,16 +1,19 @@
 package eric.bitria.hexon.ui.components.game
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import eric.bitria.hexon.game.GamePlayer
@@ -24,63 +27,53 @@ fun PlayerTurnBar(
     opponents: Map<PlayerId, PlayerSnapshot>,
     modifier: Modifier = Modifier
 ) {
-    val allPlayers = listOfNotNull(me?.toSnapshot()) + opponents.values.toList()
+    val allPlayers = remember(me, opponents) {
+        listOfNotNull(me?.toSnapshot()) + opponents.values
+    }
 
-    if (allPlayers.isEmpty()) return // nothing to show
+    if (allPlayers.isEmpty()) return
 
-    BoxWithConstraints(modifier = modifier) {
-        val maxWidthPx = maxWidth
-        val maxHeightPx = maxHeight
-
-        val spacing = 8.dp
-        var usedWidth = 0.dp
-
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            allPlayers.forEach { player ->
-                // Skip players without a name or color
-                if (player.name.isBlank()) return@forEach
-
-                val isActive = player.id == activePlayerId
-                val playerColor = parseColorOrDefault(player.color, Color.White)
-
-                // Approximate width: 0.6 * height per character + spacing
-                val textWidth = (player.name.length * 0.6f * maxHeightPx.value).dp + spacing
-
-                if (usedWidth + textWidth <= maxWidthPx) {
-                    usedWidth += textWidth
-
-                    Box(
-                        modifier = Modifier
-                            .width(textWidth)
-                            .fillMaxHeight(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = player.name,
-                            color = if (isActive) playerColor else Color.Gray.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.bodyLarge,
-                            maxLines = 1
-                        )
-                    }
-                } else {
-                    // Stop rendering remaining players if not enough space
-                    return@forEach
-                }
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        // Packs items to the left (Start) with a small gap
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start)
+    ) {
+        allPlayers.forEach { player ->
+            // 1. THE CONTAINER (Square)
+            // This Box looks at the Row's height, fills it, and forces itself to be a square.
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()  // Step 1: Match the parent Row's height
+                    .aspectRatio(1f), // Step 2: Set width equal to height (Square)
+                contentAlignment = Alignment.Center
+            ) {
+                // 2. THE CONTENT (Icon)
+                // This sits inside the square box
+                PlayerIcon(
+                    color = Color.White, // Replace with dynamic color
+                    isActive = player.id == activePlayerId,
+                    modifier = Modifier.fillMaxSize(0.85f) // Fill 85% of the square Box
+                )
             }
         }
     }
 }
 
-fun parseColorOrDefault(colorString: String?, default: Color = Color.White): Color {
-    if (colorString.isNullOrBlank()) return default
-    return try {
-        var hex = colorString.removePrefix("#")
-        if (hex.length == 6) hex = "FF$hex" // add alpha
-        Color(hex.toLong(16))
-    } catch (e: Exception) {
-        default
-    }
+@Composable
+private fun PlayerIcon(
+    color: Color,
+    isActive: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(CircleShape) // Clips the filled square to a circle
+            .background(color.copy(alpha = if (isActive) 1f else 0.35f))
+            .then(
+                if (isActive)
+                    Modifier.border(2.dp, Color.White, CircleShape)
+                else Modifier
+            )
+    )
 }

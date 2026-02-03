@@ -4,6 +4,7 @@ import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.EdgeId
 import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.PlayerId
+import eric.bitria.hexon.game.data.ResourceId
 import eric.bitria.hexon.game.data.VertexId
 import eric.bitria.hexon.game.data.config.GameConfig
 import eric.bitria.hexon.game.data.def.PortDef
@@ -37,7 +38,7 @@ sealed interface GameCommand {
     @Serializable
     data class SetHex(
         val coord: HexCoord,
-        val resource: String?,
+        val resource: ResourceId?,
         val number: Int
     ) : GameCommand
 

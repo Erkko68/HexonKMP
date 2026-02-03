@@ -122,7 +122,7 @@ fun GameUI(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(rowHeight * 2.1f),
+                        .height(rowHeight * 4.1f),
                     horizontalArrangement = Arrangement.spacedBy(spacing.medium),
                     verticalAlignment = Alignment.Bottom
                 ) {
@@ -168,13 +168,6 @@ fun GameUI(
                         modifier = Modifier.fillMaxHeight(),
                         verticalArrangement = Arrangement.spacedBy(spacing.small, Alignment.Bottom)
                     ) {
-                        ControlButton(
-                            icon = Icons.Filled.SwapHoriz,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            description = "Trade",
-                            onClick = { viewModel.switchTradePanel() },
-                            modifier = Modifier.size(rowHeight)
-                        )
                         if (phase == TurnPhase.TRADE) {
                             ControlButton(
                                 icon = Icons.Default.AccountBalance,
@@ -201,6 +194,13 @@ fun GameUI(
                                 modifier = Modifier.size(rowHeight)
                             )
                         }
+                        ControlButton(
+                            icon = Icons.Filled.SwapHoriz,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            description = "Trade",
+                            onClick = { viewModel.switchTradePanel() },
+                            modifier = Modifier.size(rowHeight)
+                        )
                     }
                 }
             }

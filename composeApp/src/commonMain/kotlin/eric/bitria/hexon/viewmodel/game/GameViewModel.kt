@@ -178,7 +178,7 @@ class GameViewModel(
         // Tiles
         board.tiles.values.forEach { tile ->
             sceneViewModel.sendCommand(
-                GameCommand.SetHex(
+                SetHex(
                     coord = tile.coordinate,
                     resource = tile.resourceId,
                     number = tile.numberToken
@@ -195,7 +195,7 @@ class GameViewModel(
             }
 
             sceneViewModel.sendCommand(
-                GameCommand.PlaceBuilding(
+                PlaceBuilding(
                     player = building.ownerId,
                     buildingId = building.def.id,
                     hexA = coords[0],

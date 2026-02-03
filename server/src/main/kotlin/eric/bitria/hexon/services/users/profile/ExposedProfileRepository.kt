@@ -14,7 +14,6 @@ import org.jetbrains.exposed.v1.jdbc.update
 class ExposedProfileRepository : ProfileRepository {
 
     override suspend fun createProfile(userId: String): Unit = dbQuery {
-        // Using insertIgnore prevents crashes if we accidentally call this twice
         Profiles.insertIgnore {
             it[Profiles.userId] = userId
             it[gamesWon] = 0
