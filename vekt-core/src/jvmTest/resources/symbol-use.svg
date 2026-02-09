@@ -1,0 +1,10 @@
+<svg viewBox="0 0 150 50">
+    <defs>
+        <symbol id="star" viewBox="0 0 24 24">
+            <path d="M12 2 L15 9 L22 9 L16 14 L18 21 L12 17 L6 21 L8 14 L2 9 L9 9 Z" fill="currentColor"/>
+        </symbol>
+    </defs>
+    <use href="#star" x="10" y="5" width="40" height="40" fill="#FFC107"/>
+    <use href="#star" x="55" y="5" width="40" height="40" fill="#4CAF50"/>
+    <use href="#star" x="100" y="5" width="40" height="40" fill="#2196F3"/>
+</svg>

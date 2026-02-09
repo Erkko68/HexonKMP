@@ -69,8 +69,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(projects.shared)
             implementation(projects.render)
-            implementation(libs.coil.compose)
-            implementation(libs.coil.network.ktor3)
+            implementation(projects.vektCore)
+
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)
 
@@ -89,6 +89,11 @@ kotlin {
             implementation(libs.ktor.client.auth)
             implementation(libs.ktor.client.contentnegotiation)
             implementation(libs.ktor.serialization.json)
+
+            // Svg
+            //implementation(libs.vekt.compose)
+            //implementation(libs.vekt.core)
+
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

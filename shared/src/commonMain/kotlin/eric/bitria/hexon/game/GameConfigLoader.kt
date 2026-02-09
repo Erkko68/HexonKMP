@@ -86,8 +86,8 @@ object GameConfigLoader {
     private fun defaultBuildingDef(): List<BuildingDef> {
         return listOf(
             BuildingDef("road", "Road", PlacementType.EDGE, mapOf("wood" to 1, "brick" to 1), null, null, 0, 0, 15),
-            BuildingDef("settlement", "Settlement", PlacementType.VERTEX, mapOf("wood" to 1, "brick" to 1, "wheat" to 1, "sheep" to 1), "city", null, 1, 1,10),
-            BuildingDef("city", "City", PlacementType.VERTEX, mapOf("wheat" to 2, "ore" to 3), null, "settlement", 2, 2,10)
+            BuildingDef("village", "Village", PlacementType.VERTEX, mapOf("wood" to 1, "brick" to 1, "wheat" to 1, "sheep" to 1), "city", null, 1, 1,10),
+            BuildingDef("city", "City", PlacementType.VERTEX, mapOf("wheat" to 2, "ore" to 3), null, "village", 2, 2,10)
         )
     }
 }

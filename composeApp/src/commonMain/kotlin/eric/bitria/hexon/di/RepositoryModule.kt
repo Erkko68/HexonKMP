@@ -3,8 +3,10 @@ package eric.bitria.hexon.di
 import com.russhwolf.settings.Settings
 import eric.bitria.hexon.api.PersistentCookieStorage
 import eric.bitria.hexon.api.TokenStore
+import eric.bitria.hexon.api.client.AssetsClient
 import eric.bitria.hexon.api.client.AuthClient
 import eric.bitria.hexon.api.client.GameSocketClient
+import eric.bitria.hexon.api.client.KtorAssetsClient
 import eric.bitria.hexon.api.client.KtorAuthClient
 import eric.bitria.hexon.api.client.KtorGameSocketClient
 import eric.bitria.hexon.api.client.KtorMatchmakingClient
@@ -13,6 +15,8 @@ import eric.bitria.hexon.api.client.KtorUserClient
 import eric.bitria.hexon.api.client.MatchmakingClient
 import eric.bitria.hexon.api.client.SocialClient
 import eric.bitria.hexon.api.client.UserClient
+import eric.bitria.hexon.api.repository.AssetsRepository
+import eric.bitria.hexon.api.repository.AssetsRepositoryImpl
 import eric.bitria.hexon.api.repository.AuthRepository
 import eric.bitria.hexon.api.repository.AuthRepositoryImpl
 import eric.bitria.hexon.api.repository.GameRepository
@@ -36,6 +40,7 @@ val repositoryModule = module {
     single<SocialClient> { KtorSocialClient(get()) }
     single<MatchmakingClient> { KtorMatchmakingClient(get()) }
     single<GameSocketClient> { KtorGameSocketClient(get()) }
+    single<AssetsClient> { KtorAssetsClient(get()) }
 
     // Repositories (Domain Layer)
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
@@ -43,4 +48,5 @@ val repositoryModule = module {
     single<SocialRepository> { SocialRepositoryImpl(get()) }
     single<MatchmakingRepository> { MatchmakingRepositoryImpl(get()) }
     single<GameRepository> { GameRepositoryImpl(get()) }
+    single<AssetsRepository> { AssetsRepositoryImpl(get()) }
 }

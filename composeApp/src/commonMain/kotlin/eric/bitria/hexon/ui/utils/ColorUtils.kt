@@ -21,3 +21,12 @@ fun String.toVividColor(): Color {
     val index = (if (hash < 0) -hash else hash) % vividColors.size
     return vividColors[index]
 }
+
+
+fun parseHexColor(hex: String): Color {
+    return try {
+        Color(hex.removePrefix("#").toLong(16) or 0xFF000000)
+    } catch (e: Exception) {
+        Color.Black
+    }
+}

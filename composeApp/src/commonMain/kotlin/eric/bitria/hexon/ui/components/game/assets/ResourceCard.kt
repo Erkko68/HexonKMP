@@ -8,10 +8,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocalFlorist
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,10 +17,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import eric.bitria.hexon.game.GamePlayer
 import eric.bitria.hexon.game.data.ResourceId
-import eric.bitria.hexon.game.data.def.ResourceDef
+import eric.bitria.hexon.ui.utils.AssetIconDisplay
 import eric.bitria.hexon.ui.utils.TextCanvas
+import eric.bitria.hexon.ui.utils.parseHexColor
+import eric.bitria.hexon.ui.utils.rememberAssetData
 
 @Composable
 fun ResourceCard(
@@ -31,29 +30,41 @@ fun ResourceCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
+    // 1. Fetch data hook
+    // Assuming 'resource' (ResourceId) is a String or has a toString() matching your ID
+    val iconState by rememberAssetData(resource.toString())
+
+    // 2. Determine background color (Dynamic with fallback)
+    val cardBackgroundColor = if (iconState != null) {
+        parseHexColor(iconState!!.color).copy(alpha = 0.6f)
+    } else {
+        Color.Black.copy(alpha = 0.6f)
+    }
+
     BoxWithConstraints(
         modifier = modifier
             .aspectRatio(1f)
-            .clickable { onClick() } // Make whole card clickable
+            .clickable { onClick() }
     ) {
         val height = maxHeight
+
+        // Card Container
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(RoundedCornerShape(height * 0.2f))
-                .background(Color.White)
+                .background(cardBackgroundColor) // Applies color to the whole card
         ) {
-            // Center icon placeholder
-            Icon(
-                imageVector = Icons.Default.LocalFlorist,
-                contentDescription = resource,
-                tint = Color.Black,
+            // 3. Render Icon (Stateless)
+            AssetIconDisplay(
+                data = iconState,
                 modifier = Modifier
                     .fillMaxSize(0.65f)
-                    .align(Alignment.Center)
+                    .align(Alignment.Center),
+                fallbackTint = Color.Gray
             )
 
-            // Top-left: quantity
+            // 4. Quantity Overlay
             TextCanvas(
                 text = if (count > 0) count.toString() else "",
                 textStyle = TextStyle(

@@ -1,0 +1,536 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Comprehensive SVG Test File
+  Tests all major SVG features for parser/renderer validation
+
+  Features covered:
+  - Basic shapes: rect, circle, ellipse, line, polyline, polygon
+  - Path commands: M, L, H, V, C, S, Q, T, A, Z (absolute & relative)
+  - Transforms: translate, rotate, scale, skewX, skewY, matrix
+  - Gradients: linearGradient, radialGradient (with stops, spreadMethod)
+  - Patterns
+  - Strokes: width, linecap, linejoin, dasharray, dashoffset
+  - Text: basic, tspan, textPath
+  - Groups with nested transforms
+  - defs, use, symbol
+  - Opacity: fill-opacity, stroke-opacity, opacity
+  - Color formats: hex, rgb, rgba, hsl, hsla, named
+  - ClipPath
+  - Markers
+  - viewBox and preserveAspectRatio
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     viewBox="0 0 800 1200"
+     width="800" height="1200"
+     preserveAspectRatio="xMidYMid meet">
+
+  <title>Comprehensive SVG Test</title>
+  <desc>A comprehensive test SVG covering all major features</desc>
+
+  <!-- ==================== DEFINITIONS ==================== -->
+  <defs>
+    <!-- Linear Gradients -->
+    <linearGradient id="linearGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FF0000;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#00FF00;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0000FF;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="linearGrad2" x1="0%" y1="0%" x2="0%" y2="100%" spreadMethod="reflect">
+      <stop offset="0%" stop-color="gold" stop-opacity="1" />
+      <stop offset="100%" stop-color="purple" stop-opacity="0.5" />
+    </linearGradient>
+
+    <linearGradient id="linearGradTransform" x1="0" y1="0" x2="1" y2="0"
+                    gradientTransform="rotate(45)">
+      <stop offset="0%" stop-color="cyan" />
+      <stop offset="100%" stop-color="magenta" />
+    </linearGradient>
+
+    <!-- Radial Gradients -->
+    <radialGradient id="radialGrad1" cx="50%" cy="50%" r="50%" fx="25%" fy="25%">
+      <stop offset="0%" stop-color="white" />
+      <stop offset="50%" stop-color="orange" />
+      <stop offset="100%" stop-color="red" />
+    </radialGradient>
+
+    <radialGradient id="radialGrad2" cx="50%" cy="50%" r="70%" spreadMethod="repeat">
+      <stop offset="0%" stop-color="#FFE4B5" />
+      <stop offset="33%" stop-color="#DDA0DD" />
+      <stop offset="66%" stop-color="#98FB98" />
+      <stop offset="100%" stop-color="#87CEEB" />
+    </radialGradient>
+
+    <!-- Pattern -->
+    <pattern id="pattern1" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="10" height="10" fill="#333" />
+      <rect x="10" y="10" width="10" height="10" fill="#333" />
+      <rect x="0" y="10" width="10" height="10" fill="#666" />
+      <rect x="10" y="0" width="10" height="10" fill="#666" />
+    </pattern>
+
+    <pattern id="pattern2" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
+      <circle cx="15" cy="15" r="10" fill="url(#radialGrad1)" />
+    </pattern>
+
+    <!-- Clip Paths -->
+    <clipPath id="circleClip">
+      <circle cx="50" cy="50" r="40" />
+    </clipPath>
+
+    <clipPath id="starClip">
+      <polygon points="50,5 61,40 98,40 68,62 79,97 50,75 21,97 32,62 2,40 39,40" />
+    </clipPath>
+
+    <!-- Markers -->
+    <marker id="arrowStart" viewBox="0 0 10 10" refX="5" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <circle cx="5" cy="5" r="4" fill="red" />
+    </marker>
+
+    <marker id="arrowEnd" viewBox="0 0 10 10" refX="5" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="blue" />
+    </marker>
+
+    <marker id="arrowMid" viewBox="0 0 10 10" refX="5" refY="5"
+            markerWidth="4" markerHeight="4" orient="auto">
+      <rect x="2" y="2" width="6" height="6" fill="green" />
+    </marker>
+
+    <!-- Symbols -->
+    <symbol id="starSymbol" viewBox="0 0 100 100">
+      <polygon points="50,5 61,40 98,40 68,62 79,97 50,75 21,97 32,62 2,40 39,40"
+               fill="gold" stroke="orange" stroke-width="2" />
+    </symbol>
+
+    <symbol id="heartSymbol" viewBox="0 0 100 100">
+      <path d="M50,30 C20,0 0,40 50,80 C100,40 80,0 50,30 Z"
+            fill="red" stroke="darkred" stroke-width="2" />
+    </symbol>
+
+    <!-- Filter (if supported) -->
+    <filter id="blur1">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" />
+    </filter>
+
+    <filter id="dropShadow">
+      <feDropShadow dx="3" dy="3" stdDeviation="2" flood-opacity="0.5" />
+    </filter>
+
+    <!-- Path for textPath -->
+    <path id="textCurve" d="M 50 200 Q 200 100 350 200" fill="none" />
+  </defs>
+
+  <!-- ==================== SECTION 1: BASIC SHAPES ==================== -->
+  <g id="basicShapes" transform="translate(20, 20)">
+    <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">1. Basic Shapes</text>
+
+    <!-- Rectangle with rounded corners -->
+    <rect x="0" y="20" width="80" height="50" rx="10" ry="10"
+          fill="#4CAF50" stroke="#2E7D32" stroke-width="3" />
+
+    <!-- Rectangle without rounded corners -->
+    <rect x="100" y="20" width="60" height="50"
+          fill="url(#linearGrad1)" stroke="black" stroke-width="1" />
+
+    <!-- Circle -->
+    <circle cx="220" cy="45" r="25"
+            fill="url(#radialGrad1)" stroke="#333" stroke-width="2" />
+
+    <!-- Ellipse -->
+    <ellipse cx="300" cy="45" rx="40" ry="25"
+             fill="url(#linearGrad2)" stroke="navy" stroke-width="2" />
+
+    <!-- Line -->
+    <line x1="360" y1="20" x2="420" y2="70"
+          stroke="red" stroke-width="4" stroke-linecap="round" />
+
+    <!-- Polyline -->
+    <polyline points="440,70 460,20 480,50 500,30 520,70"
+              fill="none" stroke="blue" stroke-width="3" stroke-linejoin="round" />
+
+    <!-- Polygon -->
+    <polygon points="550,20 590,20 610,45 590,70 550,70 530,45"
+             fill="#E91E63" stroke="#880E4F" stroke-width="2" />
+  </g>
+
+  <!-- ==================== SECTION 2: PATH COMMANDS ==================== -->
+  <g id="pathCommands" transform="translate(20, 120)">
+    <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">2. Path Commands (All Types)</text>
+
+    <!-- M, L, H, V, Z - Lines -->
+    <path d="M 10,30 L 50,70 H 90 V 30 L 130,50 Z"
+          fill="#BBDEFB" stroke="#1565C0" stroke-width="2" />
+
+    <!-- m, l, h, v, z - Relative lines -->
+    <path d="M 150,50 l 40,20 h 30 v -30 l 20,10 z"
+          fill="#C8E6C9" stroke="#2E7D32" stroke-width="2" />
+
+    <!-- C - Cubic Bezier -->
+    <path d="M 270,70 C 290,20 330,20 350,70"
+          fill="none" stroke="#9C27B0" stroke-width="3" />
+
+    <!-- c - Relative Cubic Bezier -->
+    <path d="M 370,70 c 20,-50 60,-50 80,0"
+          fill="none" stroke="#E91E63" stroke-width="3" />
+
+    <!-- S - Smooth Cubic Bezier -->
+    <path d="M 470,50 C 490,20 510,20 530,50 S 570,80 590,50"
+          fill="none" stroke="#FF5722" stroke-width="3" />
+
+    <!-- Q - Quadratic Bezier -->
+    <path d="M 10,130 Q 50,80 90,130"
+          fill="none" stroke="#00BCD4" stroke-width="3" />
+
+    <!-- q - Relative Quadratic Bezier -->
+    <path d="M 110,130 q 40,-50 80,0"
+          fill="none" stroke="#009688" stroke-width="3" />
+
+    <!-- T - Smooth Quadratic Bezier -->
+    <path d="M 210,110 Q 250,80 290,110 T 370,110"
+          fill="none" stroke="#4CAF50" stroke-width="3" />
+
+    <!-- A - Arc (various flags) -->
+    <path d="M 400,130 A 30,20 0 0,1 460,130"
+          fill="none" stroke="#FF9800" stroke-width="3" />
+    <path d="M 480,130 A 30,20 0 1,1 540,130"
+          fill="none" stroke="#F44336" stroke-width="3" />
+    <path d="M 560,130 A 30,20 45 0,0 620,130"
+          fill="none" stroke="#3F51B5" stroke-width="3" />
+
+    <!-- Complex path with multiple commands -->
+    <path d="M 650,100
+             l 20,-30
+             c 10,-20 30,-20 40,0
+             s 30,20 40,0
+             q 20,-30 40,0
+             t 30,0
+             a 15,10 0 1,1 30,0
+             z"
+          fill="#FFF3E0" stroke="#E65100" stroke-width="2" />
+  </g>
+
+  <!-- ==================== SECTION 3: TRANSFORMS ==================== -->
+  <g id="transforms" transform="translate(20, 280)">
+    <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">3. Transforms</text>
+
+    <!-- Translate -->
+    <g transform="translate(30, 40)">
+      <rect x="0" y="0" width="40" height="30" fill="#2196F3" />
+      <text x="0" y="45" font-size="10" fill="#333">translate</text>
+    </g>
+
+    <!-- Rotate -->
+    <g transform="translate(120, 60)">
+      <rect x="0" y="0" width="40" height="30" fill="#4CAF50" transform="rotate(30)" />
+      <text x="-10" y="50" font-size="10" fill="#333">rotate(30)</text>
+    </g>
+
+    <!-- Rotate with origin -->
+    <g transform="translate(220, 60)">
+      <rect x="0" y="0" width="40" height="30" fill="#FF9800" transform="rotate(45, 20, 15)" />
+      <text x="-20" y="50" font-size="10" fill="#333">rotate(45,20,15)</text>
+    </g>
+
+    <!-- Scale -->
+    <g transform="translate(320, 40)">
+      <rect x="0" y="0" width="30" height="20" fill="#9C27B0" transform="scale(1.5)" />
+      <text x="0" y="55" font-size="10" fill="#333">scale(1.5)</text>
+    </g>
+
+    <!-- Scale X/Y -->
+    <g transform="translate(420, 40)">
+      <rect x="0" y="0" width="30" height="30" fill="#E91E63" transform="scale(2, 0.8)" />
+      <text x="0" y="55" font-size="10" fill="#333">scale(2,0.8)</text>
+    </g>
+
+    <!-- SkewX -->
+    <g transform="translate(520, 40)">
+      <rect x="0" y="0" width="40" height="30" fill="#00BCD4" transform="skewX(20)" />
+      <text x="0" y="55" font-size="10" fill="#333">skewX(20)</text>
+    </g>
+
+    <!-- SkewY -->
+    <g transform="translate(620, 40)">
+      <rect x="0" y="0" width="40" height="30" fill="#FF5722" transform="skewY(15)" />
+      <text x="0" y="55" font-size="10" fill="#333">skewY(15)</text>
+    </g>
+
+    <!-- Matrix -->
+    <g transform="translate(720, 40)">
+      <rect x="0" y="0" width="30" height="30" fill="#607D8B" transform="matrix(1, 0.3, -0.3, 1, 0, 0)" />
+      <text x="-10" y="55" font-size="10" fill="#333">matrix</text>
+    </g>
+
+    <!-- Nested transforms -->
+    <g transform="translate(50, 100)">
+      <g transform="rotate(15)">
+        <g transform="scale(0.8)">
+          <rect x="0" y="0" width="50" height="35" fill="#795548" stroke="#3E2723" stroke-width="2" />
+        </g>
+      </g>
+      <text x="-10" y="60" font-size="10" fill="#333">nested</text>
+    </g>
+  </g>
+
+  <!-- ==================== SECTION 4: STROKE PROPERTIES ==================== -->
+  <g id="strokeProperties" transform="translate(20, 420)">
+    <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">4. Stroke Properties</text>
+
+    <!-- Stroke linecap -->
+    <line x1="20" y1="30" x2="80" y2="30" stroke="black" stroke-width="10" stroke-linecap="butt" />
+    <text x="20" y="50" font-size="10" fill="#333">butt</text>
+
+    <line x1="100" y1="30" x2="160" y2="30" stroke="black" stroke-width="10" stroke-linecap="round" />
+    <text x="100" y="50" font-size="10" fill="#333">round</text>
+
+    <line x1="180" y1="30" x2="240" y2="30" stroke="black" stroke-width="10" stroke-linecap="square" />
+    <text x="180" y="50" font-size="10" fill="#333">square</text>
+
+    <!-- Stroke linejoin -->
+    <polyline points="280,40 310,20 340,40" fill="none" stroke="blue" stroke-width="8" stroke-linejoin="miter" />
+    <text x="280" y="55" font-size="10" fill="#333">miter</text>
+
+    <polyline points="370,40 400,20 430,40" fill="none" stroke="blue" stroke-width="8" stroke-linejoin="round" />
+    <text x="370" y="55" font-size="10" fill="#333">round</text>
+
+    <polyline points="460,40 490,20 520,40" fill="none" stroke="blue" stroke-width="8" stroke-linejoin="bevel" />
+    <text x="460" y="55" font-size="10" fill="#333">bevel</text>
+
+    <!-- Stroke dasharray -->
+    <line x1="20" y1="80" x2="150" y2="80" stroke="green" stroke-width="3" stroke-dasharray="10,5" />
+    <text x="20" y="95" font-size="10" fill="#333">dasharray 10,5</text>
+
+    <line x1="170" y1="80" x2="300" y2="80" stroke="green" stroke-width="3" stroke-dasharray="20,10,5,10" />
+    <text x="170" y="95" font-size="10" fill="#333">dasharray 20,10,5,10</text>
+
+    <!-- Stroke dashoffset -->
+    <line x1="320" y1="80" x2="450" y2="80" stroke="purple" stroke-width="3" stroke-dasharray="15,5" stroke-dashoffset="10" />
+    <text x="320" y="95" font-size="10" fill="#333">dashoffset 10</text>
+
+    <!-- Stroke opacity -->
+    <rect x="480" y="65" width="80" height="30" fill="none" stroke="red" stroke-width="5" stroke-opacity="0.3" />
+    <text x="480" y="110" font-size="10" fill="#333">stroke-opacity 0.3</text>
+
+    <!-- Miter limit -->
+    <polyline points="600,80 630,20 660,80" fill="none" stroke="orange" stroke-width="10"
+              stroke-linejoin="miter" stroke-miterlimit="2" />
+    <text x="600" y="95" font-size="10" fill="#333">miterlimit 2</text>
+  </g>
+
+  <!-- ==================== SECTION 5: GRADIENTS & PATTERNS ==================== -->
+  <g id="gradientsPatterns" transform="translate(20, 540)">
+    <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">5. Gradients &amp; Patterns</text>
+
+    <!-- Linear gradients -->
+    <rect x="0" y="20" width="100" height="60" fill="url(#linearGrad1)" />
+    <text x="0" y="95" font-size="10" fill="#333">Linear H</text>
+
+    <rect x="120" y="20" width="100" height="60" fill="url(#linearGrad2)" />
+    <text x="120" y="95" font-size="10" fill="#333">Linear V reflect</text>
+
+    <rect x="240" y="20" width="100" height="60" fill="url(#linearGradTransform)" />
+    <text x="240" y="95" font-size="10" fill="#333">Linear rotated</text>
+
+    <!-- Radial gradients -->
+    <circle cx="400" cy="50" r="40" fill="url(#radialGrad1)" />
+    <text x="360" y="105" font-size="10" fill="#333">Radial focal</text>
+
+    <circle cx="500" cy="50" r="40" fill="url(#radialGrad2)" />
+    <text x="460" y="105" font-size="10" fill="#333">Radial repeat</text>
+
+    <!-- Patterns -->
+    <rect x="560" y="20" width="80" height="60" fill="url(#pattern1)" />
+    <text x="560" y="95" font-size="10" fill="#333">Checkerboard</text>
+
+    <rect x="660" y="20" width="80" height="60" fill="url(#pattern2)" />
+    <text x="660" y="95" font-size="10" fill="#333">Circle pattern</text>
+  </g>
+
+  <!-- ==================== SECTION 6: OPACITY ==================== -->
+  <g id="opacity" transform="translate(20, 660)">
+    <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">6. Opacity</text>
+
+    <!-- Background for opacity demo -->
+    <rect x="0" y="15" width="760" height="70" fill="url(#pattern1)" />
+
+    <!-- fill-opacity -->
+    <rect x="20" y="25" width="60" height="50" fill="red" fill-opacity="0.3" stroke="black" />
+    <text x="20" y="95" font-size="10" fill="#333">fill-opacity 0.3</text>
+
+    <rect x="100" y="25" width="60" height="50" fill="red" fill-opacity="0.6" stroke="black" />
+    <text x="100" y="95" font-size="10" fill="#333">fill-opacity 0.6</text>
+
+    <rect x="180" y="25" width="60" height="50" fill="red" fill-opacity="1" stroke="black" />
+    <text x="180" y="95" font-size="10" fill="#333">fill-opacity 1</text>
+
+    <!-- opacity (group) -->
+    <g opacity="0.5" transform="translate(280, 25)">
+      <rect x="0" y="0" width="60" height="50" fill="blue" stroke="yellow" stroke-width="3" />
+    </g>
+    <text x="280" y="95" font-size="10" fill="#333">group opacity 0.5</text>
+
+    <!-- Overlapping with opacity -->
+    <circle cx="420" cy="50" r="30" fill="red" fill-opacity="0.5" />
+    <circle cx="450" cy="50" r="30" fill="blue" fill-opacity="0.5" />
+    <circle cx="435" cy="75" r="30" fill="green" fill-opacity="0.5" />
+    <text x="400" y="115" font-size="10" fill="#333">overlapping</text>
+  </g>
+
+  <!-- ==================== SECTION 7: COLORS ==================== -->
+  <g id="colors" transform="translate(20, 780)">
+    <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">7. Color Formats</text>
+
+    <!-- Hex colors -->
+    <rect x="0" y="20" width="50" height="40" fill="#FF5733" />
+    <text x="0" y="75" font-size="9" fill="#333">#FF5733</text>
+
+    <rect x="60" y="20" width="50" height="40" fill="#3CF" />
+    <text x="60" y="75" font-size="9" fill="#333">#3CF</text>
+
+    <!-- RGB -->
+    <rect x="120" y="20" width="50" height="40" fill="rgb(100, 200, 50)" />
+    <text x="120" y="75" font-size="9" fill="#333">rgb()</text>
+
+    <!-- RGBA -->
+    <rect x="180" y="20" width="50" height="40" fill="rgba(255, 0, 0, 0.5)" />
+    <text x="180" y="75" font-size="9" fill="#333">rgba()</text>
+
+    <!-- HSL -->
+    <rect x="240" y="20" width="50" height="40" fill="hsl(120, 100%, 50%)" />
+    <text x="240" y="75" font-size="9" fill="#333">hsl()</text>
+
+    <!-- HSLA -->
+    <rect x="300" y="20" width="50" height="40" fill="hsla(240, 100%, 50%, 0.7)" />
+    <text x="300" y="75" font-size="9" fill="#333">hsla()</text>
+
+    <!-- Named colors -->
+    <rect x="360" y="20" width="50" height="40" fill="coral" />
+    <text x="360" y="75" font-size="9" fill="#333">coral</text>
+
+    <rect x="420" y="20" width="50" height="40" fill="mediumseagreen" />
+    <text x="420" y="75" font-size="9" fill="#333">mediumseagreen</text>
+
+    <rect x="480" y="20" width="50" height="40" fill="rebeccapurple" />
+    <text x="480" y="75" font-size="9" fill="#333">rebeccapurple</text>
+
+    <rect x="540" y="20" width="50" height="40" fill="transparent" stroke="black" />
+    <text x="540" y="75" font-size="9" fill="#333">transparent</text>
+
+    <!-- currentColor -->
+    <g fill="none" stroke="currentColor" color="deeppink" stroke-width="3">
+      <rect x="600" y="20" width="50" height="40" />
+    </g>
+    <text x="600" y="75" font-size="9" fill="#333">currentColor</text>
+  </g>
+
+  <!-- ==================== SECTION 8: USE & SYMBOLS ==================== -->
+  <g id="useSymbols" transform="translate(20, 880)">
+    <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">8. Use &amp; Symbols</text>
+
+    <!-- Use symbol -->
+    <use xlink:href="#starSymbol" x="0" y="20" width="60" height="60" />
+    <use xlink:href="#starSymbol" x="70" y="20" width="40" height="40" />
+    <use xlink:href="#starSymbol" x="120" y="30" width="30" height="30" />
+
+    <use xlink:href="#heartSymbol" x="170" y="20" width="60" height="60" />
+    <use xlink:href="#heartSymbol" x="240" y="25" width="50" height="50" />
+
+    <!-- Use with override -->
+    <use xlink:href="#starSymbol" x="310" y="20" width="50" height="50" fill="blue" />
+
+    <text x="0" y="100" font-size="10" fill="#333">Symbols with use (various sizes)</text>
+  </g>
+
+  <!-- ==================== SECTION 9: CLIP PATH ==================== -->
+  <g id="clipPath" transform="translate(20, 1000)">
+    <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">9. Clip Path</text>
+
+    <!-- Circle clip -->
+    <g clip-path="url(#circleClip)">
+      <rect x="0" y="10" width="100" height="100" fill="url(#linearGrad1)" />
+    </g>
+    <text x="0" y="120" font-size="10" fill="#333">Circle clip</text>
+
+    <!-- Star clip -->
+    <g transform="translate(120, 10)" clip-path="url(#starClip)">
+      <image xlink:href="" width="100" height="100" />
+      <rect x="0" y="0" width="100" height="100" fill="url(#radialGrad2)" />
+    </g>
+    <text x="120" y="120" font-size="10" fill="#333">Star clip</text>
+  </g>
+
+  <!-- ==================== SECTION 10: MARKERS ==================== -->
+  <g id="markers" transform="translate(300, 1000)">
+    <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">10. Markers</text>
+
+    <path d="M 20,50 L 80,30 L 140,60 L 200,40"
+          fill="none" stroke="#666" stroke-width="2"
+          marker-start="url(#arrowStart)"
+          marker-mid="url(#arrowMid)"
+          marker-end="url(#arrowEnd)" />
+    <text x="0" y="80" font-size="10" fill="#333">Start, Mid, End markers</text>
+  </g>
+
+  <!-- ==================== SECTION 11: TEXT ==================== -->
+  <g id="text" transform="translate(20, 1130)">
+    <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">11. Text</text>
+
+    <!-- Basic text -->
+    <text x="0" y="30" font-size="14" fill="navy">Basic Text</text>
+
+    <!-- Styled text -->
+    <text x="100" y="30" font-size="14" font-weight="bold" font-style="italic"
+          fill="purple" text-decoration="underline">Styled</text>
+
+    <!-- Text with tspan -->
+    <text x="200" y="30" font-size="14">
+      <tspan fill="red">Red</tspan>
+      <tspan fill="green" dx="5">Green</tspan>
+      <tspan fill="blue" dx="5">Blue</tspan>
+    </text>
+
+    <!-- Text anchor -->
+    <text x="450" y="20" font-size="12" text-anchor="start" fill="#333">start</text>
+    <text x="450" y="35" font-size="12" text-anchor="middle" fill="#333">middle</text>
+    <text x="450" y="50" font-size="12" text-anchor="end" fill="#333">end</text>
+    <line x1="450" y1="15" x2="450" y2="55" stroke="red" stroke-width="1" />
+
+    <!-- Text with stroke -->
+    <text x="520" y="35" font-size="20" fill="yellow" stroke="black" stroke-width="1">Stroke</text>
+
+    <!-- Rotated text -->
+    <text x="620" y="35" font-size="14" fill="teal" transform="rotate(-15, 620, 35)">Rotated</text>
+  </g>
+
+  <!-- ==================== EDGE CASES ==================== -->
+  <g id="edgeCases" transform="translate(550, 880)">
+    <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">Edge Cases</text>
+
+    <!-- Zero-size shapes -->
+    <rect x="0" y="20" width="0" height="50" fill="red" />
+    <circle cx="30" cy="45" r="0" fill="blue" />
+
+    <!-- Negative coordinates -->
+    <g transform="translate(60, 45)">
+      <rect x="-20" y="-20" width="40" height="40" fill="#FFE0B2" stroke="#E65100" />
+    </g>
+
+    <!-- Very small values -->
+    <circle cx="130" cy="45" r="0.5" fill="black" />
+    <rect x="140" y="40" width="0.1" height="10" fill="black" />
+
+    <!-- Scientific notation in path -->
+    <path d="M 160,30 l 1e1,2e1 l 1.5e1,-1e1" stroke="purple" stroke-width="2" fill="none" />
+
+    <!-- Path with implicit lineto after moveto -->
+    <path d="M 200,30 210,50 220,30 Z" fill="#C8E6C9" stroke="green" />
+
+    <!-- Multiple decimals (parser edge case) -->
+    <path d="M 0,0 C.5.5 1.5.5 2 0" transform="translate(230, 40) scale(20)"
+          fill="none" stroke="red" stroke-width="0.1" />
+  </g>
+
+</svg>
