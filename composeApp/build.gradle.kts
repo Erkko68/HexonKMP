@@ -69,7 +69,6 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(projects.shared)
             implementation(projects.render)
-            implementation(projects.vektCore)
 
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)
@@ -91,8 +90,8 @@ kotlin {
             implementation(libs.ktor.serialization.json)
 
             // Svg
-            //implementation(libs.vekt.compose)
-            //implementation(libs.vekt.core)
+            implementation(libs.vekt.compose)
+            implementation(libs.vekt.core)
 
         }
         iosMain.dependencies {

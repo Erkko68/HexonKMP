@@ -32,7 +32,7 @@ fun ResourceCard(
 ) {
     // 1. Fetch data hook
     // Assuming 'resource' (ResourceId) is a String or has a toString() matching your ID
-    val iconState by rememberAssetData(resource.toString())
+    val iconState by rememberAssetData(resource)
 
     // 2. Determine background color (Dynamic with fallback)
     val cardBackgroundColor = if (iconState != null) {
