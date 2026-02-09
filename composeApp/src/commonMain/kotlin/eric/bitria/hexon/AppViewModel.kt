@@ -2,9 +2,9 @@ package eric.bitria.hexon
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.TokenStore
-import eric.bitria.hexon.api.repository.AuthRepository
 import eric.bitria.hexon.api.repository.ApiResult
+import eric.bitria.hexon.api.repository.AuthRepository
+import eric.bitria.hexon.di.TokenStorage
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +16,7 @@ enum class SessionState {
 
 class AppViewModel(
     private val authRepository: AuthRepository,
-    private val tokenStore: TokenStore
+    private val tokenStorage: TokenStorage
 ) : ViewModel() {
 
     private val _sessionState = MutableStateFlow(SessionState.LOADING)
@@ -25,7 +25,7 @@ class AppViewModel(
     init {
         // 1. React to changes (e.g. Logout from Settings screen)
         viewModelScope.launch {
-            tokenStore.accessToken.collect { token ->
+            tokenStorage.accessToken.collect { token ->
                 if (token != null) {
                     _sessionState.value = SessionState.LOGGED_IN
                 } else if (_sessionState.value != SessionState.LOADING) {

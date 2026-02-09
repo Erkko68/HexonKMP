@@ -40,6 +40,7 @@ fun initKoin(
     startKoin {
         config?.invoke(this)
         modules(
+            platformModule(),
             repositoryModule,
             storageModule,
             networkModule,

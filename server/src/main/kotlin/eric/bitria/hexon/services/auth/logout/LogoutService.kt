@@ -9,5 +9,5 @@ interface LogoutService {
      * * @param refreshToken The token from the HTTP Cookie (used to identify the current session).
      * @param request The request body containing flags (e.g., logoutAllDevices).
      */
-    suspend fun logout(refreshToken: String, request: LogoutRequest): LogoutResponse
+    suspend fun logout(request: LogoutRequest): LogoutResponse
 }

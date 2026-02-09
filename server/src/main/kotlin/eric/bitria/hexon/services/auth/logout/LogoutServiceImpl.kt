@@ -12,10 +12,10 @@ class LogoutServiceImpl(
     private val tokenService : TokenService
 ) : LogoutService {
 
-    override suspend fun logout(refreshToken: String, request: LogoutRequest): LogoutResponse {
+    override suspend fun logout(request: LogoutRequest): LogoutResponse {
         return try {
             // 1. Hash the incoming token so we can find it in the DB
-            val tokenHash = TokenHasher.hash(refreshToken)
+            val tokenHash = TokenHasher.hash(request.refreshToken)
 
             // Does this session actually exist?
             // If the token is invalid, forged, or already revoked, we stop here.
@@ -30,7 +30,7 @@ class LogoutServiceImpl(
 
                 // 3. Extract User ID from the JWT
                 // Since we verified the token exists in DB, we know it's one of OUR valid tokens.
-                val userId = tokenService.validateRefreshToken(refreshToken)
+                val userId = tokenService.validateRefreshToken(request.refreshToken)
 
                 if (userId != null) {
                     authRepository.revokeAllRefreshTokens(userId)

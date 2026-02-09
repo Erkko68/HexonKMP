@@ -94,6 +94,9 @@ kotlin {
             implementation(libs.vekt.core)
 
         }
+        jsMain.dependencies{
+            implementation(libs.ktor.client.js)
+        }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }

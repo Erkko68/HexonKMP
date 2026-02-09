@@ -18,7 +18,7 @@ import io.ktor.http.contentType
 interface AuthClient {
     suspend fun register(request: RegisterRequest): RegisterResponse
     suspend fun login(request: LoginRequest): LoginResponse
-    suspend fun refresh(): RefreshResponse
+    suspend fun refresh(request: RefreshRequest): RefreshResponse
     suspend fun logout(request: LogoutRequest): LogoutResponse
 }
 
@@ -40,9 +40,10 @@ class KtorAuthClient(
         }.body()
     }
 
-    override suspend fun refresh(): RefreshResponse {
+    override suspend fun refresh(request: RefreshRequest): RefreshResponse {
         return client.post("/auth/refresh") {
             contentType(ContentType.Application.Json)
+            setBody(request)
         }.body()
     }
 

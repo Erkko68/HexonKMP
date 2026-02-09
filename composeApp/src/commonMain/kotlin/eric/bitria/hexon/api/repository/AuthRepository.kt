@@ -1,11 +1,12 @@
 package eric.bitria.hexon.api.repository
 
-import eric.bitria.hexon.api.TokenStore
 import eric.bitria.hexon.api.client.AuthClient
+import eric.bitria.hexon.di.TokenStorage
 import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.LogoutRequest
 import eric.bitria.hexon.dtos.auth.LogoutResult
+import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResult
@@ -19,7 +20,7 @@ interface AuthRepository {
 
 class AuthRepositoryImpl(
     private val authClient: AuthClient,
-    private val tokenStore: TokenStore
+    private val tokenStorage: TokenStorage
 ) : AuthRepository {
 
     override suspend fun register(email: String, username: String, password: String): ApiResult<RegisterResult> {
@@ -30,12 +31,13 @@ class AuthRepositoryImpl(
 
     override suspend fun refresh(): ApiResult<RefreshResult> {
         return safeApiCall {
-            val response = authClient.refresh()
+            val response = authClient.refresh(RefreshRequest(tokenStorage.getRefresh() ?: ""))
 
             if (response.result == RefreshResult.SUCCESS) {
-                tokenStore.save(response.accessToken!!)
+                tokenStorage.saveAccess(response.accessToken!!)
+                tokenStorage.saveRefresh(response.refreshToken!!)
             } else {
-                tokenStore.clear()
+                tokenStorage.clear()
             }
             response.result
         }
@@ -45,20 +47,22 @@ class AuthRepositoryImpl(
         return safeApiCall {
             val response = authClient.login(LoginRequest(email, password))
             if (response.result == LoginResult.SUCCESS) {
-                // Repository responsibility: Update the local store
-                tokenStore.save(response.accessToken!!)
+                tokenStorage.saveAccess(response.accessToken!!)
+                tokenStorage.saveRefresh(response.refreshToken!!)
             }
             response.result
         }
     }
 
     override suspend fun logout(logoutAllDevices: Boolean): ApiResult<LogoutResult> {
-        // 1. Optimistic Logout: Clear local state immediately
-        tokenStore.clear()
-
-        // 2. Tell server to delete the session (and invalidate cookie)
-        return safeApiCall {
-            authClient.logout(LogoutRequest(logoutAllDevices)).result
+        // 1. Tell server to delete the session (and invalidate cookie)
+        val apiResult = safeApiCall {
+            authClient.logout(LogoutRequest(tokenStorage.getRefresh() ?: "", logoutAllDevices)).result
         }
+
+        // 2. Optimistic Logout: Clear local state immediately
+        tokenStorage.clear()
+
+        return apiResult
     }
 }

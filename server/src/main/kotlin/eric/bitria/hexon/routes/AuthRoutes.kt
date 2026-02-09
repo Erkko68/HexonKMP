@@ -54,23 +54,31 @@ fun Route.authRoutes() {
         }
 
         post("/refresh") {
-            val session = call.sessions.get<UserSession>()
-            val refreshToken = session?.refreshToken
+            val requestBody = try {
+                call.receiveNullable<RefreshRequest>()
+            } catch (e: Exception) {
+                null
+            }
 
-            if (refreshToken == null || refreshToken.isEmpty()) {
-                call.respond(HttpStatusCode.BadRequest, "No session cookie found")
+            // Check body first (Mobile), then Session (Web)
+            val refreshToken = if (requestBody?.refreshToken?.isNotBlank() == true) {
+                requestBody.refreshToken
+            } else {
+                call.sessions.get<UserSession>()?.refreshToken
+            }
+
+            if (refreshToken.isNullOrBlank()) {
+                call.respond(HttpStatusCode.Unauthorized, "No refresh token found")
                 return@post
             }
 
-            // Manually create the request object using the token from the cookie
-            val request = RefreshRequest(refreshToken)
-            val response = refreshService.refresh(request)
+            val response = refreshService.refresh(RefreshRequest(refreshToken))
 
             // NEW: Handle Cookie Rotation
             if (response.result == RefreshResult.SUCCESS && response.refreshToken != null) {
-                // Update the cookie with the NEW refresh token
+                // Update the cookie with the NEW refresh token (will be ignored by mobile if they don't use cookies)
                 call.sessions.set(UserSession(refreshToken = response.refreshToken!!))
-            } else {
+            } else if (response.result != RefreshResult.SUCCESS) {
                 // If refresh failed (token expired/invalid), clear the cookie
                 call.sessions.clear<UserSession>()
             }
@@ -79,27 +87,28 @@ fun Route.authRoutes() {
         }
 
         post("/logout") {
-            // 1. Get the session (Cookie)
-            val session = call.sessions.get<UserSession>()
-            val refreshToken = session?.refreshToken
+            // 1. Try to get it from request body (Mobile)
+            val request = call.receive<LogoutRequest>()
 
-            if (refreshToken == null) {
-                // No cookie = Already logged out
+            // 2. Fallback to session (Web)
+            val refreshToken = request.refreshToken.ifEmpty {
+                call.sessions.get<UserSession>()?.refreshToken
+            }
+
+            if (refreshToken.isNullOrBlank()) {
+                // If no token anywhere, just clear session and return OK (already logged out effectively)
+                call.sessions.clear<UserSession>()
                 call.respond(HttpStatusCode.OK)
                 return@post
             }
 
-            // 2. Get the request body
-            // We use receiveNullable because a simple "Logout" button
-            // might send an empty body, which is valid (defaults to logoutAllDevices=false).
-            val request = try {
-                call.receiveNullable<LogoutRequest>() ?: LogoutRequest()
-            } catch (e: Exception) {
-                LogoutRequest()
-            }
-
-            // 3. Call the service
-            val response = logoutService.logout(refreshToken, request)
+            // 3. Call the service to invalidate the session
+            val response = logoutService.logout(
+                request = LogoutRequest(
+                    refreshToken = refreshToken,
+                    logoutAllDevices = request.logoutAllDevices ?: false
+                )
+            )
 
             // 4. Clear the cookie from the browser
             call.sessions.clear<UserSession>()

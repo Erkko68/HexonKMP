@@ -1,7 +1,7 @@
 package eric.bitria.hexon.api.repository
 
-import eric.bitria.hexon.api.TokenStore
 import eric.bitria.hexon.api.client.UserClient
+import eric.bitria.hexon.di.TokenStorage
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
 import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountRequest
@@ -31,7 +31,7 @@ interface UserRepository {
 
 class UserRepositoryImpl(
     private val userClient: UserClient,
-    private val tokenStore: TokenStore
+    private val tokenStorage: TokenStorage
 ) : UserRepository {
 
     override suspend fun getProfile(): ApiResult<UserProfileResponse> {
@@ -44,7 +44,8 @@ class UserRepositoryImpl(
         return safeApiCall {
             val response = userClient.verifyEmail(VerifyEmailRequest(email, code))
             if (response.result == VerifyEmailResult.SUCCESS) {
-                tokenStore.save(response.accessToken!!)
+                tokenStorage.saveAccess(response.accessToken!!)
+                tokenStorage.saveRefresh(response.refreshToken!!)
             }
             response.result
         }
@@ -60,7 +61,7 @@ class UserRepositoryImpl(
         return safeApiCall {
             val response = userClient.changePassword(ChangePasswordRequest(old, new))
             if (response.result == ChangePasswordResult.SUCCESS) {
-                tokenStore.clear()
+                tokenStorage.clear()
             }
             response.result
         }
@@ -76,7 +77,7 @@ class UserRepositoryImpl(
         return safeApiCall {
             val response = userClient.resetPassword(ResetPasswordRequest(email, code, new))
             if (response.result == ResetPasswordResult.SUCCESS) {
-                tokenStore.clear()
+                tokenStorage.clear()
             }
             response.result
         }
@@ -86,7 +87,7 @@ class UserRepositoryImpl(
         return safeApiCall {
             val response = userClient.confirmDeleteAccount(ConfirmDeleteAccountRequest(password, code))
             if (response.result == DeleteAccountResult.SUCCESS) {
-                tokenStore.clear()
+                tokenStorage.clear()
             }
             response.result
         }

@@ -2,4 +2,4 @@ package eric.bitria.hexon.di
 
 import org.koin.core.module.Module
 
-expect val networkModule: Module
+expect fun platformModule(): Module

@@ -4,6 +4,8 @@ import eric.bitria.hexon.security.CookieConfig
 import eric.bitria.hexon.security.JwtConfig
 import eric.bitria.hexon.services.auth.login.LoginService
 import eric.bitria.hexon.services.auth.login.LoginServiceImpl
+import eric.bitria.hexon.services.auth.logout.LogoutService
+import eric.bitria.hexon.services.auth.logout.LogoutServiceImpl
 import eric.bitria.hexon.services.auth.refresh.RefreshService
 import eric.bitria.hexon.services.auth.refresh.RefreshServiceImpl
 import eric.bitria.hexon.services.auth.register.RegisterService
@@ -67,5 +69,5 @@ fun appModule(config: ApplicationConfig) = module {
     single<UserAccountService> { UserAccountServiceImpl(get(), get()) }
     single<SocialService> { SocialServiceImpl(get(), get(), get()) }
     single<MatchmakingService> { MatchmakingServiceImpl(get()) }
-    single<LoginService> { LoginServiceImpl(get(), get()) }
+    single<LogoutService> { LogoutServiceImpl(get(), get()) }
 }
