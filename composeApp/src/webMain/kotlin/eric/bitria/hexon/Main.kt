@@ -6,7 +6,7 @@ import eric.bitria.hexon.di.initKoin
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-    initKoin()
+    initKoin(persistRefreshToken = false)
     ComposeViewport {
         App()
     }

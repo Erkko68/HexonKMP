@@ -57,7 +57,7 @@ fun Route.authRoutes() {
             val session = call.sessions.get<UserSession>()
             val refreshToken = session?.refreshToken
 
-            if (refreshToken == null) {
+            if (refreshToken == null || refreshToken.isEmpty()) {
                 call.respond(HttpStatusCode.BadRequest, "No session cookie found")
                 return@post
             }

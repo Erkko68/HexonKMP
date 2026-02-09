@@ -33,7 +33,7 @@ class AuthRepositoryImpl(
             val response = authClient.refresh()
 
             if (response.result == RefreshResult.SUCCESS) {
-                tokenStore.save(response.accessToken!!)
+                tokenStore.save(response.accessToken!!, response.refreshToken)
             } else {
                 tokenStore.clear()
             }
@@ -46,7 +46,7 @@ class AuthRepositoryImpl(
             val response = authClient.login(LoginRequest(email, password))
             if (response.result == LoginResult.SUCCESS) {
                 // Repository responsibility: Update the local store
-                tokenStore.save(response.accessToken!!)
+                tokenStore.save(response.accessToken!!,response.refreshToken)
             }
             response.result
         }

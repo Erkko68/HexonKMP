@@ -1,11 +1,7 @@
 package eric.bitria.hexon.di
 
 import eric.bitria.hexon.AppViewModel
-import eric.bitria.hexon.viewmodel.account.SettingsViewModel
-import eric.bitria.hexon.viewmodel.account.ChangePasswordViewModel
-import eric.bitria.hexon.viewmodel.account.DeleteAccountViewModel
-import eric.bitria.hexon.viewmodel.account.ForgotPasswordViewModel
-import eric.bitria.hexon.viewmodel.account.ResetPasswordViewModel
+import eric.bitria.hexon.viewmodel.account.*
 import eric.bitria.hexon.viewmodel.auth.LoginViewModel
 import eric.bitria.hexon.viewmodel.auth.VerifyViewModel
 import eric.bitria.hexon.viewmodel.game.GameSceneViewModel
@@ -16,19 +12,15 @@ import eric.bitria.hexon.viewmodel.social.FriendProfileViewModel
 import eric.bitria.hexon.viewmodel.social.FriendsViewModel
 import eric.bitria.hexon.viewmodel.social.ProfileViewModel
 import org.koin.core.context.startKoin
-import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
 
 val viewModelsModule = module {
-
     viewModelOf(::GameSceneViewModel)
-
     viewModelOf(::LobbyViewModel)
     viewModelOf(::MatchmakingViewModel)
     viewModelOf(::GameViewModel)
-
     viewModelOf(::ProfileViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::LoginViewModel)
@@ -42,13 +34,16 @@ val viewModelsModule = module {
     viewModelOf(::AppViewModel)
 }
 
-fun initKoin(config: KoinAppDeclaration? = null){
+fun initKoin(
+    persistRefreshToken: Boolean,
+    config: KoinAppDeclaration? = null
+){
     startKoin {
         config?.invoke(this)
         modules(
             repositoryModule,
-            storageModule,
-            networkModule,
+            storageModule(persistRefreshToken),
+            commonNetworkModule,
             viewModelsModule
         )
     }

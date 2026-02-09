@@ -2,6 +2,7 @@ package eric.bitria.hexon
 
 import eric.bitria.hexon.database.DatabaseFactory
 import eric.bitria.hexon.di.appModule
+import eric.bitria.hexon.routes.assetsRoutes
 import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.routes.matchmakingRoutes
 import eric.bitria.hexon.routes.socialRoutes
@@ -63,5 +64,6 @@ fun Application.module() {
         usersRoutes()
         socialRoutes()
         matchmakingRoutes()
+        assetsRoutes()
     }
 }

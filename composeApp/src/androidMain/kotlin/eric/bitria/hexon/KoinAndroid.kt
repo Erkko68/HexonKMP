@@ -5,7 +5,7 @@ import eric.bitria.hexon.di.initKoin
 import org.koin.android.ext.koin.androidContext
 
 fun initKoinAndroid(context: Context) {
-    initKoin {
+    initKoin(persistRefreshToken = true) {
         androidContext(context)
     }
 }
