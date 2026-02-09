@@ -11,10 +11,14 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.svg.SvgDecoder
 import eric.bitria.hexon.api.repository.ApiResult
 import eric.bitria.hexon.api.repository.AssetsRepository
 import eric.bitria.hexon.dtos.assets.IconResponse
-import io.aimei.wk.compose.SvgImage
+import io.ktor.utils.io.core.toByteArray
 import org.koin.compose.koinInject
 
 @Composable
@@ -26,7 +30,7 @@ fun rememberAssetData(
     val cached = remember(assetId) { repository.getIconCached(assetId) }
 
     // 2. Pass 'cached' as the initialValue
-    return produceState<IconResponse?>(initialValue = cached, key1 = assetId) {
+    return produceState(initialValue = cached, key1 = assetId) {
         // Only fetch if we don't have it already
         if (value == null) {
             val result = repository.getIcon(assetId)
@@ -46,10 +50,14 @@ fun AssetIconDisplay(
 ) {
     Box(modifier = modifier) {
         if (data != null) {
-            SvgImage(
-                svgContent = data.svg,
-                modifier = Modifier.fillMaxSize(),
-                tint = Color.Black // Icon inside is always black
+            AsyncImage(
+                model = ImageRequest.Builder(LocalPlatformContext.current)
+                    .data(data.svg.toByteArray())
+                    .decoderFactory { result, options, _ ->
+                        SvgDecoder(result.source,options)
+                    }
+                    .build(),
+                contentDescription = null
             )
         } else {
             // Loading / Error Fallback

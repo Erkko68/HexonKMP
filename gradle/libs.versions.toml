@@ -5,6 +5,7 @@ android-minSdk = "24"
 android-targetSdk = "35"
 androidx-activity = "1.12.3"
 androidx-lifecycle = "2.9.6"
+coil = "3.3.0"
 componentsResources = "1.10.0"
 composeMultiplatform = "1.10.0"
 exposedJavaTime = "1.0.0"
@@ -47,6 +48,8 @@ vekt = "0.1.0"
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coil" }
 components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "componentsResources" }
 exposed-java-time = { module = "org.jetbrains.exposed:exposed-java-time", version.ref = "exposedJavaTime" }
 foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "foundation" }

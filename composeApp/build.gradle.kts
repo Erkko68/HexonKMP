@@ -90,8 +90,8 @@ kotlin {
             implementation(libs.ktor.serialization.json)
 
             // Svg
-            implementation(libs.vekt.compose)
-            implementation(libs.vekt.core)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.svg)
 
         }
         jsMain.dependencies{
