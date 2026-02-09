@@ -290,6 +290,8 @@ class GameViewModel(
             TurnPhase.MAIN_PHASE -> TurnPhase.TRADE
             else -> turnPhase.value
         }
+        requestedResources.value = emptyMap()
+        offeredResources.value = emptyMap()
     }
 
     // Intent
