@@ -39,6 +39,9 @@ android {
 
 kotlin {
     jvmToolchain(11)
+    compilerOptions {
+        freeCompilerArgs.add("-Xskip-prerelease-check")
+    }
 }
 
 dependencies {

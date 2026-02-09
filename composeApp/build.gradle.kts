@@ -98,6 +98,10 @@ kotlin {
     sourceSets.all {
         languageSettings.enableLanguageFeature("ExplicitBackingFields")
     }
+
+    compilerOptions{
+        freeCompilerArgs.add("-Xskip-prerelease-check")
+    }
 }
 
 buildkonfig {

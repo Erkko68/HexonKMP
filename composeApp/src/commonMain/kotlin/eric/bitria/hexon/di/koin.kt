@@ -35,15 +35,14 @@ val viewModelsModule = module {
 }
 
 fun initKoin(
-    persistRefreshToken: Boolean,
     config: KoinAppDeclaration? = null
 ){
     startKoin {
         config?.invoke(this)
         modules(
             repositoryModule,
-            storageModule(persistRefreshToken),
-            commonNetworkModule,
+            storageModule,
+            networkModule,
             viewModelsModule
         )
     }

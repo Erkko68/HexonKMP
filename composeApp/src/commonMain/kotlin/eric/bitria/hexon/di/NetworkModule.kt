@@ -1,12 +1,12 @@
-@file:JvmName("NetworkModuleCommon")
+@file:JvmName("CommonNetworkModule")
 package eric.bitria.hexon.di
 
 import eric.bitria.hexon.BuildKonfig
+import eric.bitria.hexon.api.PersistentCookieStorage
 import eric.bitria.hexon.api.TokenStore
 import eric.bitria.hexon.api.client.AuthClient
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import io.ktor.client.HttpClient
-import kotlin.jvm.JvmName
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.auth.Auth
@@ -20,19 +20,21 @@ import io.ktor.http.encodedPath
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
+import kotlin.jvm.JvmName
 
-expect fun HttpClientConfig<*>.configurePlatformNetworking()
+expect fun HttpClientConfig<*>.configurePlatformCookies(cookieStorage: PersistentCookieStorage)
 
-val commonNetworkModule = module {
+val networkModule = module {
 
     single {
         val tokenStore: TokenStore by inject()
         val authClient: AuthClient by inject()
+        val cookieStorage: PersistentCookieStorage by inject()
 
         HttpClient {
             install(WebSockets)
 
-            configurePlatformNetworking()
+            configurePlatformCookies(cookieStorage)
 
             install(DefaultRequest) {
                 url(BuildKonfig.BASE_URL)
@@ -52,17 +54,15 @@ val commonNetworkModule = module {
             install(Auth) {
                 bearer {
                     loadTokens {
-                        val (access, refresh) = tokenStore.get()
-                        if (access != null) BearerTokens(access, refresh ?: "") else null
+                        tokenStore.get()?.let { BearerTokens(it, "") }
                     }
 
                     refreshTokens {
-                        // On Web, authClient.refresh() will use cookies if tokenStore is empty
                         val response = authClient.refresh()
 
                         if (response.result == RefreshResult.SUCCESS && response.accessToken != null) {
-                            tokenStore.save(response.accessToken, response.refreshToken)
-                            BearerTokens(response.accessToken!!, response.refreshToken ?: "")
+                            tokenStore.save(response.accessToken!!)
+                            BearerTokens(response.accessToken!!, "")
                         } else {
                             tokenStore.clear()
                             null
