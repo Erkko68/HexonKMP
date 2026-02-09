@@ -153,8 +153,7 @@ class WebViewJsBridge(
         val jsonStr = serializer.encode(data, typeOf<T>())
         // We need to run this on the main thread because it interacts with WebView
         scope.launch {
-            val script = "window.$jsObjectName.trigger('$event', $jsonStr);"
-            webView?.platformEvaluateJavascript(script, null)
+            evaluateBridgeJs("window.$jsObjectName.trigger('$event', $jsonStr);")
         }
     }
 
@@ -220,8 +219,7 @@ class WebViewJsBridge(
         resultJson: String?,
     ) {
         val safeResult = resultJson ?: "null"
-        val script = "window.$jsObjectName.onSuccess('$callbackId', $safeResult);"
-        webView?.platformEvaluateJavascript(script, null)
+        evaluateBridgeJs("window.$jsObjectName.onSuccess('$callbackId', $safeResult);")
     }
 
     private fun sendError(
@@ -237,8 +235,14 @@ class WebViewJsBridge(
             } catch (e: Exception) {
                 "\"${errorMessage.replace("\"", "\\\"")}\""
             }
-        val script = "window.$jsObjectName.onError('$callbackId', $escapedError);"
-        webView?.platformEvaluateJavascript(script, null)
+        evaluateBridgeJs("window.$jsObjectName.onError('$callbackId', $escapedError);")
+    }
+
+    @PublishedApi
+    internal fun evaluateBridgeJs(script: String) {
+        // Guard against calling bridge methods before the bridge is initialized or if the page is being reloaded
+        val guardedScript = "if (typeof window !== 'undefined' && window.$jsObjectName) { $script }"
+        webView?.platformEvaluateJavascript(guardedScript, null)
     }
 }
 

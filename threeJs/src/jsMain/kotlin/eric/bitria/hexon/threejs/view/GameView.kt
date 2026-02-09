@@ -1,5 +1,6 @@
 package eric.bitria.hexon.threejs.view
 
+import eric.bitria.hexon.render.GameCommand
 import eric.bitria.hexon.threejs.engine.Engine
 import kotlinx.browser.document
 import kotlinx.browser.window
@@ -62,8 +63,8 @@ class GameView(val engine: Engine) {
     }
 
     // VISUAL API (Called by Engine)
-    fun renderHex(data: dynamic) {
-        console.log("View: Drawing Hex at ${data.q}, ${data.r}")
+    fun renderHex(data: GameCommand.SetHex) {
+        console.log("View: Drawing Hex at ${data.coord.q}, ${data.coord.r}")
         // TODO: Create Mesh here
     }
 

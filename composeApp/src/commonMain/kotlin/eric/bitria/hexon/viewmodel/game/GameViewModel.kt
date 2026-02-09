@@ -15,7 +15,6 @@ import eric.bitria.hexon.game.data.config.GameConfig
 import eric.bitria.hexon.game.data.def.BuildingDef
 import eric.bitria.hexon.game.data.def.PlacementType
 import eric.bitria.hexon.game.data.def.ResourceDef
-import eric.bitria.hexon.render.GameCommand
 import eric.bitria.hexon.render.GameCommand.*
 import eric.bitria.hexon.render.GameEvent
 import eric.bitria.hexon.ws.GameplayEvent
@@ -171,7 +170,7 @@ class GameViewModel(
         board.value = boardInstance
         victoryPoints.value = config.victoryPoints
 
-        syncScene(boardInstance) // just render
+        syncScene(boardInstance)
     }
 
     private fun syncScene(board: Board) {
@@ -206,7 +205,7 @@ class GameViewModel(
         }
 
         board.ports.values.forEach {
-            sceneViewModel.sendCommand(GameCommand.SetPort(it))
+            sceneViewModel.sendCommand(SetPort(it))
         }
     }
 

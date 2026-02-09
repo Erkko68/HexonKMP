@@ -39,7 +39,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun GameUI(
     onExitClicked: () -> Unit,
-    viewModel: GameViewModel = koinViewModel(),
+    viewModel: GameViewModel,
 ) {
     val players by viewModel.opponents.collectAsState()
     val maxVictoryPoints by viewModel.victoryPoints.collectAsState()

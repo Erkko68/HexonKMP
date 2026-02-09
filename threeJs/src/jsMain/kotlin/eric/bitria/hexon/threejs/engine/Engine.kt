@@ -1,7 +1,13 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package eric.bitria.hexon.threejs.engine
 
+import eric.bitria.hexon.render.GameCommand
 import eric.bitria.hexon.threejs.view.GameView
 import kotlinx.browser.window
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromDynamic
 
 class Engine {
     val THREE = js("require('three')")
@@ -21,7 +27,12 @@ class Engine {
 
         // 2. Trigger Visuals
         when (command) {
-            "SetHex" -> view?.renderHex(data)
+            "SetHex" -> {
+                // Deserialize to typed Kotlin object
+                val cmd = Json.decodeFromDynamic(GameCommand.SetHex.serializer(),data)
+                view?.renderHex(cmd)
+
+            }
             "PlaceBuilding" -> view?.placeBuilding(data)
             else -> console.warn("Command $command not handled in Engine")
         }

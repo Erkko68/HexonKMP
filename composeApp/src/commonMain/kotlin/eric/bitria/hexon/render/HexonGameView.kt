@@ -42,16 +42,16 @@ fun HexonGameView(
     }
 
     // 3. Handle Commands (Kotlin -> JS)
-    LaunchedEffect(commands) {
+    LaunchedEffect(Unit) {
         commands.collect { command ->
             when (command) {
-                is GameCommand.DiceRolled -> bridge.emit("diceRolled", command)
-                is GameCommand.RobberUpdated -> bridge.emit("robberUpdated", command)
-                is GameCommand.PlaceBuilding -> bridge.emit("placeBuilding", command)
-                is GameCommand.SetHex -> bridge.emit("setHex", command)
-                is GameCommand.SetPort -> bridge.emit("setPort", command)
-                is GameCommand.ShowEdgeBuildingPositions -> bridge.emit("showEdgeBuildingPositions", command)
-                is GameCommand.ShowVertexBuildingPositions -> bridge.emit("showVertexBuildingPositions", command)
+                is GameCommand.DiceRolled -> bridge.emit("DiceRolled", command)
+                is GameCommand.RobberUpdated -> bridge.emit("RobberUpdated", command)
+                is GameCommand.PlaceBuilding -> bridge.emit("PlaceBuilding", command)
+                is GameCommand.SetHex -> bridge.emit("SetHex", command)
+                is GameCommand.SetPort -> bridge.emit("SetPort", command)
+                is GameCommand.ShowEdgeBuildingPositions -> bridge.emit("ShowEdgeBuildingPositions", command)
+                is GameCommand.ShowVertexBuildingPositions -> bridge.emit("ShowVertexBuildingPositions", command)
             }
         }
     }

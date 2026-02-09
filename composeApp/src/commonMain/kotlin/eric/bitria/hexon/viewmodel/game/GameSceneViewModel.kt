@@ -30,7 +30,6 @@ class GameSceneViewModel : ViewModel() {
     fun handleGameEvent(event: GameEvent) {
         when (event) {
             is GameEvent.Initialised -> {
-                println("Engine Ready. Sending initial commands.")
                 isEngineReady = true
             }
 

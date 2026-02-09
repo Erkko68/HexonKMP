@@ -12,6 +12,7 @@ import eric.bitria.hexon.ui.screens.Screens
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.game.GameSceneViewModel
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @Composable
 fun GameScreen(
@@ -79,7 +80,10 @@ fun GameScreen(
                     GameUI(
                         onExitClicked = {
                             nestedNavController.popBackStack()
-                        }
+                        },
+                        viewModel = koinViewModel(
+                            parameters = { parametersOf(gameSceneViewModel) }
+                        )
                     )
                 }
             }

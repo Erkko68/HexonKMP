@@ -77,15 +77,6 @@ internal actual fun ComposeWebViewImpl(
 
                     jsBridge?.attach(this)
                 }.also { wv ->
-                    if (state.content is WebContent.Data) {
-                        val content = (state.content as WebContent.Data).data
-                        val html = if (content.trim().startsWith("<")) {
-                            content
-                        } else {
-                            wrapScriptInHtml(content, jsBridge?.jsScript)
-                        }
-                        wv.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
-                    }
                     state.webView = wv
                 }
             },

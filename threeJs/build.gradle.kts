@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.kotlinxSerialization)
 }
 
 kotlin {
@@ -16,6 +17,8 @@ kotlin {
     sourceSets {
         val jsMain by getting {
             dependencies {
+                implementation(projects.shared)
+                implementation(libs.kotlinx.serialization.json)
                 implementation(npm("three", "0.182.0"))
             }
         }
