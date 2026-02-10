@@ -1,22 +1,23 @@
 package eric.bitria.hexon.threejs
 
-import eric.bitria.hexon.threejs.engine.Engine
+import eric.bitria.hexon.threejs.engine.GameController
+import eric.bitria.hexon.threejs.engine.Renderer
+import eric.bitria.hexon.threejs.view.GameView
+import kotlinx.browser.window
 
 fun main() {
-    val engine = Engine()
 
-    engine.start()
+    // Expose THREE
+    val THREE = js("require('three')")
+    window.asDynamic().THREE = THREE
 
-    if (js("typeof AppBridge !== 'undefined'") as Boolean) {
+    // GLTFLoader is now imported from the 'three' module directly
+    val GLTFLoader = js("require('three').GLTFLoader")
+    window.asDynamic().GLTFLoader = GLTFLoader
 
-        AppBridge.on("SetHex") { data -> engine.handleCommand("SetHex", data) }
-        AppBridge.on("SetPort") { data -> engine.handleCommand("SetPort", data) }
-        AppBridge.on("RobberUpdated") { data -> engine.handleCommand("RobberUpdated", data) }
-        AppBridge.on("PlaceBuilding") { data -> engine.handleCommand("PlaceBuilding", data) }
-        AppBridge.on("ShowVertexBuildingPositions") { data -> engine.handleCommand("ShowVertexBuildingPositions", data) }
-        AppBridge.on("ShowEdgeBuildingPositions") { data -> engine.handleCommand("ShowEdgeBuildingPositions", data) }
-        AppBridge.on("DiceRolled") { data -> engine.handleCommand("DiceRolled", data) }
+    val renderer = Renderer()
+    val gameController = GameController()
+    val view = GameView(gameController, renderer)
 
-        AppBridge.call("onEngineReady", "ready")
-    }
+    gameController.view = view
 }
