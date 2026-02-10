@@ -25,7 +25,7 @@ import org.koin.dsl.module
 
 actual val networkModule = module {
     single {
-        val tokenStorage: TokenStorage by inject()
+        val tokenStorage: TokenStorage = get()
 
         HttpClient(Js) {
             install(WebSockets)
@@ -71,7 +71,10 @@ actual val networkModule = module {
 
                     sendWithoutRequest { request ->
                         val path = request.url.encodedPath
-                        path.startsWith("/auth") || path.startsWith("/users/email")
+                        // Proactively send token for all requests except initial auth endpoints to avoid 401 challenges
+                        !path.endsWith("/auth/login") &&
+                        !path.endsWith("/auth/register") &&
+                        !path.endsWith("/auth/refresh")
                     }
                 }
             }

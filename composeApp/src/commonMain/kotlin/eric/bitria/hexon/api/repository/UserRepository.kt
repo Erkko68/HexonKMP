@@ -44,8 +44,8 @@ class UserRepositoryImpl(
         return safeApiCall {
             val response = userClient.verifyEmail(VerifyEmailRequest(email, code))
             if (response.result == VerifyEmailResult.SUCCESS) {
-                tokenStorage.saveAccess(response.accessToken!!)
-                tokenStorage.saveRefresh(response.refreshToken!!)
+                response.accessToken?.let { tokenStorage.saveAccess(it) }
+                response.refreshToken?.let { tokenStorage.saveRefresh(it) }
             }
             response.result
         }

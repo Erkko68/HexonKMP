@@ -71,7 +71,9 @@ actual val networkModule = module {
 
                     sendWithoutRequest { request ->
                         val path = request.url.encodedPath
-                        path.startsWith("/auth") || path.startsWith("/users/email")
+                        !path.endsWith("/auth/login") &&
+                        !path.endsWith("/auth/register") &&
+                        !path.endsWith("/auth/refresh")
                     }
                 }
             }

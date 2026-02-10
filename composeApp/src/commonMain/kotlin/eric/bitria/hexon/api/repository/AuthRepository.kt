@@ -34,8 +34,8 @@ class AuthRepositoryImpl(
             val response = authClient.refresh(RefreshRequest(tokenStorage.getRefresh() ?: ""))
 
             if (response.result == RefreshResult.SUCCESS) {
-                tokenStorage.saveAccess(response.accessToken!!)
-                tokenStorage.saveRefresh(response.refreshToken!!)
+                response.accessToken?.let { tokenStorage.saveAccess(it) }
+                response.refreshToken?.let { tokenStorage.saveRefresh(it) }
             } else {
                 tokenStorage.clear()
             }
@@ -47,8 +47,8 @@ class AuthRepositoryImpl(
         return safeApiCall {
             val response = authClient.login(LoginRequest(email, password))
             if (response.result == LoginResult.SUCCESS) {
-                tokenStorage.saveAccess(response.accessToken!!)
-                tokenStorage.saveRefresh(response.refreshToken!!)
+                response.accessToken?.let { tokenStorage.saveAccess(it) }
+                response.refreshToken?.let { tokenStorage.saveRefresh(it) }
             }
             response.result
         }
