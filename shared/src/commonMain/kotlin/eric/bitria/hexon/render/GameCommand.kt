@@ -35,7 +35,7 @@ sealed interface GameCommand {
     @Serializable
     data class SetHex(
         val coord: HexCoord,
-        val resource: ResourceId?,
+        val resource: ResourceId,
         val number: Int
     ) : GameCommand
 

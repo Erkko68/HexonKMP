@@ -206,7 +206,7 @@ class Board {
         }
 
         for (tile in activeTiles) {
-            val resource = tile.resourceId ?: continue
+            val resource = tile.resourceId
             val vertexIds = getCornerCoords(tile.coordinate).map { (h1, h2, h3) ->
                 HexCoord.getVertexId(h1, h2, h3)
             }
@@ -323,6 +323,6 @@ data class PlacedBuilding(
 
 data class HexTile(
     val coordinate: HexCoord,
-    val resourceId: String?, // Null = Desert
-    val numberToken: Int     // 0 = Desert
+    val resourceId: ResourceId,
+    val numberToken: Int
 )
