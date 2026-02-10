@@ -1,10 +1,11 @@
 package eric.bitria.hexon.di
 
 import eric.bitria.hexon.BuildKonfig
-import eric.bitria.hexon.api.client.AuthClient
 import eric.bitria.hexon.dtos.auth.RefreshRequest
+import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import io.ktor.client.HttpClient
+import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.auth.Auth
@@ -12,6 +13,8 @@ import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.encodedPath
@@ -23,7 +26,6 @@ import org.koin.dsl.module
 actual val networkModule: Module = module {
     single {
         val tokenStorage: TokenStorage by inject()
-        val authClient: AuthClient by inject()
 
         HttpClient(OkHttp) {
             install(WebSockets)
@@ -53,7 +55,10 @@ actual val networkModule: Module = module {
 
                     refreshTokens {
                         val refreshToken = tokenStorage.getRefresh() ?: return@refreshTokens null
-                        val response = authClient.refresh(RefreshRequest(refreshToken))
+                        val response: RefreshResponse = client.post("/auth/refresh") {
+                            setBody(RefreshRequest(refreshToken))
+                            markAsRefreshTokenRequest()
+                        }.body()
 
                         if (response.result == RefreshResult.SUCCESS && response.accessToken != null) {
                             tokenStorage.saveAccess(response.accessToken!!)

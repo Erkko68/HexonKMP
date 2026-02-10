@@ -19,10 +19,10 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import eric.bitria.hexon.navigation.AuthNavigation
 import eric.bitria.hexon.navigation.MainNavigation
 import eric.bitria.hexon.ui.theme.HexonTheme
@@ -33,7 +33,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun App(
     viewModel: AppViewModel = koinViewModel()
 ) {
-    val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
+    val sessionState by viewModel.sessionState.collectAsState()
 
     BoxWithConstraints {
         val sizeClass = WindowSizeClass.calculateFromSize(
@@ -74,7 +74,7 @@ fun App(
             ) { state ->
                 when (state) {
                     SessionState.LOADING -> {
-                        // TODO
+                        Text("Loading")
                     }
                     SessionState.LOGGED_IN -> {
                         MainNavigation()
@@ -84,7 +84,7 @@ fun App(
                     }
 
                     SessionState.NETWORK_ERROR -> {
-                        // TODO
+                        Text("Network Error")
                     }
                 }
             }
