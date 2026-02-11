@@ -19,6 +19,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import eric.bitria.hexon.config.EnvConfig
 
 @Composable
 internal actual fun ComposeWebViewImpl(
@@ -38,7 +39,7 @@ internal actual fun ComposeWebViewImpl(
                     } else {
                         wrapScriptInHtml(content.data, jsBridge?.jsScript)
                     }
-                    wv.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
+                    wv.loadDataWithBaseURL(EnvConfig.BASE_URL, html, "text/html", "utf-8", null)
                 }
             }
         }

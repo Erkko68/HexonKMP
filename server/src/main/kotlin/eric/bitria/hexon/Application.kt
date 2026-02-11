@@ -49,16 +49,12 @@ fun Application.module() {
         
         exposeHeader(HttpHeaders.SetCookie)
         allowCredentials = true
+        allowHost("localhost:8080")
         allowHost("localhost:8081")
         allowHost("192.168.100.254:8081")
 
         // Handle null origin from WebView's loadDataWithBaseURL
-        allowOrigins { origin ->
-            origin == "null" ||
-            origin.startsWith("http://10.0.2.2:") ||
-            origin.startsWith("http://localhost:") ||
-            origin.startsWith("http://192.168.100.254:")
-        }
+        allowNonSimpleContentTypes = true
     }
 
     install(ContentNegotiation) { json() }

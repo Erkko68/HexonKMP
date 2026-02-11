@@ -12,6 +12,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.WebElementView
+import eric.bitria.hexon.config.EnvConfig
 import kotlinx.browser.document
 import kotlinx.browser.window
 import org.w3c.dom.HTMLElement
@@ -116,12 +117,14 @@ internal actual fun ComposeWebViewImpl(
  * 1. The 'bridgeScript' is placed in <head> to be available immediately.
  * 2. The 'script' (user content) is wrapped in a global function 'window.bootHexon'.
  * This prevents the script from auto-executing until the Kotlin side explicitly calls it.
+ * 3. The <base> tag sets the document origin to avoid CORS issues with null origin.
  */
 private fun wrapScriptInHtml(script: String, bridgeScript: String?): String = """
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
+        <base href="${EnvConfig.BASE_URL}/">
         <style>
             html, body { 
                 margin: 0; 

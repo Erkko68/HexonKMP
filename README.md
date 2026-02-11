@@ -1,5 +1,26 @@
 This is a Kotlin Multiplatform project targeting Android, iOS, Server.
 
+## Environment Configuration
+
+This project uses a modular environment configuration system. See [env/README.md](./env/README.md) for full documentation.
+
+**Quick start:**
+```bash
+# Use debug config (default)
+./gradlew generateEnvConfig
+
+# Use release config
+./gradlew generateEnvConfig -PbuildVariant=release
+```
+
+**File structure:**
+- `env/.env.debug` - Development config
+- `env/.env.debug.android` - Android-specific overrides
+- `env/.env.staging` - Staging config
+- `env/.env.release` - Production config
+
+## Project Structure
+
 * [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
   It contains several subfolders:
   - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
@@ -21,7 +42,7 @@ This is a Kotlin Multiplatform project targeting Android, iOS, Server.
 ### Build and Run Android Application
 
 To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
+in your IDE's toolbar or build it directly from the terminal:
 - on macOS/Linux
   ```shell
   ./gradlew :composeApp:assembleDebug
@@ -30,6 +51,17 @@ in your IDE’s toolbar or build it directly from the terminal:
   ```shell
   .\gradlew.bat :composeApp:assembleDebug
   ```
+
+**Android Emulator Setup:**  
+The Android app needs to access the backend server running on your host machine. Run this command after starting the emulator:
+```bash
+./setup-android-emulator.sh
+```
+Or manually:
+```bash
+adb reverse tcp:8080 tcp:8080
+```
+This maps the emulator's `localhost:8080` to your host's `localhost:8080`.
 
 ### Build and Run Server
 

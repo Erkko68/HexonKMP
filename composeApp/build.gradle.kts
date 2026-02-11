@@ -1,21 +1,9 @@
-import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
-
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath(libs.buildkonfig.gradle.plugin)
-    }
-}
-
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinxSerialization)
-    alias(libs.plugins.buildkonfig)
 }
 
 kotlin {
@@ -111,27 +99,6 @@ kotlin {
     }
 }
 
-buildkonfig {
-    packageName = "eric.bitria.hexon"
-
-    defaultConfigs {
-        buildConfigField(STRING, "BASE_URL", "http://localhost:8080")
-    }
-
-    targetConfigs("debug") {
-        create("android") {
-            buildConfigField(STRING, "BASE_URL", "http://10.0.2.2:8080")
-        }
-    }
-
-    defaultConfigs("staging") {
-        buildConfigField(STRING, "BASE_URL", "http://192.168.100.254:8080")
-    }
-
-    defaultConfigs("release") {
-        buildConfigField(STRING, "BASE_URL", "https://hexon.biri.es")
-    }
-}
 
 tasks.matching { it.name == "preBuild" }.configureEach {
     dependsOn(":threeJs:generateThreeJsBundle")

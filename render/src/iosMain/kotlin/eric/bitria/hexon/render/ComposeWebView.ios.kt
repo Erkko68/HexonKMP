@@ -6,6 +6,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.UIKitView
+import eric.bitria.hexon.config.EnvConfig
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCSignatureOverride
 import platform.WebKit.WKNavigationDelegateProtocol
@@ -70,7 +71,8 @@ internal actual fun ComposeWebViewImpl(
                 } else {
                     wrapScriptInHtml(currentContent.data, jsBridge?.jsScript)
                 }
-                webView.loadHTMLString(html, baseURL = null)
+                val baseUrl = platform.Foundation.NSURL(string = EnvConfig.BASE_URL)
+                webView.loadHTMLString(html, baseURL = baseUrl)
             }
         }
     }

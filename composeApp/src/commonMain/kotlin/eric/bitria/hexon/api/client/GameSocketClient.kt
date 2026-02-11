@@ -1,6 +1,6 @@
 package eric.bitria.hexon.api.client
 
-import eric.bitria.hexon.BuildKonfig
+import eric.bitria.hexon.config.EnvConfig
 import eric.bitria.hexon.ws.GameMessage
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.webSocketSession
@@ -35,7 +35,7 @@ class KtorGameSocketClient(
     override suspend fun connect(sessionId: String): DefaultWebSocketSession {
         return client.webSocketSession {
             url {
-                val base = Url(BuildKonfig.BASE_URL)
+                val base = Url(EnvConfig.BASE_URL)
                 protocol = if (base.protocol.name == "https") URLProtocol.WSS else URLProtocol.WS
                 host = base.host
                 port = base.port

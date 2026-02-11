@@ -20,3 +20,8 @@ node_modules/
 server/src/main/resources/application.conf
 composeApp/src/commonMain/composeResources/files/threeJs.js
 kotlin-js-store/*
+
+# Environment files
+env/.env.*
+!env/.env.example
+shared/src/*/kotlin/eric/bitria/hexon/config/EnvConfig.kt

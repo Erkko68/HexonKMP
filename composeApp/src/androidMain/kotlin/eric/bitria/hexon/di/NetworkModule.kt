@@ -1,6 +1,6 @@
 package eric.bitria.hexon.di
 
-import eric.bitria.hexon.BuildKonfig
+import eric.bitria.hexon.config.EnvConfig
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RefreshResult
@@ -31,7 +31,7 @@ actual val networkModule: Module = module {
             install(WebSockets)
 
             install(DefaultRequest) {
-                url(BuildKonfig.BASE_URL)
+                url(EnvConfig.BASE_URL)
                 contentType(ContentType.Application.Json)
             }
 

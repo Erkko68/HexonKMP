@@ -1,12 +1,14 @@
 package eric.bitria.hexon.threejs.loader
 
+import eric.bitria.hexon.config.EnvConfig
+
 /**
  * Simple path resolver for dynamically fetching models by ID.
  * Building and resource IDs come from GameCommand (e.g., "road", "settlement", "wood", "ore").
  */
 object ModelPaths {
 
-    private const val BASE_URL = "http://10.0.2.2:8080/assets/models"
+    private val BASE_URL = "${EnvConfig.BASE_URL}/assets/models"
 
     /**
      * Get model path for a building (e.g., "road" -> "/models/buildings/road.glb")
