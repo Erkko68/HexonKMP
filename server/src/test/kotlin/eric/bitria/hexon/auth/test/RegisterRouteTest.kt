@@ -1,60 +1,76 @@
 package eric.bitria.hexon.auth.test
 
-import eric.bitria.hexon.services.auth.login.LoginService
 import eric.bitria.hexon.auth.mock.MockAuthRepository
-import eric.bitria.hexon.auth.mock.MockLoginService
-import eric.bitria.hexon.auth.mock.MockRefreshService
-import eric.bitria.hexon.auth.mock.MockRegisterService
 import eric.bitria.hexon.auth.mock.MockTokenService
-import eric.bitria.hexon.services.auth.refresh.RefreshService
-import eric.bitria.hexon.services.auth.register.RegisterService
-import eric.bitria.hexon.services.auth.repository.AuthRepository
-import eric.bitria.hexon.services.auth.repository.User
-import eric.bitria.hexon.services.auth.token.TokenService
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.dtos.auth.RegisterResponse
 import eric.bitria.hexon.dtos.auth.RegisterResult
+import eric.bitria.hexon.email.mock.MockEmailVerificationRepository
+import eric.bitria.hexon.email.mock.MockSmtpService
 import eric.bitria.hexon.routes.authRoutes
+import eric.bitria.hexon.security.UserSession
+import eric.bitria.hexon.services.auth.login.LoginService
+import eric.bitria.hexon.services.auth.login.LoginServiceImpl
+import eric.bitria.hexon.services.auth.logout.LogoutService
+import eric.bitria.hexon.services.auth.logout.LogoutServiceImpl
+import eric.bitria.hexon.services.auth.refresh.RefreshService
+import eric.bitria.hexon.services.auth.refresh.RefreshServiceImpl
+import eric.bitria.hexon.services.auth.register.RegisterService
+import eric.bitria.hexon.services.auth.register.RegisterServiceImpl
+import eric.bitria.hexon.services.auth.repository.AuthRepository
+import eric.bitria.hexon.services.auth.repository.User
+import eric.bitria.hexon.services.auth.token.TokenService
+import eric.bitria.hexon.services.email.repository.EmailVerificationRepository
+import eric.bitria.hexon.services.email.smtp.SmtpService
+import eric.bitria.hexon.services.email.verification.EmailVerificationService
+import eric.bitria.hexon.services.email.verification.EmailVerificationServiceImpl
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
-import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.sessions.Sessions
+import io.ktor.server.sessions.cookie
 import io.ktor.server.testing.testApplication
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
-import io.ktor.server.sessions.Sessions
-import io.ktor.server.sessions.cookie
-import eric.bitria.hexon.security.UserSession
-import eric.bitria.hexon.services.auth.logout.LogoutService
 
 class RegisterRouteTest {
 
     private val authRepository = MockAuthRepository()
+    private val emailVerificationRepository = MockEmailVerificationRepository()
+    private val smtpService = MockSmtpService()
     private val tokenService = MockTokenService()
-    private val registerService = MockRegisterService(authRepository)
+
+    private val emailVerificationService = EmailVerificationServiceImpl(
+        emailVerificationRepository,
+        smtpService,
+        authRepository
+    )
+
+    private val registerService = RegisterServiceImpl(authRepository, emailVerificationService)
+    private val loginService = LoginServiceImpl(authRepository, tokenService)
+    private val refreshService = RefreshServiceImpl(authRepository, tokenService)
+    private val logoutService = LogoutServiceImpl(authRepository, tokenService)
 
     private fun testAuthApplication(block: suspend (HttpClient) -> Unit) = testApplication {
         install(Koin) {
             modules(module {
                 single<AuthRepository> { authRepository }
+                single<EmailVerificationRepository> { emailVerificationRepository }
+                single<SmtpService> { smtpService }
                 single<TokenService> { tokenService }
+                single<EmailVerificationService> { emailVerificationService }
                 single<RegisterService> { registerService }
-                single<LoginService> { MockLoginService(authRepository, tokenService) }
-                single<RefreshService> { MockRefreshService(authRepository, tokenService) }
-                single<LogoutService> { 
-                    object : LogoutService {
-                        override suspend fun logout(refreshToken: String, request: eric.bitria.hexon.dtos.auth.LogoutRequest): eric.bitria.hexon.dtos.auth.LogoutResponse {
-                            return eric.bitria.hexon.dtos.auth.LogoutResponse(eric.bitria.hexon.dtos.auth.LogoutResult.SUCCESS, "")
-                        }
-                    }
-                }
+                single<LoginService> { loginService }
+                single<RefreshService> { refreshService }
+                single<LogoutService> { logoutService }
             })
         }
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
@@ -91,6 +107,11 @@ class RegisterRouteTest {
         
         assertEquals(RegisterResult.SUCCESS, response.result)
         assertNotNull(authRepository.findUserByEmail(email))
+
+        // Verify email was sent
+        val sentEmail = smtpService.getLastEmailTo(email)
+        assertNotNull(sentEmail, "Verification email should be sent")
+        assertTrue(sentEmail!!.body.contains("verification code", ignoreCase = true))
     }
 
     @Test
@@ -119,5 +140,35 @@ class RegisterRouteTest {
     fun `registration returns invalid email format`() = testAuthApplication { client ->
         val response = client.postRegister("invalid-email", "newuser", "Password123!")
         assertEquals(RegisterResult.INVALID_EMAIL, response.result)
+    }
+
+    @Test
+    fun `registration returns invalid username - too short`() = testAuthApplication { client ->
+        val response = client.postRegister("test@example.com", "ab", "Password123!")
+        assertEquals(RegisterResult.INVALID_USERNAME, response.result)
+    }
+
+    @Test
+    fun `registration returns invalid username - contains special characters`() = testAuthApplication { client ->
+        val response = client.postRegister("test@example.com", "user@name", "Password123!")
+        assertEquals(RegisterResult.INVALID_USERNAME, response.result)
+    }
+
+    @Test
+    fun `registration returns invalid password - too short`() = testAuthApplication { client ->
+        val response = client.postRegister("test@example.com", "newuser", "Pass1!")
+        assertEquals(RegisterResult.INVALID_PASSWORD, response.result)
+    }
+
+    @Test
+    fun `registration returns invalid password - no uppercase`() = testAuthApplication { client ->
+        val response = client.postRegister("test@example.com", "newuser", "password123!")
+        assertEquals(RegisterResult.INVALID_PASSWORD, response.result)
+    }
+
+    @Test
+    fun `registration returns invalid password - no number`() = testAuthApplication { client ->
+        val response = client.postRegister("test@example.com", "newuser", "Password!")
+        assertEquals(RegisterResult.INVALID_PASSWORD, response.result)
     }
 }

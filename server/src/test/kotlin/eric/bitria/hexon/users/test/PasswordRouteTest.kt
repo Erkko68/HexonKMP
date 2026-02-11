@@ -9,12 +9,17 @@ import eric.bitria.hexon.dtos.account.*
 import eric.bitria.hexon.dtos.auth.EmailVerificationType
 import eric.bitria.hexon.email.mock.MockEmailVerificationService
 import eric.bitria.hexon.routes.usersRoutes
+import eric.bitria.hexon.services.auth.repository.AuthRepository
+import eric.bitria.hexon.services.auth.token.TokenService
+import eric.bitria.hexon.services.email.repository.EmailVerificationRepository
+import eric.bitria.hexon.services.email.smtp.SmtpService
+import eric.bitria.hexon.services.email.verification.EmailVerificationService
 import eric.bitria.hexon.services.users.account.UserAccountService
+import eric.bitria.hexon.services.users.account.UserAccountServiceImpl
+import eric.bitria.hexon.services.users.profile.ProfileRepository
 import eric.bitria.hexon.services.users.profile.UserProfileService
+import eric.bitria.hexon.services.users.profile.UserProfileServiceImpl
 import eric.bitria.hexon.services.users.verify.AccountVerificationService
-import eric.bitria.hexon.users.mock.MockAccountVerificationService
-import eric.bitria.hexon.users.mock.MockUserAccountService
-import eric.bitria.hexon.users.mock.MockUserProfileService
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.header
@@ -38,18 +43,38 @@ import java.time.LocalDateTime
 class PasswordRouteTest {
 
     private val authRepository = MockAuthRepository()
+    private val emailVerificationRepository = eric.bitria.hexon.email.mock.MockEmailVerificationRepository()
+    private val smtpService = eric.bitria.hexon.email.mock.MockSmtpService()
     private val tokenService = MockTokenService()
-    
-    private val emailService = MockEmailVerificationService()
+    private val profileRepository = eric.bitria.hexon.users.mock.MockProfileRepository()
 
-    private val passwordService = MockUserAccountService(authRepository, emailService)
-    private val userProfileService = MockUserProfileService()
+    private val emailVerificationService = eric.bitria.hexon.services.email.verification.EmailVerificationServiceImpl(
+        emailVerificationRepository,
+        smtpService,
+        authRepository
+    )
+
+    private val accountVerificationService = eric.bitria.hexon.services.users.verify.AccountVerificationServiceImpl(
+        authRepository,
+        emailVerificationService,
+        tokenService,
+        profileRepository
+    )
+
+    private val userAccountService = eric.bitria.hexon.services.users.account.UserAccountServiceImpl(authRepository, emailVerificationService)
+    private val userProfileService = eric.bitria.hexon.services.users.profile.UserProfileServiceImpl(profileRepository)
 
     private fun testPasswordApplication(block: suspend (HttpClient) -> Unit) = testApplication {
         install(Koin) {
             modules(module {
-                single<AccountVerificationService> { MockAccountVerificationService(authRepository, emailService, tokenService) }
-                single<UserAccountService> { passwordService }
+                single<AuthRepository> { authRepository }
+                single<EmailVerificationRepository> { emailVerificationRepository }
+                single<SmtpService> { smtpService }
+                single<TokenService> { tokenService }
+                single<ProfileRepository> { profileRepository }
+                single<EmailVerificationService> { emailVerificationService }
+                single<AccountVerificationService> { accountVerificationService }
+                single<UserAccountService> { userAccountService }
                 single<UserProfileService> { userProfileService }
             })
         }
@@ -90,19 +115,26 @@ class PasswordRouteTest {
     @Test
     fun `change password success`() = testPasswordApplication { client ->
         val userId = "u1"
-        authRepository.addUser(User(userId, "test@example.com", "user", "OldPass123!", true))
+        val oldPassword = "OldPass123!"
+        val oldPasswordHash = at.favre.lib.crypto.bcrypt.BCrypt.withDefaults().hashToString(12, oldPassword.toCharArray())
+        authRepository.addUser(User(userId, "test@example.com", "user", oldPasswordHash, true))
         // Add a mock session to verify it gets revoked
         val sessionHash = "token-hash"
         authRepository.addRefreshToken(userId, sessionHash, LocalDateTime.now().plusDays(7))
 
+        val newPassword = "NewPass123!"
         val response: ChangePasswordResponse = client.post("/users/password/change") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
             contentType(ContentType.Application.Json)
-            setBody(ChangePasswordRequest("OldPass123!", "NewPass123!"))
+            setBody(ChangePasswordRequest(oldPassword, newPassword))
         }.body()
 
         assertEquals(ChangePasswordResult.SUCCESS, response.result)
-        assertEquals("NewPass123!", authRepository.findUserById(userId)?.password)
+
+        // Verify new password is hashed correctly
+        val user = authRepository.findUserById(userId)!!
+        assertTrue(at.favre.lib.crypto.bcrypt.BCrypt.verifyer().verify(newPassword.toCharArray(), user.password).verified)
+
         // Verify session is revoked
         assertFalse(authRepository.hasRefreshTokenHash(sessionHash))
     }
@@ -110,12 +142,14 @@ class PasswordRouteTest {
     @Test
     fun `change password fails with wrong old password`() = testPasswordApplication { client ->
         val userId = "u1"
-        authRepository.addUser(User(userId, "test@example.com", "user", "CorrectPass", true))
+        val correctPassword = "CorrectPass123!"
+        val passwordHash = at.favre.lib.crypto.bcrypt.BCrypt.withDefaults().hashToString(12, correctPassword.toCharArray())
+        authRepository.addUser(User(userId, "test@example.com", "user", passwordHash, true))
 
         val response: ChangePasswordResponse = client.post("/users/password/change") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
             contentType(ContentType.Application.Json)
-            setBody(ChangePasswordRequest("WrongPass", "NewPass"))
+            setBody(ChangePasswordRequest("WrongPass123!", "NewPass123!"))
         }.body()
 
         assertEquals(ChangePasswordResult.WRONG_PASSWORD, response.result)
@@ -126,7 +160,7 @@ class PasswordRouteTest {
         val response: ChangePasswordResponse = client.post("/users/password/change") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken("ghost")}")
             contentType(ContentType.Application.Json)
-            setBody(ChangePasswordRequest("any", "any"))
+            setBody(ChangePasswordRequest("ValidPass123!", "NewPass123!"))
         }.body()
 
         assertEquals(ChangePasswordResult.USER_NOT_FOUND, response.result)
@@ -168,7 +202,7 @@ class PasswordRouteTest {
         }.body()
 
         assertEquals(ForgotPasswordResult.SUCCESS, response.result)
-        assertNotNull(emailService.getSmtpService().getLastEmailTo(email))
+        assertNotNull(smtpService.getLastEmailTo(email))
     }
 
     @Test
@@ -179,7 +213,7 @@ class PasswordRouteTest {
         }.body()
 
         assertEquals(ForgotPasswordResult.SUCCESS, response.result)
-        assertNull(emailService.getSmtpService().getLastEmailTo("ghost@example.com"))
+        assertNull(smtpService.getLastEmailTo("ghost@example.com"))
     }
 
     // --- RESET PASSWORD ---
@@ -188,21 +222,28 @@ class PasswordRouteTest {
     fun `reset password success with valid code`() = testPasswordApplication { client ->
         val email = "reset@example.com"
         val userId = "u1"
-        authRepository.addUser(User(userId, email, "user", "OldPass", true))
+        val oldPasswordHash = at.favre.lib.crypto.bcrypt.BCrypt.withDefaults().hashToString(12, "OldPass123!".toCharArray())
+        authRepository.addUser(User(userId, email, "user", oldPasswordHash, true))
         // Add a mock session to verify it gets revoked
         val sessionHash = "active-session"
         authRepository.addRefreshToken(userId, sessionHash, LocalDateTime.now().plusDays(7))
 
-        emailService.sendVerificationCodeByEmail(email, EmailVerificationType.PASSWORD_RESET)
-        val code = emailService.getSmtpService().getLastEmailTo(email)!!.body.substringAfter(": ").trim()
+        emailVerificationService.sendVerificationCodeByEmail(email, EmailVerificationType.PASSWORD_RESET)
+        val sentEmail = smtpService.getLastEmailTo(email)!!
+        val code = sentEmail.body.substringAfter("Your verification code is: ").trim()
 
+        val newPassword = "NewPass123!"
         val response: ResetPasswordResponse = client.post("/users/password/reset") {
             contentType(ContentType.Application.Json)
-            setBody(ResetPasswordRequest(email, code, "NewPass123!"))
+            setBody(ResetPasswordRequest(email, code, newPassword))
         }.body()
 
         assertEquals(ResetPasswordResult.SUCCESS, response.result)
-        assertEquals("NewPass123!", authRepository.findUserByEmail(email)?.password)
+
+        // Verify password was updated with BCrypt
+        val user = authRepository.findUserByEmail(email)!!
+        assertTrue(at.favre.lib.crypto.bcrypt.BCrypt.verifyer().verify(newPassword.toCharArray(), user.password).verified)
+
         // Verify session is revoked
         assertFalse(authRepository.hasRefreshTokenHash(sessionHash))
     }
@@ -210,11 +251,12 @@ class PasswordRouteTest {
     @Test
     fun `reset password fails with invalid code`() = testPasswordApplication { client ->
         val email = "test@example.com"
-        authRepository.addUser(User("u1", email, "user", "pass", true))
+        val passwordHash = at.favre.lib.crypto.bcrypt.BCrypt.withDefaults().hashToString(12, "OldPass123!".toCharArray())
+        authRepository.addUser(User("u1", email, "user", passwordHash, true))
 
         val response: ResetPasswordResponse = client.post("/users/password/reset") {
             contentType(ContentType.Application.Json)
-            setBody(ResetPasswordRequest(email, "000000", "NewPass"))
+            setBody(ResetPasswordRequest(email, "000000", "NewPass123!"))
         }.body()
 
         assertEquals(ResetPasswordResult.INVALID_CODE, response.result)
@@ -223,12 +265,13 @@ class PasswordRouteTest {
     @Test
     fun `reset password fails if user disappeared`() = testPasswordApplication { client ->
         val email = "vanish@example.com"
-        emailService.sendVerificationCodeByEmail(email, EmailVerificationType.PASSWORD_RESET)
-        val code = emailService.getSmtpService().getLastEmailTo(email)!!.body.substringAfter(": ").trim()
+        emailVerificationService.sendVerificationCodeByEmail(email, EmailVerificationType.PASSWORD_RESET)
+        val sentEmail = smtpService.getLastEmailTo(email)!!
+        val code = sentEmail.body.substringAfter("Your verification code is: ").trim()
 
         val response: ResetPasswordResponse = client.post("/users/password/reset") {
             contentType(ContentType.Application.Json)
-            setBody(ResetPasswordRequest(email, code, "NewPass"))
+            setBody(ResetPasswordRequest(email, code, "NewPass123!"))
         }.body()
 
         assertEquals(ResetPasswordResult.USER_NOT_FOUND, response.result)

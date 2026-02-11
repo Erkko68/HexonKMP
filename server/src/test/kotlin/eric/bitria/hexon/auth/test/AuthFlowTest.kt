@@ -1,27 +1,41 @@
 package eric.bitria.hexon.auth.test
 
+import at.favre.lib.crypto.bcrypt.BCrypt
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import eric.bitria.hexon.auth.mock.*
+import eric.bitria.hexon.auth.mock.MockAuthRepository
+import eric.bitria.hexon.auth.mock.MockTokenService
 import eric.bitria.hexon.dtos.account.ChangePasswordRequest
 import eric.bitria.hexon.dtos.account.ChangePasswordResponse
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
 import eric.bitria.hexon.dtos.auth.*
-import eric.bitria.hexon.email.mock.MockEmailVerificationService
+import eric.bitria.hexon.email.mock.MockEmailVerificationRepository
+import eric.bitria.hexon.email.mock.MockSmtpService
 import eric.bitria.hexon.routes.authRoutes
 import eric.bitria.hexon.routes.usersRoutes
 import eric.bitria.hexon.security.UserSession
 import eric.bitria.hexon.services.auth.login.LoginService
+import eric.bitria.hexon.services.auth.login.LoginServiceImpl
 import eric.bitria.hexon.services.auth.logout.LogoutService
+import eric.bitria.hexon.services.auth.logout.LogoutServiceImpl
 import eric.bitria.hexon.services.auth.refresh.RefreshService
+import eric.bitria.hexon.services.auth.refresh.RefreshServiceImpl
 import eric.bitria.hexon.services.auth.register.RegisterService
+import eric.bitria.hexon.services.auth.register.RegisterServiceImpl
+import eric.bitria.hexon.services.auth.repository.AuthRepository
+import eric.bitria.hexon.services.auth.token.TokenService
+import eric.bitria.hexon.services.email.repository.EmailVerificationRepository
+import eric.bitria.hexon.services.email.smtp.SmtpService
 import eric.bitria.hexon.services.email.verification.EmailVerificationService
+import eric.bitria.hexon.services.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.services.users.account.UserAccountService
+import eric.bitria.hexon.services.users.account.UserAccountServiceImpl
+import eric.bitria.hexon.services.users.profile.ProfileRepository
 import eric.bitria.hexon.services.users.profile.UserProfileService
+import eric.bitria.hexon.services.users.profile.UserProfileServiceImpl
 import eric.bitria.hexon.services.users.verify.AccountVerificationService
-import eric.bitria.hexon.users.mock.MockAccountVerificationService
-import eric.bitria.hexon.users.mock.MockUserAccountService
-import eric.bitria.hexon.users.mock.MockUserProfileService
+import eric.bitria.hexon.services.users.verify.AccountVerificationServiceImpl
+import eric.bitria.hexon.users.mock.MockProfileRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.cookies.HttpCookies
@@ -47,35 +61,48 @@ import org.koin.ktor.plugin.Koin
 class AuthFlowTest {
 
     private val authRepository = MockAuthRepository()
+    private val emailVerificationRepository = MockEmailVerificationRepository()
+    private val smtpService = MockSmtpService()
     private val tokenService = MockTokenService()
-    private val emailVerificationService = MockEmailVerificationService()
+    private val profileRepository = MockProfileRepository()
 
-    private val registerService = MockRegisterService(authRepository, emailVerificationService)
-    private val loginService = MockLoginService(authRepository, tokenService)
-    private val refreshService = MockRefreshService(authRepository, tokenService)
-    private val accountVerificationService = MockAccountVerificationService(
-        authRepository, emailVerificationService, tokenService
+    private val emailVerificationService = EmailVerificationServiceImpl(
+        emailVerificationRepository,
+        smtpService,
+        authRepository
     )
-    private val passwordService = MockUserAccountService(authRepository, emailVerificationService)
-    private val userProfileService = MockUserProfileService()
-    private val logoutService = object : LogoutService {
-        override suspend fun logout(refreshToken: String, request: LogoutRequest): LogoutResponse {
-            authRepository.revokeRefreshToken(eric.bitria.hexon.utils.TokenHasher.hash(refreshToken))
-            return LogoutResponse(LogoutResult.SUCCESS, "Logged out")
-        }
-    }
+
+    private val registerService = RegisterServiceImpl(authRepository, emailVerificationService)
+    private val loginService = LoginServiceImpl(authRepository, tokenService)
+    private val refreshService = RefreshServiceImpl(authRepository, tokenService)
+    private val logoutService = LogoutServiceImpl(authRepository, tokenService)
+
+    private val accountVerificationService = AccountVerificationServiceImpl(
+        authRepository,
+        emailVerificationService,
+        tokenService,
+        profileRepository
+    )
+
+    private val userAccountService = UserAccountServiceImpl(authRepository, emailVerificationService)
+    private val userProfileService = UserProfileServiceImpl(profileRepository)
 
     private fun testAuthApplication(block: suspend (HttpClient) -> Unit) = testApplication {
         install(Koin) {
             modules(module {
+                single<AuthRepository> { authRepository }
+                single<EmailVerificationRepository> { emailVerificationRepository }
+                single<SmtpService> { smtpService }
+                single<TokenService> { tokenService }
+                single<ProfileRepository> { profileRepository }
+                single<EmailVerificationService> { emailVerificationService }
                 single<RegisterService> { registerService }
                 single<LoginService> { loginService }
                 single<RefreshService> { refreshService }
-                single<AccountVerificationService> { accountVerificationService }
-                single<UserAccountService> { passwordService }
-                single<UserProfileService> { userProfileService }
-                single<EmailVerificationService> { emailVerificationService }
                 single<LogoutService> { logoutService }
+                single<AccountVerificationService> { accountVerificationService }
+                single<UserAccountService> { userAccountService }
+                single<UserProfileService> { userProfileService }
             })
         }
         install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
@@ -132,9 +159,11 @@ class AuthFlowTest {
         assertEquals(LoginResult.NOT_VERIFIED, loginRespFail.result)
 
         // 3. Verify Email
-        val sentEmail = emailVerificationService.getSmtpService().getLastEmailTo(email)
+        val sentEmail = smtpService.getLastEmailTo(email)
         assertNotNull(sentEmail, "Email was not sent during registration")
-        val code = sentEmail!!.body.substringAfter(": ").trim()
+
+        // Extract code from email body: "Your verification code is: 123456"
+        val code = sentEmail!!.body.substringAfter("Your verification code is: ").trim()
 
         val verifyResp: VerifyEmailResponse = client.post("/users/email/confirm") {
             contentType(ContentType.Application.Json)

@@ -1,5 +1,6 @@
 package eric.bitria.hexon.users.test
 
+import at.favre.lib.crypto.bcrypt.BCrypt
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import eric.bitria.hexon.auth.mock.MockAuthRepository
@@ -9,12 +10,18 @@ import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountRequest
 import eric.bitria.hexon.dtos.account.ConfirmDeleteAccountResponse
 import eric.bitria.hexon.dtos.account.DeleteAccountResult
 import eric.bitria.hexon.dtos.account.RequestDeleteAccountResponse
+import eric.bitria.hexon.email.mock.MockEmailVerificationRepository
 import eric.bitria.hexon.email.mock.MockEmailVerificationService
+import eric.bitria.hexon.email.mock.MockSmtpService
 import eric.bitria.hexon.routes.usersRoutes
+import eric.bitria.hexon.services.auth.repository.AuthRepository
+import eric.bitria.hexon.services.auth.token.TokenService
+import eric.bitria.hexon.services.email.repository.EmailVerificationRepository
+import eric.bitria.hexon.services.email.smtp.SmtpService
+import eric.bitria.hexon.services.email.verification.EmailVerificationService
 import eric.bitria.hexon.services.users.account.UserAccountService
-import eric.bitria.hexon.users.mock.MockAccountVerificationService
-import eric.bitria.hexon.users.mock.MockUserAccountService
-import eric.bitria.hexon.users.mock.MockUserProfileService
+import eric.bitria.hexon.services.users.account.UserAccountServiceImpl
+import eric.bitria.hexon.services.users.profile.ProfileRepository
 import eric.bitria.hexon.services.users.profile.UserProfileService
 import eric.bitria.hexon.services.users.verify.AccountVerificationService
 import io.ktor.client.HttpClient
@@ -41,17 +48,38 @@ import org.koin.ktor.plugin.Koin
 class AccountDeletionRouteTest {
 
     private val authRepository = MockAuthRepository()
+    private val emailVerificationRepository = MockEmailVerificationRepository()
+    private val smtpService = MockSmtpService()
     private val tokenService = MockTokenService()
-    private val emailService = MockEmailVerificationService()
+    private val profileRepository = eric.bitria.hexon.users.mock.MockProfileRepository()
 
-    private val accountService = MockUserAccountService(authRepository, emailService)
-    private val userProfileService = MockUserProfileService()
+    private val emailVerificationService = eric.bitria.hexon.services.email.verification.EmailVerificationServiceImpl(
+        emailVerificationRepository,
+        smtpService,
+        authRepository
+    )
+
+    private val accountVerificationService = eric.bitria.hexon.services.users.verify.AccountVerificationServiceImpl(
+        authRepository,
+        emailVerificationService,
+        tokenService,
+        profileRepository
+    )
+
+    private val userAccountService = UserAccountServiceImpl(authRepository, emailVerificationService)
+    private val userProfileService = eric.bitria.hexon.services.users.profile.UserProfileServiceImpl(profileRepository)
 
     private fun testAccountApplication(block: suspend (HttpClient) -> Unit) = testApplication {
         install(Koin) {
             modules(module {
-                single<AccountVerificationService> { MockAccountVerificationService(authRepository, emailService, tokenService) }
-                single<UserAccountService> { accountService }
+                single<AuthRepository> { authRepository }
+                single<EmailVerificationRepository> { emailVerificationRepository }
+                single<SmtpService> { smtpService }
+                single<TokenService> { tokenService }
+                single<ProfileRepository> { profileRepository }
+                single<EmailVerificationService> { emailVerificationService }
+                single<AccountVerificationService> { accountVerificationService }
+                single<UserAccountService> { userAccountService }
                 single<UserProfileService> { userProfileService }
             })
         }
@@ -91,14 +119,15 @@ class AccountDeletionRouteTest {
     fun `request account deletion sends email code`() = testAccountApplication { client ->
         val userId = "u1"
         val email = "delete@example.com"
-        authRepository.addUser(User(userId, email, "user", "pass", true))
+        val passwordHash = BCrypt.withDefaults().hashToString(12, "Password123!".toCharArray())
+        authRepository.addUser(User(userId, email, "user", passwordHash, true))
 
         val response: RequestDeleteAccountResponse = client.post("/users/me/delete/initiate") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
         }.body()
 
         assertNotNull(response.message)
-        assertNotNull(emailService.getSmtpService().getLastEmailTo(email))
+        assertNotNull(smtpService.getLastEmailTo(email))
     }
 
     @Test
@@ -106,13 +135,17 @@ class AccountDeletionRouteTest {
         val userId = "u1"
         val email = "delete@example.com"
         val password = "Password123!"
-        authRepository.addUser(User(userId, email, "user", password, true))
+        val passwordHash = BCrypt.withDefaults().hashToString(12, password.toCharArray())
+        authRepository.addUser(User(userId, email, "user", passwordHash, true))
 
         // Initiate to get the code
         client.post("/users/me/delete/initiate") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
         }
-        val code = emailService.getSmtpService().getLastEmailTo(email)!!.body.substringAfter(": ").trim()
+
+        // Extract code from email
+        val sentEmail = smtpService.getLastEmailTo(email)
+        val code = sentEmail!!.body.substringAfter("Your verification code is: ").trim()
 
         val response: ConfirmDeleteAccountResponse = client.delete("/users/me") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
@@ -128,17 +161,21 @@ class AccountDeletionRouteTest {
     fun `confirm account deletion fails with wrong password`() = testAccountApplication { client ->
         val userId = "u1"
         val email = "delete@example.com"
-        authRepository.addUser(User(userId, email, "user", "correct", true))
+        val correctPassword = "CorrectPass123!"
+        val passwordHash = BCrypt.withDefaults().hashToString(12, correctPassword.toCharArray())
+        authRepository.addUser(User(userId, email, "user", passwordHash, true))
 
         client.post("/users/me/delete/initiate") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
         }
-        val code = emailService.getSmtpService().getLastEmailTo(email)!!.body.substringAfter(": ").trim()
+
+        val sentEmail = smtpService.getLastEmailTo(email)
+        val code = sentEmail!!.body.substringAfter("Your verification code is: ").trim()
 
         val response: ConfirmDeleteAccountResponse = client.delete("/users/me") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
             contentType(ContentType.Application.Json)
-            setBody(ConfirmDeleteAccountRequest("wrong", code))
+            setBody(ConfirmDeleteAccountRequest("WrongPass123!", code))
         }.body()
 
         assertEquals(DeleteAccountResult.WRONG_PASSWORD, response.result)
@@ -149,12 +186,14 @@ class AccountDeletionRouteTest {
     fun `confirm account deletion fails with invalid code`() = testAccountApplication { client ->
         val userId = "u1"
         val email = "delete@example.com"
-        authRepository.addUser(User(userId, email, "user", "pass", true))
+        val password = "Password123!"
+        val passwordHash = BCrypt.withDefaults().hashToString(12, password.toCharArray())
+        authRepository.addUser(User(userId, email, "user", passwordHash, true))
 
         val response: ConfirmDeleteAccountResponse = client.delete("/users/me") {
             header(HttpHeaders.Authorization, "Bearer ${generateTestToken(userId)}")
             contentType(ContentType.Application.Json)
-            setBody(ConfirmDeleteAccountRequest("pass", "000000"))
+            setBody(ConfirmDeleteAccountRequest(password, "000000"))
         }.body()
 
         assertEquals(DeleteAccountResult.INVALID_CODE, response.result)

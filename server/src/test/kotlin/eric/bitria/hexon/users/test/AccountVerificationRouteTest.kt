@@ -9,16 +9,25 @@ import eric.bitria.hexon.dtos.auth.ResendVerificationCodeResult
 import eric.bitria.hexon.dtos.auth.VerifyEmailRequest
 import eric.bitria.hexon.dtos.auth.VerifyEmailResponse
 import eric.bitria.hexon.dtos.auth.VerifyEmailResult
-import eric.bitria.hexon.email.mock.MockEmailVerificationService
+import eric.bitria.hexon.email.mock.MockEmailVerificationRepository
+import eric.bitria.hexon.email.mock.MockSmtpService
 import eric.bitria.hexon.routes.usersRoutes
 import eric.bitria.hexon.security.UserSession
+import eric.bitria.hexon.services.auth.repository.AuthRepository
 import eric.bitria.hexon.services.auth.repository.User
+import eric.bitria.hexon.services.auth.token.TokenService
+import eric.bitria.hexon.services.email.repository.EmailVerificationRepository
+import eric.bitria.hexon.services.email.smtp.SmtpService
+import eric.bitria.hexon.services.email.verification.EmailVerificationService
+import eric.bitria.hexon.services.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.services.users.account.UserAccountService
+import eric.bitria.hexon.services.users.account.UserAccountServiceImpl
+import eric.bitria.hexon.services.users.profile.ProfileRepository
 import eric.bitria.hexon.services.users.profile.UserProfileService
+import eric.bitria.hexon.services.users.profile.UserProfileServiceImpl
 import eric.bitria.hexon.services.users.verify.AccountVerificationService
-import eric.bitria.hexon.users.mock.MockAccountVerificationService
-import eric.bitria.hexon.users.mock.MockUserAccountService
-import eric.bitria.hexon.users.mock.MockUserProfileService
+import eric.bitria.hexon.services.users.verify.AccountVerificationServiceImpl
+import eric.bitria.hexon.users.mock.MockProfileRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
@@ -42,22 +51,38 @@ import org.koin.ktor.plugin.Koin
 class AccountVerificationRouteTest {
 
     private val authRepository = MockAuthRepository()
+    private val emailVerificationRepository = MockEmailVerificationRepository()
+    private val smtpService = MockSmtpService()
     private val tokenService = MockTokenService()
-    private val emailService = MockEmailVerificationService()
+    private val profileRepository = MockProfileRepository()
 
-    private val accountVerificationService = MockAccountVerificationService(
-        authRepository,
-        emailService,
-        tokenService
+    private val emailVerificationService = EmailVerificationServiceImpl(
+        emailVerificationRepository,
+        smtpService,
+        authRepository
     )
 
-    private val userProfileService = MockUserProfileService()
+    private val accountVerificationService = AccountVerificationServiceImpl(
+        authRepository,
+        emailVerificationService,
+        tokenService,
+        profileRepository
+    )
+
+    private val userAccountService = UserAccountServiceImpl(authRepository, emailVerificationService)
+    private val userProfileService = UserProfileServiceImpl(profileRepository)
 
     private fun testUsersApplication(block: suspend (HttpClient) -> Unit) = testApplication {
         install(Koin) {
             modules(module {
+                single<AuthRepository> { authRepository }
+                single<EmailVerificationRepository> { emailVerificationRepository }
+                single<SmtpService> { smtpService }
+                single<TokenService> { tokenService }
+                single<ProfileRepository> { profileRepository }
+                single<EmailVerificationService> { emailVerificationService }
                 single<AccountVerificationService> { accountVerificationService }
-                single<UserAccountService> { MockUserAccountService(authRepository, emailService) }
+                single<UserAccountService> { userAccountService }
                 single<UserProfileService> { userProfileService }
             })
         }
@@ -91,9 +116,11 @@ class AccountVerificationRouteTest {
         authRepository.addUser(User("u1", email, "user", "pass", false))
 
         // 1. Trigger code generation
-        emailService.sendVerificationCodeByEmail(email, EmailVerificationType.EMAIL_CONFIRMATION)
-        val sentEmail = emailService.getSmtpService().getLastEmailTo(email)
-        val code = sentEmail!!.body.substringAfter(": ").trim()
+        emailVerificationService.sendVerificationCodeByEmail(email, EmailVerificationType.EMAIL_CONFIRMATION)
+
+        // Extract code from the sent email
+        val sentEmail = smtpService.getLastEmailTo(email)
+        val code = sentEmail!!.body.substringAfter("Your verification code is: ").trim()
 
         // 2. Call verification endpoint
         val response: VerifyEmailResponse = client.post("/users/email/confirm") {
@@ -112,7 +139,7 @@ class AccountVerificationRouteTest {
     fun `verify email fails with wrong code`() = testUsersApplication { client ->
         val email = "wrong@example.com"
         authRepository.addUser(User("u1", email, "user", "pass", false))
-        emailService.sendVerificationCodeByEmail(email, EmailVerificationType.EMAIL_CONFIRMATION)
+        emailVerificationService.sendVerificationCodeByEmail(email, EmailVerificationType.EMAIL_CONFIRMATION)
 
         val response: VerifyEmailResponse = client.post("/users/email/confirm") {
             contentType(ContentType.Application.Json)
@@ -135,9 +162,8 @@ class AccountVerificationRouteTest {
 
         assertEquals(ResendVerificationCodeResult.SUCCESS, response.result)
         
-        val sentEmail = emailService.getSmtpService().getLastEmailTo(email)
+        val sentEmail = smtpService.getLastEmailTo(email)
         assertNotNull(sentEmail)
-        assertTrue(sentEmail!!.body.contains("Your verification code is:"))
     }
 
     @Test

@@ -11,7 +11,7 @@ import hexonkmp.composeapp.generated.resources.Res
 import kotlinx.coroutines.flow.Flow
 
 @Composable
-fun HexonGameView(
+fun ThreeJsView(
     commands: Flow<GameCommand>,
     onGameEvent: (GameEvent) -> Unit,
     modifier: Modifier = Modifier

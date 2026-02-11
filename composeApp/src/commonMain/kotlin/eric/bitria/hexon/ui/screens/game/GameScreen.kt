@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import eric.bitria.hexon.render.HexonGameView
+import eric.bitria.hexon.render.ThreeJsView
 import eric.bitria.hexon.ui.screens.Screens
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.game.GameSceneViewModel
@@ -24,7 +24,7 @@ fun GameScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Shared 3D View (Stays active across the entire nested graph)
-        HexonGameView(
+        ThreeJsView(
             modifier = Modifier.fillMaxSize(),
             commands = gameSceneViewModel.gameCommands,
             onGameEvent = { event ->
