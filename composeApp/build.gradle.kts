@@ -69,7 +69,7 @@ kotlin {
             implementation(libs.insert.koin.koin.core)
 
             // Persistent Settings and Persistent Encrypted Data
-            implementation(libs.multiplatform.settings.no.arg)
+            implementation(libs.androidx.datastore.preferences)
 
             // Ktor Client
             implementation(libs.ktor.client.core)

@@ -45,7 +45,6 @@ fun initKoin(
         modules(
             platformModule(),
             repositoryModule,
-            storageModule,
             networkModule,
             viewModelsModule
         )
