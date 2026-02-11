@@ -20,27 +20,3 @@ tasks.register<GenerateEnvConfigTask>("generateEnvConfig") {
     buildVariant.set(selectedVariant)
     sharedSrcDir.set(rootProject.file("shared/src"))
 }
-
-tasks.register("runServer") {
-    group = "application"
-    description = "Starts DB, runs the Server, and shuts down DB on exit"
-
-    dependsOn("dbUp")
-    finalizedBy("dbDown")
-
-    dependsOn(":server:run")
-}
-
-tasks.register<Exec>("dbUp") {
-    group = "database"
-    description = "Starts the PostgreSQL database using Docker Compose"
-    commandLine("/usr/local/bin/docker", "compose", "up", "-d")
-}
-
-tasks.register<Exec>("dbDown") {
-    group = "database"
-    description = "Stops the PostgreSQL database"
-    commandLine("/usr/local/bin/docker", "compose", "down")
-}
-
-

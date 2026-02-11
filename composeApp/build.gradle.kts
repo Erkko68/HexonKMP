@@ -98,8 +98,3 @@ kotlin {
         freeCompilerArgs.add("-Xskip-prerelease-check")
     }
 }
-
-
-tasks.matching { it.name == "preBuild" }.configureEach {
-    dependsOn(":threeJs:generateThreeJsBundle")
-}

@@ -6,9 +6,9 @@ android-targetSdk = "35"
 androidx-activity = "1.12.3"
 androidx-lifecycle = "2.9.6"
 coil = "3.3.0"
+
 componentsResources = "1.10.0"
-composeMultiplatform = "1.10.0"
-exposedJavaTime = "1.0.0"
+composeMultiplatform = "1.10.1"
 foundation = "1.10.0"
 htmlCoreVersion = "1.10.0"
 jakartaMail = "2.0.2"
@@ -28,21 +28,16 @@ materialIconsExtended = "1.7.3"
 junitPlatform = "6.0.2"
 junitJupiter = "6.0.2"
 
-ktlint = "14.0.1"
-
 exposed = "1.0.0"
 postgresql = "42.7.9"
 hikaricp = "7.0.2"
 bcrypt = "0.10.2"
-runtime = "1.10.0"
+runtime = "1.10.1"
 ui = "1.10.0"
 uiToolingPreview = "1.10.0"
 uuidCreator = "6.1.1"
 coreKtx = "1.17.0"
-kvault = "1.12.0"
 
-buildkonfig = "0.17.1"
-vekt = "0.1.0"
 androidx-datastore = "1.2.0"
 
 [libraries]
@@ -52,7 +47,6 @@ androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coil" }
 components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "componentsResources" }
-exposed-java-time = { module = "org.jetbrains.exposed:exposed-java-time", version.ref = "exposedJavaTime" }
 foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "foundation" }
 jakarta-mail = { module = "com.sun.mail:jakarta.mail", version.ref = "jakartaMail" }
 java-jwt = { module = "com.auth0:java-jwt", version.ref = "javaJwt" }
@@ -97,6 +91,7 @@ junit-platform-engine = { module = "org.junit.platform:junit-platform-engine", v
 junit-platform-commons = { module = "org.junit.platform:junit-platform-commons", version.ref = "junitPlatform" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 
+exposed-java-time = { module = "org.jetbrains.exposed:exposed-java-time", version.ref = "exposed" }
 exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
 exposed-dao = { module = "org.jetbrains.exposed:exposed-dao", version.ref = "exposed" }
 exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
@@ -111,12 +106,6 @@ ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", v
 uuid-creator = { module = "com.github.f4b6a3:uuid-creator", version.ref = "uuidCreator" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 
-kvault = { module = "com.liftric:kvault", version.ref = "kvault" }
-
-buildkonfig-gradle-plugin = { module = "com.codingfeline.buildkonfig:buildkonfig-gradle-plugin", version.ref = "buildkonfig" }
-vekt-compose = { module = "io.aimei:vekt-compose", version.ref = "vekt" }
-vekt-core = { module = "io.aimei:vekt-core", version.ref = "vekt" }
-
 [plugins]
 androidLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -126,6 +115,5 @@ kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-buildkonfig = { id = "com.codingfeline.buildkonfig", version.ref = "buildkonfig" }
+
