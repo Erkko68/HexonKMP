@@ -29,11 +29,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import eric.bitria.hexon.data.repository.ApiResult
 import eric.bitria.hexon.ui.components.profile.GameHistoryCard
 import eric.bitria.hexon.ui.components.profile.UserInfoSection
 import eric.bitria.hexon.ui.components.shared.HexonHeader
 import eric.bitria.hexon.ui.components.shared.HexonIconButton
-import eric.bitria.hexon.api.repository.ApiResult
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.utils.toVividColor
 import eric.bitria.hexon.viewmodel.social.ProfileViewModel

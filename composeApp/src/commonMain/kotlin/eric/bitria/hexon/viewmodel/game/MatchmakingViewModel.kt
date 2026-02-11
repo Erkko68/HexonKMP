@@ -5,9 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.repository.ApiResult
-import eric.bitria.hexon.api.repository.GameRepository
-import eric.bitria.hexon.api.repository.MatchmakingRepository
+import eric.bitria.hexon.data.repository.ApiResult
+import eric.bitria.hexon.data.repository.GameRepository
+import eric.bitria.hexon.data.repository.MatchmakingRepository
 import eric.bitria.hexon.dtos.matchmaking.JoinGameResult
 import eric.bitria.hexon.ws.GameMessage
 import eric.bitria.hexon.ws.LobbyEvent

@@ -5,9 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.repository.ApiResult
-import eric.bitria.hexon.api.repository.AuthRepository
-import eric.bitria.hexon.api.repository.UserRepository
+import eric.bitria.hexon.data.repository.ApiResult
+import eric.bitria.hexon.data.repository.AuthRepository
+import eric.bitria.hexon.data.repository.UserRepository
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.RegisterResult
 import eric.bitria.hexon.utils.Validators

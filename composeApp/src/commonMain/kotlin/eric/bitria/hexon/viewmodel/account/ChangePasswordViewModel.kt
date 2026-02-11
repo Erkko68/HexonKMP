@@ -5,8 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.repository.ApiResult
-import eric.bitria.hexon.api.repository.UserRepository
+import eric.bitria.hexon.data.repository.ApiResult
+import eric.bitria.hexon.data.repository.UserRepository
 import eric.bitria.hexon.dtos.account.ChangePasswordResult
 import eric.bitria.hexon.utils.Validators
 import kotlinx.coroutines.launch

@@ -5,11 +5,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.repository.ApiResult
-import eric.bitria.hexon.api.repository.AuthRepository
-import eric.bitria.hexon.data.UserPreferencesRepository
+import eric.bitria.hexon.data.repository.ApiResult
+import eric.bitria.hexon.data.repository.AuthRepository
+import eric.bitria.hexon.data.repository.UserPreferencesRepository
 import eric.bitria.hexon.dtos.auth.LogoutResult
-import eric.bitria.hexon.model.SettingsUiState
+import eric.bitria.hexon.data.model.SettingsUiState
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn

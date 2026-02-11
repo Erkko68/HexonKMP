@@ -50,10 +50,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import eric.bitria.hexon.data.repository.ApiResult
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.ui.components.shared.HexonPrimaryButton
-import eric.bitria.hexon.api.repository.ApiResult
 import eric.bitria.hexon.viewmodel.auth.LoginViewModel
 import org.koin.compose.viewmodel.koinViewModel
 

@@ -2,7 +2,7 @@ package eric.bitria.hexon.viewmodel.game
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.repository.GameRepository
+import eric.bitria.hexon.data.repository.GameRepository
 import eric.bitria.hexon.game.Board
 import eric.bitria.hexon.game.GamePlayer
 import eric.bitria.hexon.game.data.BuildingId

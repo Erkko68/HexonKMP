@@ -5,9 +5,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.dtos.social.*
-import eric.bitria.hexon.api.repository.ApiResult
-import eric.bitria.hexon.api.repository.SocialRepository
+import eric.bitria.hexon.data.repository.ApiResult
+import eric.bitria.hexon.data.repository.SocialRepository
+import eric.bitria.hexon.dtos.social.AddFriendResult
+import eric.bitria.hexon.dtos.social.FriendRequestAction
+import eric.bitria.hexon.dtos.social.GetFriendRequestsResult
+import eric.bitria.hexon.dtos.social.GetFriendsResult
+import eric.bitria.hexon.dtos.social.RespondFriendResult
 import eric.bitria.hexon.viewmodel.data.Friend
 import kotlinx.coroutines.launch
 
@@ -40,12 +44,12 @@ class FriendsViewModel(
             when (val result = socialRepository.getFriends()) {
                 is ApiResult.Success -> {
                     val response = result.data
-                    if (response.result == GetFriendsResult.SUCCESS) {
-                        friendsState = ApiResult.Success(
+                    friendsState = if (response.result == GetFriendsResult.SUCCESS) {
+                        ApiResult.Success(
                             response.friends.map { Friend(it.id, it.username, it.isOnline) }
                         )
                     } else {
-                        friendsState = ApiResult.Error(response.message ?: "Failed to load friends")
+                        ApiResult.Error(response.message ?: "Failed to load friends")
                     }
                 }
                 is ApiResult.NetworkError -> {

@@ -1,4 +1,4 @@
-package eric.bitria.hexon.model
+package eric.bitria.hexon.data.model
 
 data class SettingsUiState(
     val masterVolume: Float = 1.0f,

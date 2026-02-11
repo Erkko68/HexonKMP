@@ -15,8 +15,8 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.svg.SvgDecoder
-import eric.bitria.hexon.api.repository.ApiResult
-import eric.bitria.hexon.api.repository.AssetsRepository
+import eric.bitria.hexon.data.repository.ApiResult
+import eric.bitria.hexon.data.repository.AssetsRepository
 import eric.bitria.hexon.dtos.assets.IconResponse
 import io.ktor.utils.io.core.toByteArray
 import org.koin.compose.koinInject

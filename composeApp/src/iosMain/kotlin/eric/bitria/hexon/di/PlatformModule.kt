@@ -3,8 +3,11 @@ package eric.bitria.hexon.di
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
-import eric.bitria.hexon.data.DataStoreUserPreferencesRepository
-import eric.bitria.hexon.data.UserPreferencesRepository
+import eric.bitria.hexon.data.local.DATA_STORE_FILE_NAME
+import eric.bitria.hexon.data.local.DataStoreTokenStorage
+import eric.bitria.hexon.data.local.TokenStorage
+import eric.bitria.hexon.data.repository.DataStoreUserPreferencesRepository
+import eric.bitria.hexon.data.repository.UserPreferencesRepository
 import kotlinx.cinterop.ExperimentalForeignApi
 import okio.Path.Companion.toPath
 import org.koin.core.module.Module

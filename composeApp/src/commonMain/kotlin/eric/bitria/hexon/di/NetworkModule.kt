@@ -1,6 +1,7 @@
 package eric.bitria.hexon.di
 
 import eric.bitria.hexon.config.EnvConfig
+import eric.bitria.hexon.data.local.TokenStorage
 import eric.bitria.hexon.dtos.auth.RefreshRequest
 import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RefreshResult

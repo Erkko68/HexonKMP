@@ -2,9 +2,9 @@ package eric.bitria.hexon
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexon.api.repository.ApiResult
-import eric.bitria.hexon.api.repository.AuthRepository
-import eric.bitria.hexon.di.TokenStorage
+import eric.bitria.hexon.data.local.TokenStorage
+import eric.bitria.hexon.data.repository.ApiResult
+import eric.bitria.hexon.data.repository.AuthRepository
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow

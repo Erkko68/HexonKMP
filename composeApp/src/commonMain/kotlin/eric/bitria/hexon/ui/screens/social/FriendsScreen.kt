@@ -25,11 +25,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import eric.bitria.hexon.data.repository.ApiResult
 import eric.bitria.hexon.ui.components.friends.AddFriendInput
 import eric.bitria.hexon.ui.components.friends.FriendListItem
 import eric.bitria.hexon.ui.components.shared.HexonHeader
 import eric.bitria.hexon.ui.components.shared.HexonIconButton
-import eric.bitria.hexon.api.repository.ApiResult
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.social.FriendsViewModel
 import org.koin.compose.viewmodel.koinViewModel

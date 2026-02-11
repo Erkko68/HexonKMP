@@ -8,6 +8,7 @@ import eric.bitria.hexon.viewmodel.game.GameSceneViewModel
 import eric.bitria.hexon.viewmodel.game.GameViewModel
 import eric.bitria.hexon.viewmodel.game.LobbyViewModel
 import eric.bitria.hexon.viewmodel.game.MatchmakingViewModel
+
 import eric.bitria.hexon.viewmodel.social.FriendProfileViewModel
 import eric.bitria.hexon.viewmodel.social.FriendsViewModel
 import eric.bitria.hexon.viewmodel.social.ProfileViewModel
