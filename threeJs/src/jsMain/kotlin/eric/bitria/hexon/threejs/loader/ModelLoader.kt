@@ -1,83 +1,130 @@
 package eric.bitria.hexon.threejs.loader
 
-import kotlin.js.Promise
-
 /**
- * Handles loading and caching of GLB/GLTF 3D models.
- * Uses the global window.GLTFLoader which is created once in Main.kt to avoid duplicate instances.
+ * Utilities for loading and positioning models in the Three.js scene.
  */
-class ModelLoader() {
-
-    // Use global GLTFLoader exposed on window by Main.kt
-    private val loader: dynamic = js("window.GLTFLoader")
-
-    // Cache for loaded models (URL -> loaded GLTF scene)
-    private val cache = mutableMapOf<String, dynamic>()
-
-    // Pending loads to prevent duplicate requests
-    private val pending = mutableMapOf<String, Promise<dynamic>>()
+object ModelLoader {
 
     /**
-     * Load a building model by its ID (e.g., "road", "settlement").
+     * Position a model in 3D space using hex coordinates.
+     * Converts hex cube coordinates (q, r) to cartesian 3D space.
+     *
+     * For a hex grid with flat-top hexagons:
+     * - x = size * (3/2 * q)
+     * - z = size * (√3/2 * q + √3 * r)
+     * - y = 0 (flat on ground)
      */
-    fun loadBuilding(buildingId: String): Promise<dynamic> {
-        return load(ModelPaths.building(buildingId))
+    fun positionHex(model: dynamic, q: Int, r: Int, hexSize: Float = 1f) {
+        val sqrt3 = js("Math.sqrt(3)") as Double
+        val x = hexSize.toDouble() * (3.0 / 2.0 * q)
+        val z = hexSize.toDouble() * (sqrt3 / 2.0 * q + sqrt3 * r)
+        val y = 0f
+
+        model.position.set(x, y, z)
     }
 
     /**
-     * Load a hex tile model by resource ID (e.g., "wood", "ore").
+     * Position a building (vertex or edge building) in 3D space.
+     * Takes multiple hex coordinates to determine the position.
      */
-    fun loadHex(resourceId: String): Promise<dynamic> {
-        return load(ModelPaths.hex(resourceId))
+    fun positionBuilding(
+        model: dynamic,
+        hexCoords: List<Pair<Int, Int>>,
+        hexSize: Float = 1f,
+        heightOffset: Float = 0.5f
+    ) {
+        // Calculate center point of the hex coordinates
+        var totalX = 0.0
+        var totalZ = 0.0
+        val sqrt3 = js("Math.sqrt(3)") as Double
+
+        hexCoords.forEach { (q, r) ->
+            val x = hexSize.toDouble() * (3.0 / 2.0 * q)
+            val z = hexSize.toDouble() * (sqrt3 / 2.0 * q + sqrt3 * r)
+            totalX += x
+            totalZ += z
+        }
+
+        val avgX = totalX / hexCoords.size
+        val avgZ = totalZ / hexCoords.size
+        val y = heightOffset
+
+        model.position.set(avgX, y, avgZ)
     }
 
     /**
-     * Load a GLB model from the given URL.
-     * Returns a cloned scene to allow multiple instances.
+     * Scale a model uniformly
      */
-    fun load(url: String): Promise<dynamic> {
-        // Return cached model (cloned)
-        val cached = cache[url]
-        if (cached != null) {
-            return Promise.resolve(cloneModel(cached))
-        }
+    @Suppress("UNUSED")
+    fun scale(model: dynamic, scale: Float) {
+        model.scale.set(scale, scale, scale)
+    }
 
-        // Return pending request if one exists
-        val pendingPromise = pending[url]
-        if (pendingPromise != null) {
-            return pendingPromise.then<dynamic> { cached -> cloneModel(cached) }
-        }
+    /**
+     * Rotate a model on the Y axis (in radians)
+     */
+    @Suppress("UNUSED")
+    fun rotateY(model: dynamic, radians: Float) {
+        model.rotation.y = radians
+    }
 
-        // Create new load request
-        val promise = Promise<dynamic> { resolve, reject ->
-            loader.load(
-                url,
-                { gltf: dynamic ->
-                    cache[url] = gltf.scene
-                    pending.remove(url)
-                    resolve(cloneModel(gltf.scene))
-                },
-                { _: dynamic -> /* progress */ },
-                { error: dynamic ->
-                    pending.remove(url)
-                    console.error("ModelLoader: Failed to load $url", error)
-                    reject(error)
+    /**
+     * Add materials and textures properties to improve visual appearance
+     */
+    @Suppress("UNUSED")
+    fun applyMaterial(model: dynamic, color: Int = 0xffffff, metalness: Float = 0.5f, roughness: Float = 0.5f) {
+        // Traverse all children and apply material
+        model.traverse { child: dynamic ->
+            if (js("child.isMesh") as Boolean) {
+                if (js("child.material") != null) {
+                    child.material.color.setHex(color)
+                    if (js("child.material.metalness !== undefined") as Boolean) {
+                        child.material.metalness = metalness
+                    }
+                    if (js("child.material.roughness !== undefined") as Boolean) {
+                        child.material.roughness = roughness
+                    }
                 }
-            )
+            }
         }
-
-        pending[url] = promise
-        return promise
     }
 
     /**
-     * Clear all cached models.
+     * Compute the bounding box of a model.
+     * Returns an object with min, max, and size vectors.
      */
-    fun clearCache() {
-        cache.clear()
+    fun computeBoundingBox(model: dynamic): dynamic {
+        val box = js("new THREE.Box3()")
+        box.setFromObject(model)
+
+        val size = js("new THREE.Vector3()")
+        box.getSize(size)
+
+        return js("({ min: box.min, max: box.max, size: size })")
     }
 
-    private fun cloneModel(scene: dynamic): dynamic {
-        return scene.clone()
+    /**
+     * Get the hex size from a model's bounding box.
+     * For flat-top hexagons, the width (x-axis) is 2 * size,
+     * so we return width / 2.
+     */
+    fun getHexSizeFromModel(model: dynamic): Double {
+        val bounds = computeBoundingBox(model)
+        val width = bounds.size.x as Double
+        // For flat-top hex: width = 2 * hexSize, so hexSize = width / 2
+        return width / 2.0
+    }
+
+    /**
+     * Get the full dimensions of a model.
+     * Returns a Triple of (width, height, depth).
+     */
+    fun getModelDimensions(model: dynamic): Triple<Double, Double, Double> {
+        val bounds = computeBoundingBox(model)
+        return Triple(
+            bounds.size.x as Double,
+            bounds.size.y as Double,
+            bounds.size.z as Double
+        )
     }
 }

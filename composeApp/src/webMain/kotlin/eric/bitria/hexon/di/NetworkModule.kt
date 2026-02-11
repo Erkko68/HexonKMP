@@ -29,7 +29,7 @@ actual val networkModule = module {
 
         HttpClient(Js) {
             install(WebSockets)
-            install(HttpCookies) // Browser handles cookies automatically
+            install(HttpCookies)
 
             install(DefaultRequest) {
                 url(BuildKonfig.BASE_URL)

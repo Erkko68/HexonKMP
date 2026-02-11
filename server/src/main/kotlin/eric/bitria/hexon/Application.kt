@@ -35,12 +35,6 @@ fun Application.module() {
     DatabaseFactory.init(environment.config)
 
     // 3. Install plugins
-    install(ContentNegotiation) { json() }
-    configureSessions()
-    configureSecurity()
-
-    install(WebSockets)
-
     install(CORS) {
         allowMethod(HttpMethod.Options)
         allowMethod(HttpMethod.Get)
@@ -53,10 +47,25 @@ fun Application.module() {
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.Accept)
         
+        exposeHeader(HttpHeaders.SetCookie)
         allowCredentials = true
         allowHost("localhost:8081")
         allowHost("192.168.100.254:8081")
+
+        // Handle null origin from WebView's loadDataWithBaseURL
+        allowOrigins { origin ->
+            origin == "null" ||
+            origin.startsWith("http://10.0.2.2:") ||
+            origin.startsWith("http://localhost:") ||
+            origin.startsWith("http://192.168.100.254:")
+        }
     }
+
+    install(ContentNegotiation) { json() }
+    configureSessions()
+    configureSecurity()
+
+    install(WebSockets)
 
     // 5. Routes
     routing {

@@ -73,6 +73,10 @@ class Board {
             }
         }
 
+        if (resourcePool.isNotEmpty()) {
+            throw IllegalStateException("Config has more resources than coordinates available.")
+        }
+
         // 4. Place Ports
         config.ports.forEach {
             addPort(it.h1, it.h2, it.h3, it.resourceId, it.ratio)

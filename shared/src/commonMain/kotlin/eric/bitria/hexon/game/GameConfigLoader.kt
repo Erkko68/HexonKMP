@@ -55,7 +55,6 @@ object GameConfigLoader {
             repeat(4) { add("wheat") }
             repeat(3) { add("brick") }
             repeat(3) { add("ore") }
-            add("desert")
         }
     }
 
