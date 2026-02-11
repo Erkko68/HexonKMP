@@ -114,17 +114,5 @@ object ModelLoader {
         // For flat-top hex: width = 2 * hexSize, so hexSize = width / 2
         return width / 2.0
     }
-
-    /**
-     * Get the full dimensions of a model.
-     * Returns a Triple of (width, height, depth).
-     */
-    fun getModelDimensions(model: dynamic): Triple<Double, Double, Double> {
-        val bounds = computeBoundingBox(model)
-        return Triple(
-            bounds.size.x as Double,
-            bounds.size.y as Double,
-            bounds.size.z as Double
-        )
-    }
+    
 }
