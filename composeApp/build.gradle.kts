@@ -90,14 +90,6 @@ kotlin {
             implementation(libs.ktor.client.darwin)
         }
     }
-
-    sourceSets.all {
-        languageSettings.enableLanguageFeature("ExplicitBackingFields")
-    }
-
-    compilerOptions{
-        freeCompilerArgs.add("-Xskip-prerelease-check")
-    }
 }
 
 compose.resources {

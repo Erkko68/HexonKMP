@@ -35,8 +35,8 @@ class GameViewModel(
 ) : ViewModel() {
 
     // --- UI States ---
-    val turnPhase: StateFlow<TurnPhase>
-        field = MutableStateFlow(TurnPhase.WAITING)
+    private val _turnPhase = MutableStateFlow(TurnPhase.WAITING)
+    val turnPhase: StateFlow<TurnPhase> = _turnPhase
 
     // --- Definitions (Derived from Config) ---
     private val _gameConfig = MutableStateFlow<GameConfig?>(null)
@@ -50,37 +50,35 @@ class GameViewModel(
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     // --- Game Data ---
-    val victoryPoints: StateFlow<Int>
-        field = MutableStateFlow(0)
+    private val _victoryPoints = MutableStateFlow(0)
+    val victoryPoints: StateFlow<Int> = _victoryPoints
 
-    val board: StateFlow<Board?>
-        field = MutableStateFlow<Board?>(null)
+    private val _board = MutableStateFlow<Board?>(null)
+    val board: StateFlow<Board?> = _board
 
     // My Full State (Private info visible only to me)
-    val me: StateFlow<GamePlayer?>
-        field = MutableStateFlow<GamePlayer?>(null)
+    private val _me = MutableStateFlow<GamePlayer?>(null)
+    val me: StateFlow<GamePlayer?> = _me
 
     // --- Trade ---
+    private val _offeredResources = MutableStateFlow<Map<ResourceId, Int>>(emptyMap())
+    val offeredResources: StateFlow<Map<ResourceId, Int>> = _offeredResources
 
-    val offeredResources: StateFlow<Map<ResourceId, Int>>
-        field = MutableStateFlow(emptyMap())
-
-    val requestedResources: StateFlow<Map<ResourceId, Int>>
-        field = MutableStateFlow(emptyMap())
-
+    private val _requestedResources = MutableStateFlow<Map<ResourceId, Int>>(emptyMap())
+    val requestedResources: StateFlow<Map<ResourceId, Int>> = _requestedResources
 
     // Opponents State (Public info: name, color, card counts, VPs)
-    val opponents: StateFlow<Map<PlayerId, PlayerSnapshot>>
-        field = MutableStateFlow(emptyMap())
+    private val _opponents = MutableStateFlow<Map<PlayerId, PlayerSnapshot>>(emptyMap())
+    val opponents: StateFlow<Map<PlayerId, PlayerSnapshot>> = _opponents
 
-    val activePlayerId: StateFlow<PlayerId?>
-        field = MutableStateFlow<PlayerId?>(null)
+    private val _activePlayerId = MutableStateFlow<PlayerId?>(null)
+    val activePlayerId: StateFlow<PlayerId?> = _activePlayerId
 
-    val trades: StateFlow<Map<PlayerId, TradeOffer>>
-        field = MutableStateFlow(emptyMap())
+    private val _trades = MutableStateFlow<Map<PlayerId, TradeOffer>>(emptyMap())
+    val trades: StateFlow<Map<PlayerId, TradeOffer>> = _trades
 
-    val tradeResponses: StateFlow<Map<PlayerId, Boolean?>>
-        field = MutableStateFlow(emptyMap())
+    private val _tradeResponses = MutableStateFlow<Map<PlayerId, Boolean?>>(emptyMap())
+    val tradeResponses: StateFlow<Map<PlayerId, Boolean?>> = _tradeResponses
 
     init {
         // Listen to render events (engine lifecycle)
@@ -112,7 +110,7 @@ class GameViewModel(
         when (event) {
             is RenderEvent.Initialised -> {
                 // The engine initialized/reinitialized, sync Board
-                board.value?.let(::syncScene)
+                _board.value?.let(::syncScene)
             }
         }
     }
@@ -173,8 +171,8 @@ class GameViewModel(
             initialize(config)
         }
 
-        board.value = boardInstance
-        victoryPoints.value = config.victoryPoints
+        _board.value = boardInstance
+        _victoryPoints.value = config.victoryPoints
 
         syncScene(boardInstance)
     }
@@ -217,11 +215,15 @@ class GameViewModel(
     }
 
     private fun onTurnChanged(event: GameplayEvent.TurnChanged) {
-        activePlayerId.value = event.newPlayerId
-        if (event.newPlayerId == me.value?.id) {
-            turnPhase.value = TurnPhase.MAIN_PHASE
+        _activePlayerId.value = event.newPlayerId
+        if(event.turnPhase == TurnPhase.SETUP){
+            _turnPhase.value = TurnPhase.SETUP
+            return
+        }
+        if (event.newPlayerId == _me.value?.id) {
+            _turnPhase.value = TurnPhase.MAIN_PHASE
         } else {
-            turnPhase.value = TurnPhase.WAITING
+            _turnPhase.value = TurnPhase.WAITING
         }
     }
 
@@ -250,23 +252,23 @@ class GameViewModel(
 
     // UI
     fun onOfferedResourceSelected(resourceId: ResourceId) {
-        val player = me.value ?: return
+        val player = _me.value ?: return
 
-        val currentCount = offeredResources.value[resourceId] ?: 0
+        val currentCount = _offeredResources.value[resourceId] ?: 0
         val available = player.resources[resourceId] ?: 0
 
         if (currentCount < available) {
             // Increment selected count
-            offeredResources.value = offeredResources.value.toMutableMap().apply {
+            _offeredResources.value = _offeredResources.value.toMutableMap().apply {
                 put(resourceId, currentCount + 1)
             }
         }
     }
 
     fun onOfferedResourceDeselected(resourceId: ResourceId) {
-        val currentCount = offeredResources.value[resourceId] ?: 0
+        val currentCount = _offeredResources.value[resourceId] ?: 0
         if (currentCount > 0) {
-            offeredResources.value = offeredResources.value.toMutableMap().apply {
+            _offeredResources.value = _offeredResources.value.toMutableMap().apply {
                 put(resourceId, currentCount - 1)
                 if (this[resourceId] == 0) remove(resourceId)
             }
@@ -274,16 +276,16 @@ class GameViewModel(
     }
 
     fun onRequestedResourceSelected(resourceId: ResourceId) {
-        requestedResources.update { current ->
+        _requestedResources.update { current ->
             val newCount = (current[resourceId] ?: 0) + 1
             current.toMutableMap().apply { put(resourceId, newCount) }
         }
     }
 
     fun onRequestedResourceDeselected(resourceId: ResourceId) {
-        val currentCount = requestedResources.value[resourceId] ?: 0
+        val currentCount = _requestedResources.value[resourceId] ?: 0
         if (currentCount > 0) {
-            requestedResources.value = requestedResources.value.toMutableMap().apply {
+            _requestedResources.value = _requestedResources.value.toMutableMap().apply {
                 put(resourceId, currentCount - 1)
                 if (this[resourceId] == 0) remove(resourceId)
             }
@@ -291,13 +293,13 @@ class GameViewModel(
     }
 
     fun switchTradePanel() {
-        turnPhase.value = when (turnPhase.value) {
+        _turnPhase.value = when (_turnPhase.value) {
             TurnPhase.TRADE -> TurnPhase.MAIN_PHASE
             TurnPhase.MAIN_PHASE -> TurnPhase.TRADE
-            else -> turnPhase.value
+            else -> _turnPhase.value
         }
-        requestedResources.value = emptyMap()
-        offeredResources.value = emptyMap()
+        _requestedResources.value = emptyMap()
+        _offeredResources.value = emptyMap()
     }
 
     // Intent
@@ -305,21 +307,21 @@ class GameViewModel(
         viewModelScope.launch {
             repository.sendMessage(
                 GameplayIntent.ExchangeWithBank(
-                    give = offeredResources.value,
-                    get = requestedResources.value
+                    give = _offeredResources.value,
+                    get = _requestedResources.value
                 )
             )
         }
-        offeredResources.value = emptyMap()
-        requestedResources.value = emptyMap()
+        _offeredResources.value = emptyMap()
+        _requestedResources.value = emptyMap()
     }
 
     fun sendPlayerExchange() {
         viewModelScope.launch {
             repository.sendMessage(
                 GameplayIntent.ProposeTrade(
-                    give = offeredResources.value,
-                    want = requestedResources.value
+                    give = _offeredResources.value,
+                    want = _requestedResources.value
                 )
             )
         }
@@ -359,18 +361,18 @@ class GameViewModel(
         viewModelScope.launch {
             repository.sendMessage(
                 GameplayIntent.CancelTrade(
-                    offererId = me.value?.id ?: return@launch
+                    offererId = _me.value?.id ?: return@launch
                 )
             )
         }
     }
 
     fun canSendBankExchange(): Boolean {
-        val player = me.value ?: return false
+        val player = _me.value ?: return false
         val config = _gameConfig.value ?: return false
 
-        val offered = offeredResources.value
-        val requested = requestedResources.value
+        val offered = _offeredResources.value
+        val requested = _requestedResources.value
 
         // 1. Basic validation: Must actually want something
         if (requested.isEmpty() || requested.values.sum() == 0) {
@@ -389,33 +391,33 @@ class GameViewModel(
     }
 
     fun canSendPlayerTrade(): Boolean {
-        val player = me.value ?: return false
-        return player.canProposeTrade(offeredResources.value, requestedResources.value)
+        val player = _me.value ?: return false
+        return player.canProposeTrade(_offeredResources.value, _requestedResources.value)
     }
 
     // Event
     fun onTradeProposed(event: GameplayEvent.TradeProposed) {
         // Store new Trade
-        trades.value = trades.value.toMutableMap().apply {
+        _trades.value = _trades.value.toMutableMap().apply {
             put(event.offererId, TradeOffer(event.give, event.want))
         }
     }
 
     fun onTradeResponse(event: GameplayEvent.TradeResponse) {
         // Store new Trade
-        tradeResponses.value = tradeResponses.value.toMutableMap().apply {
+        _tradeResponses.value = _tradeResponses.value.toMutableMap().apply {
             put(event.offererId, event.accepted)
         }
     }
 
     fun onTradeCompleted(event: GameplayEvent.TradeCompleted){
-        trades.value = trades.value.toMutableMap().apply {
+        _trades.value = _trades.value.toMutableMap().apply {
             remove(event.offererId)
         }
     }
 
     fun onTradeCancelled(event: GameplayEvent.TradeCancelled){
-        trades.value = trades.value.toMutableMap().apply {
+        _trades.value = _trades.value.toMutableMap().apply {
             remove(event.offererId)
         }
     }
@@ -423,14 +425,14 @@ class GameViewModel(
     // --- Players ---
 
     private fun addOpponent(snapshot: PlayerSnapshot) {
-        if (snapshot.id == me.value?.id) return
-        val current = opponents.value.toMutableMap()
+        if (snapshot.id == _me.value?.id) return
+        val current = _opponents.value.toMutableMap()
         current[snapshot.id] = snapshot
-        opponents.value = current
+        _opponents.value = current
     }
 
     private fun updateMyStats(updatedMe: GamePlayer) {
-        me.value = updatedMe
+        _me.value = updatedMe
     }
 
     // --- Resources ---
@@ -445,29 +447,42 @@ class GameViewModel(
     }
 
     private fun handleResourcesUpdated(event: GameplayEvent.ResourcesUpdated) {
-        val currentMe = me.value ?: return
-        currentMe.addResources(event.changes)
-        me.value = currentMe
+        println("Resources Updated: $event")
+        val currentMe = _me.value ?: return
+
+        // Create a NEW resources map with changes applied
+        val newResources = currentMe.resources.toMutableMap()
+        event.changes.forEach { (resId, amount) ->
+            val current = newResources[resId] ?: 0
+            val newValue = current + amount
+            if (newValue <= 0) {
+                newResources.remove(resId)
+            } else {
+                newResources[resId] = newValue
+            }
+        }
+
+        // Create a new GamePlayer with the new resources map
+        _me.value = currentMe.copy(resources = newResources)
     }
 
     private fun handleResourceCountUpdated(event: GameplayEvent.ResourceCountUpdated) {
-        val currentMap = opponents.value
+        val currentMap = _opponents.value
         val snapshot = currentMap[event.playerId] ?: return
         val updatedSnapshot = snapshot.copy(
             resourceCount = snapshot.resourceCount + event.changes
         )
-        opponents.value = currentMap.toMutableMap().apply {
+        _opponents.value = currentMap.toMutableMap().apply {
             put(event.playerId, updatedSnapshot)
         }
     }
-
 
     // --- Buildings ---
 
     // Intent
     fun showAvailableBuildingPositions(buildingId: BuildingId) {
-        val player = me.value ?: return
-        val boardInstance = board.value ?: return
+        val player = _me.value ?: return
+        val boardInstance = _board.value ?: return
         val building = buildingsDef.value.firstOrNull { it.id == buildingId } ?: return
 
         val command = when (building.type) {
@@ -476,7 +491,7 @@ class GameViewModel(
                 ShowEdgeBuildingPositions(buildingId, locations)
             }
             PlacementType.VERTEX -> {
-                val checkConnection = turnPhase.value != TurnPhase.SETUP
+                val checkConnection = _turnPhase.value != TurnPhase.SETUP
                 val locations = boardInstance.getAvailableVertexPlacements(player.id, building.id, checkConnection)
                 ShowVertexBuildingPositions(buildingId, locations)
             }
@@ -506,12 +521,13 @@ class GameViewModel(
 
     // Event
     private fun handleObjectBuilt(event: GameplayEvent.ObjectBuilt) {
-        val boardInstance = board.value ?: return
+        val boardInstance = _board.value ?: return
         val def = buildingsDef.value.firstOrNull { it.id == event.buildingId } ?: return
 
         // Update Logical Board
         if (event.hexC != null) {
-            boardInstance.placeVertexBuilding(def.id, event.playerId, event.hexA, event.hexB, event.hexC!!)
+            val checkConnection = _turnPhase.value != TurnPhase.SETUP
+            boardInstance.placeVertexBuilding(def.id, event.playerId, event.hexA, event.hexB, event.hexC!!,checkConnection)
         } else {
             boardInstance.placeEdgeBuilding(def.id, event.playerId, event.hexA, event.hexB)
         }
@@ -526,10 +542,10 @@ class GameViewModel(
             hexC = event.hexC
         ))
 
-        board.value = boardInstance
+        _board.value = boardInstance
 
-        if (event.playerId == me.value?.id) {
-            me.value!!.victoryPoints += def.points
+        if (event.playerId == _me.value?.id) {
+            _me.value!!.victoryPoints += def.points
         }
     }
 

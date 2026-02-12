@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import eric.bitria.hexon.game.data.enums.TurnPhase
 import eric.bitria.hexon.ui.components.game.ControlButton
 import eric.bitria.hexon.ui.components.game.OptionsButton
 import eric.bitria.hexon.ui.components.game.PlayerTurnBar
@@ -33,8 +34,6 @@ import eric.bitria.hexon.ui.components.game.assets.ResourceRow
 import eric.bitria.hexon.ui.components.game.assets.TradeResourceRow
 import eric.bitria.hexon.ui.theme.HexonTheme
 import eric.bitria.hexon.viewmodel.game.GameViewModel
-import eric.bitria.hexon.viewmodel.game.TurnPhase
-import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun GameUI(
