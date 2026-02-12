@@ -38,6 +38,7 @@ class GameView(
             if (clickedObject.userData.isGhostBuilding == true) {
                 handleGhostBuildingClick(clickedObject)
             }
+            clearGhostBuildings()
         }
     }
 
@@ -71,9 +72,6 @@ class GameView(
         } else {
             console.error("AppBridge not available")
         }
-
-        // Clear ghost buildings after placement
-        clearGhostBuildings()
     }
 
     // VISUAL API (Called by Engine)

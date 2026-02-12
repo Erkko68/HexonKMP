@@ -6,11 +6,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import eric.bitria.hexon.game.data.ResourceId
-import kotlin.collections.component1
 
 @Composable
 fun TradeResourceRow(
@@ -26,12 +26,14 @@ fun TradeResourceRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         selected.forEach { (resourceId, count) ->
-            ResourceCard(
-                count = count,
-                resource = resourceId,
-                onClick = { onClick(resourceId) },
-                modifier = Modifier.fillMaxHeight()
-            )
+            key(resourceId) {
+                ResourceCard(
+                    count = count,
+                    resource = resourceId,
+                    onClick = { onClick(resourceId) },
+                    modifier = Modifier.fillMaxHeight()
+                )
+            }
         }
     }
 }

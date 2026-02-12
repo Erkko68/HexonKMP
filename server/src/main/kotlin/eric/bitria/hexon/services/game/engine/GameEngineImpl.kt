@@ -161,7 +161,7 @@ class GameEngineImpl(
         }
 
         players[playerId]?.addResources(toAdd)
-        notifyResourceChanges(playerId, toAdd, UpdateReason.PRODUCTION)
+        notifyResourceChanges(playerId, toAdd, UpdateReason.START)
     }
 
     private suspend fun handleEndTurn() {
@@ -241,10 +241,12 @@ class GameEngineImpl(
         val def = buildings[intent.buildingId]
             ?: return sender.sendToPlayer(userId, GameplayEvent.GameError("Unknown building", GameErrorCode.UNKNOWN_BUILDING))
 
-        if (!player.tryDeductResources(def.cost)) {
+        // Check if player can afford BEFORE deducting
+        if (!player.canDeductResources(def.cost)) {
             return sender.sendToPlayer(userId, GameplayEvent.GameError("Insufficient resources", GameErrorCode.INSUFFICIENT_RESOURCES))
         }
 
+        // Validate placement BEFORE deducting resources
         val success = when (def.type) {
             PlacementType.VERTEX -> {
                 val h3 = intent.h3 ?: return sender.sendToPlayer(
@@ -272,6 +274,9 @@ class GameEngineImpl(
         if (!success) {
             return sender.sendToPlayer(userId, GameplayEvent.GameError("Placement failed (Internal Logic)", GameErrorCode.INVALID_PLACEMENT))
         }
+
+        // NOW deduct resources after successful placement
+        player.tryDeductResources(def.cost)
 
         // Notify resource deduction for building
         val deduction = def.cost.mapValues { -it.value }

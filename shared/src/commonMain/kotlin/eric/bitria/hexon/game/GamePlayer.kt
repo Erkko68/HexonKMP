@@ -47,7 +47,12 @@ data class GamePlayer(
     fun addResources(changes: Map<ResourceId, Int>) {
         changes.forEach { (resId, amount) ->
             val current = resources[resId] ?: 0
-            resources[resId] = current + amount
+            val newValue = current + amount
+            if (newValue <= 0) {
+                resources.remove(resId)
+            } else {
+                resources[resId] = newValue
+            }
         }
     }
 
@@ -62,9 +67,14 @@ data class GamePlayer(
         }
         if (!canAfford) return false
 
-        // 2. Deduct
+        // 2. Deduct and clean up zero entries
         cost.forEach { (resId, amount) ->
-            resources[resId] = resources[resId]!! - amount
+            val newValue = resources[resId]!! - amount
+            if (newValue <= 0) {
+                resources.remove(resId)
+            } else {
+                resources[resId] = newValue
+            }
         }
         return true
     }

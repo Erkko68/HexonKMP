@@ -368,6 +368,9 @@ class GameViewModel(
         }
     }
 
+    val canSendBankExchangeBool: Boolean
+        get() = canSendBankExchange()
+
     fun canSendBankExchange(): Boolean {
         val player = _me.value ?: return false
         val config = _gameConfig.value ?: return false
@@ -551,8 +554,12 @@ class GameViewModel(
 
         _board.value = boardInstance
 
+        // Update victory points immutably if this is the current player
         if (event.playerId == _me.value?.id) {
-            _me.value!!.victoryPoints += def.points
+            val currentMe = _me.value!!
+            _me.value = currentMe.copy(
+                victoryPoints = currentMe.victoryPoints + def.points
+            )
         }
     }
 

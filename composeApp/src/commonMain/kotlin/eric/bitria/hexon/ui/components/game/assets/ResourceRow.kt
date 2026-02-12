@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -26,12 +27,14 @@ fun ResourceRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         resources.forEach { resource ->
-            ResourceCard(
-                count = 0,
-                resource = resource.id,
-                modifier = Modifier.fillMaxHeight(),
-                onClick = { onClick(resource.id) }
-            )
+            key(resource.id) {
+                ResourceCard(
+                    count = 0,
+                    resource = resource.id,
+                    modifier = Modifier.fillMaxHeight(),
+                    onClick = { onClick(resource.id) }
+                )
+            }
         }
     }
 }

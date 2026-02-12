@@ -173,7 +173,7 @@ fun GameUI(
                                 color = MaterialTheme.colorScheme.tertiary,
                                 description = "Bank Trade",
                                 onClick = { viewModel.sendBankExchange() },
-                                enabled = viewModel.canSendBankExchange(),
+                                enabled = viewModel.canSendBankExchangeBool,
                                 modifier = Modifier.size(rowHeight)
                             )
                             ControlButton(

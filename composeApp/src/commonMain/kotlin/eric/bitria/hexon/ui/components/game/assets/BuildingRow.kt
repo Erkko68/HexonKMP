@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import eric.bitria.hexon.game.GamePlayer
 import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.def.BuildingDef
 
@@ -27,11 +27,13 @@ fun BuildingRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         buildings.forEach { building ->
-            BuildingCard(
-                building = building,
-                onClick = { onClick(building.id) },
-                modifier = Modifier.fillMaxHeight()
-            )
+            key(building.id) {
+                BuildingCard(
+                    building = building,
+                    onClick = { onClick(building.id) },
+                    modifier = Modifier.fillMaxHeight()
+                )
+            }
         }
     }
 }
