@@ -12,6 +12,7 @@ import eric.bitria.hexon.game.data.def.ResourceDef
 import eric.bitria.hexon.game.data.ResourceId
 import eric.bitria.hexon.game.data.TradeOffer
 import eric.bitria.hexon.game.data.enums.GameErrorCode
+import eric.bitria.hexon.game.data.enums.TurnPhase
 import eric.bitria.hexon.game.data.enums.UpdateReason
 import eric.bitria.hexon.ws.GameMessage
 import eric.bitria.hexon.ws.GameplayEvent
@@ -20,13 +21,6 @@ import eric.bitria.hexon.ws.lobby.LobbyPlayer
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.collections.forEach
-
-private enum class TurnPhase {
-    SETUP,          // Initial settlement placement (Snake draft)
-    MAIN_PHASE,     // Can build, trade, play cards
-    ROBBER_RESOLUTION, // Waiting for a player to move the robber
-    GAME_OVER
-}
 
 class GameEngineImpl(
     private val sessionId: String,
@@ -49,8 +43,10 @@ class GameEngineImpl(
 
     // Game Loop State
     private val playerQueue = mutableListOf<String>()
+    private val setupQueue = mutableListOf<String>()
+    private var setupTurnIndex = 0
     private var turnIndex = 0
-    private var currentTurnPlayerId: String = ""
+    private var currentTurnPlayerId: PlayerId = ""
     private var currentPhase: TurnPhase = TurnPhase.SETUP
 
     override suspend fun start(lobbyPlayers: List<LobbyPlayer>, sender: GameMessageSender) {
@@ -137,23 +133,85 @@ class GameEngineImpl(
 
         // Get first player
         playerQueue.shuffle()
-        currentTurnPlayerId = playerQueue.elementAt(turnIndex)
+
+        // Init Setup Queue (Snake Draft: 1..N, N..1)
+        setupQueue.clear()
+        setupQueue.addAll(playerQueue)
+        setupQueue.addAll(playerQueue.reversed())
+
+        setupTurnIndex = 0
+        currentPhase = TurnPhase.SETUP
+        currentTurnPlayerId = setupQueue[setupTurnIndex]
+
+        // Grant resources for initial buildings
+        grantInitialResources(currentTurnPlayerId)
 
         // Notify first player
-        sender.broadcast(GameplayEvent.TurnChanged(newPlayerId = currentTurnPlayerId))
+        sender.broadcast(GameplayEvent.TurnChanged(newPlayerId = currentTurnPlayerId, turnPhase = TurnPhase.SETUP))
     }
 
-    private suspend fun rollDice() {
-        // 1. Logic: Generate Random Number
+    private suspend fun grantInitialResources(playerId: String) {
+        val buildingIds = gameConfig.initialBuildings
+        val toAdd = mutableMapOf<ResourceId, Int>()
+
+        buildingIds.forEach { bId ->
+            buildings[bId]?.cost?.forEach { (res, amt) ->
+                toAdd[res] = (toAdd[res] ?: 0) + amt
+            }
+        }
+
+        players[playerId]?.addResources(toAdd)
+        notifyResourceChanges(playerId, toAdd, UpdateReason.PRODUCTION)
+    }
+
+    private suspend fun handleEndTurn() {
+        if (currentPhase == TurnPhase.SETUP) {
+            handleSetupEndTurn()
+        } else {
+            handleMainEndTurn()
+        }
+    }
+
+    private suspend fun handleSetupEndTurn() {
+        val player = players[currentTurnPlayerId] ?: return
+
+        // Ensure player used all resources (placed buildings)
+        if (player.totalResourceCount() > 0) {
+            return sender.sendToPlayer(
+                currentTurnPlayerId,
+                GameplayEvent.GameError("You must place all initial buildings.", GameErrorCode.INVALID_PLACEMENT)
+            )
+        }
+
+        setupTurnIndex++
+
+        if (setupTurnIndex >= setupQueue.size) {
+            // Setup Complete -> Main Phase
+            currentPhase = TurnPhase.MAIN_PHASE
+            turnIndex = -1 // Prepare for handleMainEndTurn to increment to 0
+            handleMainEndTurn()
+        } else {
+            // Next Setup Turn
+            currentTurnPlayerId = setupQueue[setupTurnIndex]
+            grantInitialResources(currentTurnPlayerId)
+            sender.broadcast(GameplayEvent.TurnChanged(newPlayerId = currentTurnPlayerId, turnPhase = TurnPhase.SETUP))
+        }
+    }
+
+    private suspend fun handleMainEndTurn(){
+        // 1. Calculate Next Player
+        turnIndex = (turnIndex + 1) % playerQueue.size
+        currentTurnPlayerId = playerQueue.elementAt(turnIndex)
+
+        // 2. Logic: Generate Random Number
         val roll1 = (1..6).random()
         val roll2 = (1..6).random()
         val total = roll1 + roll2
         var production = mapOf<String, MutableMap<ResourceId, Int>>()
 
-        // 2. Logic: Distribute Resources (Board interaction)
+        // 3. Logic: Calculate Dice Resources
         currentPhase = if (total == 7) {
             TurnPhase.ROBBER_RESOLUTION
-            // Notify clients to discard cards if > 7
         } else {
             production = board.getProductionForRoll(total)
             TurnPhase.MAIN_PHASE
@@ -166,6 +224,9 @@ class GameEngineImpl(
             )
         )
 
+        // 3. Notify New Turn
+        sender.broadcast(GameplayEvent.TurnChanged(newPlayerId = currentTurnPlayerId, turnPhase = currentPhase))
+
         production.forEach { (playerId, resources) ->
             // Store Player Resources
             players[playerId]?.addResources(resources)
@@ -173,18 +234,6 @@ class GameEngineImpl(
             // Notify using the helper
             notifyResourceChanges(playerId, resources, UpdateReason.PRODUCTION)
         }
-    }
-
-    private suspend fun handleEndTurn(){
-        // 1. Calculate Next Player
-        turnIndex = (turnIndex + 1) % playerQueue.size
-        currentTurnPlayerId = playerQueue.elementAt(turnIndex)
-
-        // 3. Notify Everyone
-        sender.broadcast(GameplayEvent.TurnChanged(newPlayerId = currentTurnPlayerId))
-
-        // 4. Roll dice
-        rollDice()
     }
 
     private suspend fun handleBuild(userId: PlayerId, intent: GameplayIntent.Build) {
@@ -201,11 +250,15 @@ class GameEngineImpl(
                 val h3 = intent.h3 ?: return sender.sendToPlayer(
                     userId, GameplayEvent.GameError("Vertex building requires 3 coordinates", GameErrorCode.INVALID_PLACEMENT)
                 )
-                // Validate Rules (skip if Setup phase)
-                if (currentPhase != TurnPhase.SETUP && !board.canPlaceVertexBuilding(userId, intent.h1, intent.h2, h3, def.id)) {
+
+                // Allow placement anywhere during setup (no road connection needed)
+                val checkConnection = currentPhase != TurnPhase.SETUP
+
+                // Validate Rules
+                if (!board.canPlaceVertexBuilding(userId, intent.h1, intent.h2, h3, def.id, checkConnection)) {
                     return sender.sendToPlayer(userId, GameplayEvent.GameError("Invalid placement rule", GameErrorCode.INVALID_PLACEMENT))
                 }
-                board.placeVertexBuilding(def.id, userId, intent.h1, intent.h2, h3)
+                board.placeVertexBuilding(def.id, userId, intent.h1, intent.h2, h3, checkConnection)
             }
             PlacementType.EDGE -> {
                 // Validate Rules
@@ -277,6 +330,10 @@ class GameEngineImpl(
     // --- Trade ---
 
     private suspend fun handleTradeProposal(userId: PlayerId, intent: GameplayIntent.ProposeTrade) {
+        if (currentPhase == TurnPhase.SETUP) {
+            return sender.sendToPlayer(userId, GameplayEvent.GameError("Trading disabled during setup.", GameErrorCode.INVALID_TRADE))
+        }
+
         val player = players[userId] ?: return
 
         if (!player.canProposeTrade(intent.give, intent.want)) {

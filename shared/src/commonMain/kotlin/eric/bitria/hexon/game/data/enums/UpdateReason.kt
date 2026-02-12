@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class UpdateReason {
+    INITIAL,    // Initial resources
     PRODUCTION, // Dice roll
     BUILD,      // Spent resources
     TRADE,      // Swapped with player

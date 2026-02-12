@@ -15,6 +15,7 @@ import eric.bitria.hexon.game.data.config.GameConfig
 import eric.bitria.hexon.game.data.def.BuildingDef
 import eric.bitria.hexon.game.data.def.PlacementType
 import eric.bitria.hexon.game.data.def.ResourceDef
+import eric.bitria.hexon.game.data.enums.TurnPhase
 import eric.bitria.hexon.render.GameCommand.*
 import eric.bitria.hexon.render.GameEvent
 import eric.bitria.hexon.render.RenderEvent
@@ -27,15 +28,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-enum class TurnPhase {
-    SETUP,          // Initial settlement placement
-    WAITING,        // Waiting for server/other players
-    TRADE,
-    MAIN_PHASE,     // Active turn (Build, Trade)
-    ROBBER_RESOLUTION, // Discarding or moving robber
-    GAME_OVER
-}
 
 class GameViewModel(
     private val repository: GameRepository,
@@ -484,7 +476,8 @@ class GameViewModel(
                 ShowEdgeBuildingPositions(buildingId, locations)
             }
             PlacementType.VERTEX -> {
-                val locations = boardInstance.getAvailableVertexPlacements(player.id, building.id)
+                val checkConnection = turnPhase.value != TurnPhase.SETUP
+                val locations = boardInstance.getAvailableVertexPlacements(player.id, building.id, checkConnection)
                 ShowVertexBuildingPositions(buildingId, locations)
             }
         }

@@ -9,6 +9,7 @@ import eric.bitria.hexon.game.data.PlayerSnapshot
 import eric.bitria.hexon.game.data.ResourceId
 import eric.bitria.hexon.game.data.config.GameConfig
 import eric.bitria.hexon.game.data.enums.GameErrorCode
+import eric.bitria.hexon.game.data.enums.TurnPhase
 import eric.bitria.hexon.game.data.enums.UpdateReason
 import kotlinx.serialization.Serializable
 
@@ -77,6 +78,7 @@ sealed class GameplayEvent : GameplayMessage() {
 
     @Serializable
     data class TurnChanged(
+        val turnPhase: TurnPhase,
         val newPlayerId: PlayerId,
     ) : GameplayEvent()
 

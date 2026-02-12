@@ -1,5 +1,6 @@
 package eric.bitria.hexon.game
 
+import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.ResourceId
 import eric.bitria.hexon.game.data.config.FixedTile
@@ -21,6 +22,8 @@ object GameConfigLoader {
             // Rules
             resourceDefs = defaultResourceDef(),
             buildingDefs = defaultBuildingDef(),
+            // Initial Buildings
+            initialBuildings = defaultInitialBuildings(),
             // Geometry
             gridCoords = generateHexGrid(radius = 2),
             ports = defaultPorts(),
@@ -88,5 +91,9 @@ object GameConfigLoader {
             BuildingDef("village", "Village", PlacementType.VERTEX, mapOf("wood" to 1, "brick" to 1, "wheat" to 1, "sheep" to 1), "city", null, 1, 1,10),
             BuildingDef("city", "City", PlacementType.VERTEX, mapOf("wheat" to 2, "ore" to 3), null, "village", 2, 2,10)
         )
+    }
+
+    private fun defaultInitialBuildings(): List<BuildingId> {
+        return listOf("village", "road")
     }
 }

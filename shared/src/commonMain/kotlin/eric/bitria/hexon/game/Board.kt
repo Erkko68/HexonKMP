@@ -97,9 +97,10 @@ class Board {
 
     fun placeVertexBuilding(
         typeId: BuildingId, ownerId: String,
-        h1: HexCoord, h2: HexCoord, h3: HexCoord
+        h1: HexCoord, h2: HexCoord, h3: HexCoord,
+        checkConnection: Boolean = true
     ): Boolean {
-        if (!canPlaceVertexBuilding(ownerId, h1, h2, h3, typeId)) return false
+        if (!canPlaceVertexBuilding(ownerId, h1, h2, h3, typeId, checkConnection)) return false
 
         val def = availableBuildings[typeId] ?: throw IllegalArgumentException("Unknown building type: $typeId")
 
@@ -123,22 +124,41 @@ class Board {
     // --- Validation Rules ---
 
     fun canPlaceVertexBuilding(
-        ownerId: String, h1: HexCoord, h2: HexCoord, h3: HexCoord, targetTypeId: BuildingId
+        ownerId: String,
+        h1: HexCoord, h2: HexCoord, h3: HexCoord,
+        targetTypeId: BuildingId,
+        checkConnection: Boolean = true
     ): Boolean {
+
+        // Basic structural validation
         if (h1 == h2 || h1 == h3 || h2 == h3) return false
         if (!hasTileConnection(h1, h2, h3)) return false
 
-        val def = availableBuildings[targetTypeId] ?: throw IllegalArgumentException("Unknown building type: $targetTypeId")
+        val def = availableBuildings[targetTypeId]
+            ?: error("Unknown building type: $targetTypeId")
+
         if (def.type != PlacementType.VERTEX) return false
 
         val locId = HexCoord.getVertexId(h1, h2, h3)
         val existing = buildings[locId]
 
-        return if (existing != null) {
-            existing.ownerId == ownerId && existing.def.upgrade == targetTypeId
-        } else {
-            return def.downgrade == null && checkVertexDistanceRule(h1, h2, h3)
+        // --- Upgrade case ---
+        if (existing != null) {
+            return existing.ownerId == ownerId &&
+                    existing.def.upgrade == targetTypeId
         }
+
+        // --- New placement case ---
+        // If building has a downgrade, it means it can only be placed as an upgrade
+        if (def.downgrade != null) return false
+
+        if (!checkVertexDistanceRule(h1, h2, h3)) return false
+
+        if (checkConnection &&
+            !hasRoadConnectionToVertex(h1, h2, h3, ownerId)
+        ) return false
+
+        return true
     }
 
     fun canPlaceEdgeBuilding(
@@ -163,7 +183,7 @@ class Board {
     // --- Discovery (AI/UI Helpers) ---
 
     fun getAvailableVertexPlacements(
-        ownerId: String, buildingId: BuildingId
+        ownerId: String, buildingId: BuildingId, checkConnection: Boolean
     ): List<Triple<HexCoord, HexCoord, HexCoord>> {
         val validSpots = mutableListOf<Triple<HexCoord, HexCoord, HexCoord>>()
         val visitedIds = mutableSetOf<String>()
@@ -172,7 +192,7 @@ class Board {
             for ((h1, h2, h3) in getCornerCoords(tile.coordinate)) {
                 val id = HexCoord.getVertexId(h1, h2, h3)
                 if (visitedIds.add(id)) { // Dedup using ID
-                    if (canPlaceVertexBuilding(ownerId, h1, h2, h3, buildingId)) {
+                    if (canPlaceVertexBuilding(ownerId, h1, h2, h3, buildingId, checkConnection)) {
                         validSpots.add(Triple(h1, h2, h3))
                     }
                 }
@@ -238,6 +258,16 @@ class Board {
 
     // --- Private Validators ---
 
+    private fun hasRoadConnectionToVertex(h1: HexCoord, h2: HexCoord, h3: HexCoord, ownerId: String): Boolean {
+        // Check the 3 edges connected to this vertex: (h1,h2), (h2,h3), (h3,h1)
+        val edges = listOf(
+            HexCoord.getEdgeId(h1, h2),
+            HexCoord.getEdgeId(h2, h3),
+            HexCoord.getEdgeId(h3, h1)
+        )
+        return edges.any { buildings[it]?.ownerId == ownerId }
+    }
+
     private fun checkVertexDistanceRule(h1: HexCoord, h2: HexCoord, h3: HexCoord): Boolean {
         // A vertex is valid if NONE of its 3 neighbors are occupied
         val neighbors = listOf(
@@ -249,29 +279,53 @@ class Board {
     }
 
     private fun checkEdgeConnectionRule(h1: HexCoord, h2: HexCoord, ownerId: String): Boolean {
-        // An edge is valid if it connects to an existing road or building owned by player
+        // An edge can be placed if it connects to:
+        // 1. A vertex building of the same owner at either endpoint
+        // 2. Another edge building of the same owner that shares a vertex
+        // BUT: If an opponent's building sits at the connecting vertex, roads cannot extend through that point
+
+        // Get the two vertices that this edge touches
         val commonNeighbors = getCommonNeighbors(h1, h2)
-        if (commonNeighbors.size != 2) return false
 
-        return commonNeighbors.any { neighbor ->
-            val vertexId = HexCoord.getVertexId(h1, h2, neighbor)
-            isConnectedAtVertex(vertexId, ownerId, h1, h2, neighbor)
+        for (thirdHex in commonNeighbors) {
+            val vertexId = HexCoord.getVertexId(h1, h2, thirdHex)
+            val vertexBuilding = buildings[vertexId]
+
+            // Case 1: There's a vertex building at this connection point
+            if (vertexBuilding != null) {
+                if (vertexBuilding.ownerId == ownerId) {
+                    // Our own building - we can connect here
+                    return true
+                }
+                // Opponent's building blocks this vertex - skip checking roads through here
+                continue
+            }
+
+            // Case 2: No building at this vertex - check for connected roads through this vertex
+            // Two edges share a vertex if they have TWO hexes in common.
+            // For edge (h1, h2), the edges that share this vertex {h1, h2, thirdHex} are:
+            // - Edge (h1, thirdHex) - shares h1 and thirdHex with vertex
+            // - Edge (h2, thirdHex) - shares h2 and thirdHex with vertex
+            // We also need to check roads extending from h1 and h2 that go through this vertex:
+            // - Any edge from h1 that also touches thirdHex (i.e., h1-X where X is neighbor of both h1 and thirdHex)
+            // - Any edge from h2 that also touches thirdHex (i.e., h2-X where X is neighbor of both h2 and thirdHex)
+
+            // The edges at vertex {h1, h2, thirdHex} are: (h1,h2), (h2,thirdHex), (thirdHex,h1)
+            // We check (h2,thirdHex) and (thirdHex,h1) since (h1,h2) is what we're placing
+            val connectedEdges = listOf(
+                HexCoord.getEdgeId(h1, thirdHex),
+                HexCoord.getEdgeId(h2, thirdHex)
+            )
+
+            for (edgeId in connectedEdges) {
+                val edgeBuilding = buildings[edgeId]
+                if (edgeBuilding?.ownerId == ownerId && edgeBuilding.def.type == PlacementType.EDGE) {
+                    return true
+                }
+            }
         }
-    }
 
-    private fun isConnectedAtVertex(
-        vertexId: String, ownerId: String, h1: HexCoord, h2: HexCoord, h3: HexCoord
-    ): Boolean {
-        // 1. Direct connection: Player owns the building at this vertex
-        val building = buildings[vertexId]
-        if (building != null && building.ownerId == ownerId) return true
-
-        // 2. Road connection: Player owns one of the other 2 edges coming into this vertex
-        // The vertex is (h1, h2, h3). The edge we are building is (h1, h2).
-        // The other edges are (h1, h3) and (h2, h3).
-        val edgeA = HexCoord.getEdgeId(h1, h3)
-        val edgeB = HexCoord.getEdgeId(h2, h3)
-        return (buildings[edgeA]?.ownerId == ownerId) || (buildings[edgeB]?.ownerId == ownerId)
+        return false
     }
 
     private fun hasTileConnection(h1: HexCoord, h2: HexCoord, h3: HexCoord? = null): Boolean {

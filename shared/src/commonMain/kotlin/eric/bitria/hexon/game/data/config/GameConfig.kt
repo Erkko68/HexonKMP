@@ -1,5 +1,6 @@
 package eric.bitria.hexon.game.data.config
 
+import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.ResourceId
 import eric.bitria.hexon.game.data.def.BuildingDef
@@ -16,6 +17,8 @@ data class GameConfig(
     // --- Definitions (Rules) ---
     val resourceDefs: List<ResourceDef>,
     val buildingDefs: List<BuildingDef>,
+
+    val initialBuildings: List<BuildingId>,
 
     // --- Board Layout (Geometry) ---
     val gridCoords: List<HexCoord>,
