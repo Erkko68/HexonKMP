@@ -82,7 +82,6 @@ object ModelLoader {
         model: dynamic,
         hexCoords: List<Pair<Int, Int>>,
         hexSize: Float = 1f,
-        heightOffset: Float = 0.5f
     ) {
         // Calculate center point of the hex coordinates
         var totalX = 0.0
@@ -98,7 +97,7 @@ object ModelLoader {
 
         val avgX = totalX / hexCoords.size
         val avgZ = totalZ / hexCoords.size
-        val y = heightOffset
+        val y = 0.0
 
         model.position.set(avgX, y, avgZ)
     }

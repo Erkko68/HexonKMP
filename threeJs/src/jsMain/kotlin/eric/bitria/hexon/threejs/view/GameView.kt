@@ -15,6 +15,9 @@ class GameView(
     // Cache hex size from the first loaded model
     private var hexSize: Float = 10f // Default fallback
 
+    // Track ghost buildings for clearing
+    private val ghostBuildings = mutableListOf<dynamic>()
+
     init {
         // Link Engine to View
         gameController.view = this
@@ -119,7 +122,62 @@ class GameView(
     }
 
     fun showVertexBuildingPositions(cmd: GameCommand.ShowVertexBuildingPositions) {
-        TODO("Not yet implemented")
+        console.log("View: Showing ${cmd.availablePositions.size} vertex positions for building ${cmd.buildingId}")
+
+        // Clear any existing ghost buildings
+        clearGhostBuildings()
+
+        // Create ghost buildings at each available position
+        cmd.availablePositions.forEach { (hexA, hexB, hexC) ->
+            val modelPromise = modelRepository.getBuildingModel(cmd.buildingId)
+
+            modelPromise.then { model: dynamic ->
+                // Apply ghost material (semi-transparent white)
+                applyGhostMaterial(model)
+
+                // Position the building at the vertex
+                val hexCoords = listOf(
+                    hexA.q to hexA.r,
+                    hexB.q to hexB.r,
+                    hexC.q to hexC.r
+                )
+                ModelLoader.positionBuilding(model, hexCoords, hexSize)
+
+                // Add to scene and track for later removal
+                renderer.scene.add(model)
+                ghostBuildings.add(model)
+
+                console.log("Placed ghost building at vertex (${hexA}, ${hexB}, ${hexC})")
+            }.catch { error: dynamic ->
+                console.error("Failed to place ghost building: ${cmd.buildingId}", error)
+            }
+        }
+    }
+
+    /**
+     * Apply a semi-transparent white material to a model to create a "ghost" effect.
+     */
+    private fun applyGhostMaterial(model: dynamic) {
+        // 1. Create the material options as a JS object
+        val materialParams = js("{}")
+        materialParams.color = 0xffffff
+        materialParams.transparent = true
+        materialParams.opacity = 0.5
+        materialParams.depthWrite = false
+
+        // 2. Instantiate the material
+        // We use a small js() call just to invoke the 'new' constructor,
+        // passing our Kotlin-defined params object.
+        val ghostMaterial = js("new THREE.MeshStandardMaterial(materialParams)")
+
+        // 3. Traverse using a Kotlin lambda
+        model.traverse { child: dynamic ->
+            // Check if the child is a Mesh.
+            // 'child.isMesh' is a boolean property in Three.js
+            if (child.isMesh == true) {
+                child.material = ghostMaterial
+            }
+        }
     }
 
     fun showEdgeBuildingPositions(cmd: GameCommand.ShowEdgeBuildingPositions) {
@@ -128,5 +186,16 @@ class GameView(
 
     fun diceRolled(cmd: GameCommand.DiceRolled) {
         TODO("Not yet implemented")
+    }
+
+    /**
+     * Clear all ghost buildings from the scene.
+     */
+    private fun clearGhostBuildings() {
+        ghostBuildings.forEach { ghostModel ->
+            renderer.scene.remove(ghostModel)
+        }
+        ghostBuildings.clear()
+        console.log("Cleared ghost buildings")
     }
 }

@@ -137,7 +137,7 @@ class Board {
         return if (existing != null) {
             existing.ownerId == ownerId && existing.def.upgrade == targetTypeId
         } else {
-            checkVertexDistanceRule(h1, h2, h3)
+            return def.downgrade == null && checkVertexDistanceRule(h1, h2, h3)
         }
     }
 
