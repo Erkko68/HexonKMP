@@ -1,5 +1,6 @@
 package eric.bitria.hexon.threejs.view
 
+import eric.bitria.hexon.game.data.def.PlacementType
 import eric.bitria.hexon.render.GameCommand
 import eric.bitria.hexon.threejs.engine.GameController
 import eric.bitria.hexon.threejs.engine.Renderer
@@ -85,24 +86,37 @@ class GameView(
     }
 
     fun placeBuilding(data: GameCommand.PlaceBuilding) {
-        console.log("View: Placing Building ${data.buildingId} for player ${data.player}")
+        console.log("View: Placing ${data.placementType} Building ${data.buildingId} for player ${data.player}")
 
         // Fetch the building model
         val modelPromise = modelRepository.getBuildingModel(data.buildingId)
 
         modelPromise.then { model: dynamic ->
-            // Collect hex coordinates (vertex or edge placement)
-            val hexCoords = listOf(
-                data.hexA.q to data.hexA.r,
-                data.hexB.q to data.hexB.r
-            ) + if (data.hexC != null) {
-                listOf(data.hexC!!.q to data.hexC!!.r)
-            } else {
-                emptyList()
+            when (data.placementType) {
+                PlacementType.VERTEX -> {
+                    // Vertex buildings require 3 coordinates
+                    val hexC = data.hexC ?: run {
+                        console.error("Vertex building requires hexC coordinate")
+                        return@then
+                    }
+                    ModelLoader.positionVertexBuilding(
+                        model,
+                        data.hexA.q to data.hexA.r,
+                        data.hexB.q to data.hexB.r,
+                        hexC.q to hexC.r,
+                        hexSize
+                    )
+                }
+                PlacementType.EDGE -> {
+                    // Edge buildings use 2 coordinates
+                    ModelLoader.positionEdgeBuilding(
+                        model,
+                        data.hexA.q to data.hexA.r,
+                        data.hexB.q to data.hexB.r,
+                        hexSize
+                    )
+                }
             }
-
-            // Position the building using captured hex size
-            ModelLoader.positionBuilding(model, hexCoords, hexSize)
 
             // Add the model to the scene
             renderer.scene.add(model)
@@ -136,12 +150,13 @@ class GameView(
                 applyGhostMaterial(model)
 
                 // Position the building at the vertex
-                val hexCoords = listOf(
+                ModelLoader.positionVertexBuilding(
+                    model,
                     hexA.q to hexA.r,
                     hexB.q to hexB.r,
-                    hexC.q to hexC.r
+                    hexC.q to hexC.r,
+                    hexSize
                 )
-                ModelLoader.positionBuilding(model, hexCoords, hexSize)
 
                 // Add to scene and track for later removal
                 renderer.scene.add(model)
@@ -181,7 +196,36 @@ class GameView(
     }
 
     fun showEdgeBuildingPositions(cmd: GameCommand.ShowEdgeBuildingPositions) {
-        TODO("Not yet implemented")
+        console.log("View: Showing ${cmd.availablePositions.size} edge positions for building ${cmd.buildingId}")
+
+        // Clear any existing ghost buildings
+        clearGhostBuildings()
+
+        // Create ghost buildings at each available position
+        cmd.availablePositions.forEach { (hexA, hexB) ->
+            val modelPromise = modelRepository.getBuildingModel(cmd.buildingId)
+
+            modelPromise.then { model: dynamic ->
+                // Apply ghost material (semi-transparent white)
+                applyGhostMaterial(model)
+
+                // Position the building at the edge (with rotation)
+                ModelLoader.positionEdgeBuilding(
+                    model,
+                    hexA.q to hexA.r,
+                    hexB.q to hexB.r,
+                    hexSize
+                )
+
+                // Add to scene and track for later removal
+                renderer.scene.add(model)
+                ghostBuildings.add(model)
+
+                console.log("Placed ghost building at edge (${hexA}, ${hexB})")
+            }.catch { error: dynamic ->
+                console.error("Failed to place ghost building: ${cmd.buildingId}", error)
+            }
+        }
     }
 
     fun diceRolled(cmd: GameCommand.DiceRolled) {

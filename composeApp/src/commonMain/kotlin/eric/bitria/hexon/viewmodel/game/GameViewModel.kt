@@ -197,6 +197,7 @@ class GameViewModel(
                 PlaceBuilding(
                     player = building.ownerId,
                     buildingId = building.def.id,
+                    placementType = building.def.type,
                     hexA = coords[0],
                     hexB = coords[1],
                     hexC = coords.getOrNull(2)
@@ -511,6 +512,7 @@ class GameViewModel(
         sceneViewModel.sendCommand(PlaceBuilding(
             player = event.playerId,
             buildingId = event.buildingId,
+            placementType = def.type,
             hexA = event.hexA,
             hexB = event.hexB,
             hexC = event.hexC

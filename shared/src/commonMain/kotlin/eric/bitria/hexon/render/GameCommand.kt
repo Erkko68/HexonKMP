@@ -4,6 +4,8 @@ import eric.bitria.hexon.game.data.BuildingId
 import eric.bitria.hexon.game.data.HexCoord
 import eric.bitria.hexon.game.data.PlayerId
 import eric.bitria.hexon.game.data.ResourceId
+import eric.bitria.hexon.game.data.def.BuildingDef
+import eric.bitria.hexon.game.data.def.PlacementType
 import eric.bitria.hexon.game.data.def.PortDef
 import kotlinx.serialization.Serializable
 
@@ -14,6 +16,7 @@ sealed interface GameCommand {
     @Serializable
     data class PlaceBuilding(
         val player: PlayerId, val buildingId: BuildingId,
+        val placementType: PlacementType,
         val hexA: HexCoord,
         val hexB: HexCoord,
         val hexC: HexCoord? = null

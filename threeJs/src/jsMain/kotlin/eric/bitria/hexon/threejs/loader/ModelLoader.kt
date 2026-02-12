@@ -75,18 +75,22 @@ object ModelLoader {
     }
 
     /**
-     * Position a building (vertex or edge building) in 3D space.
-     * Takes multiple hex coordinates to determine the position.
+     * Position a vertex building in 3D space.
+     * Takes three hex coordinates that define the vertex.
      */
-    fun positionBuilding(
+    fun positionVertexBuilding(
         model: dynamic,
-        hexCoords: List<Pair<Int, Int>>,
+        hexA: Pair<Int, Int>,
+        hexB: Pair<Int, Int>,
+        hexC: Pair<Int, Int>,
         hexSize: Float = 1f,
     ) {
-        // Calculate center point of the hex coordinates
+        // Calculate center point of the three hex coordinates
+        val sqrt3 = sqrt(3.0)
+
+        val hexCoords = listOf(hexA, hexB, hexC)
         var totalX = 0.0
         var totalZ = 0.0
-        val sqrt3 = sqrt(3.0)
 
         hexCoords.forEach { (q, r) ->
             val x = hexSize.toDouble() * (3.0 / 2.0 * q)
@@ -100,6 +104,66 @@ object ModelLoader {
         val y = 0.0
 
         model.position.set(avgX, y, avgZ)
+    }
+
+    /**
+     * Position an edge building in 3D space.
+     * Takes two hex coordinates that define the edge, and rotates the building
+     * to align with the edge between the two hexagons.
+     */
+    fun positionEdgeBuilding(
+        model: dynamic,
+        hexA: Pair<Int, Int>,
+        hexB: Pair<Int, Int>,
+        hexSize: Float = 1f,
+    ) {
+        // Calculate positions of both hexagons
+        val sqrt3 = sqrt(3.0)
+
+        val (qA, rA) = hexA
+        val (qB, rB) = hexB
+
+        val xA = hexSize.toDouble() * (3.0 / 2.0 * qA)
+        val zA = hexSize.toDouble() * (sqrt3 / 2.0 * qA + sqrt3 * rA)
+
+        val xB = hexSize.toDouble() * (3.0 / 2.0 * qB)
+        val zB = hexSize.toDouble() * (sqrt3 / 2.0 * qB + sqrt3 * rB)
+
+        // Calculate midpoint (center of the edge)
+        val avgX = (xA + xB) / 2.0
+        val avgZ = (zA + zB) / 2.0
+        val y = 0.1
+
+        // Normalize edge direction: calculate the difference vector
+        val dq = qB - qA
+        val dr = rB - rA
+
+        val adjustment = kotlin.math.PI / 3.0
+
+        // For flat-top hex, determine the edge angle based on the neighbor direction
+        // The 6 possible edge directions in axial coordinates are:
+        // (+1, 0), (+1, -1), (0, -1), (-1, 0), (-1, +1), (0, +1)
+        val angle = when {
+            dq == 1 && dr == 0   -> 0.0                    // East edge
+            dq == 1 && dr == -1  -> kotlin.math.PI / 3.0   // Northeast edge
+            dq == 0 && dr == -1  -> 2.0 * kotlin.math.PI / 3.0  // Northwest edge
+            dq == -1 && dr == 0  -> kotlin.math.PI         // West edge
+            dq == -1 && dr == 1  -> 4.0 * kotlin.math.PI / 3.0  // Southwest edge
+            dq == 0 && dr == 1   -> 5.0 * kotlin.math.PI / 3.0  // Southeast edge
+            // Handle reverse directions (should be same as forward but we normalize)
+            dq == -1 && dr == 0   -> 0.0
+            dq == -1 && dr == 1   -> kotlin.math.PI / 3.0
+            dq == 0 && dr == 1    -> 2.0 * kotlin.math.PI / 3.0
+            dq == 1 && dr == 0    -> kotlin.math.PI
+            dq == 1 && dr == -1   -> 4.0 * kotlin.math.PI / 3.0
+            dq == 0 && dr == -1   -> 5.0 * kotlin.math.PI / 3.0
+            else -> kotlin.math.atan2(zB - zA, xB - xA) + (kotlin.math.PI / 2.0)
+        }
+
+        model.position.set(avgX, y, avgZ)
+
+        // Apply rotation around Y-axis to align with the edge
+        model.rotation.y = angle + adjustment
     }
 
 
