@@ -24,5 +24,10 @@ object ModelPaths {
      * Get model path for misc items (robber, markers, etc.)
      */
     fun misc(itemId: String): String = "$BASE_URL/misc/$itemId.glb"
+
+    /**
+     * Get model path for number models (e.g., "1" -> "/models/numbers/1.glb")
+     */
+    fun number(number: String): String = "$BASE_URL/numbers/$number.glb"
 }
 

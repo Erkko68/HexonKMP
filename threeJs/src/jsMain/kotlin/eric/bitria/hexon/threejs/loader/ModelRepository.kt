@@ -24,6 +24,14 @@ class ModelRepository {
     }
 
     /**
+     * Fetch a number model by resource ID.
+     * Returns a Promise that resolves to a cloned model.
+     */
+    fun getNumberModel(number: String): Promise<dynamic> {
+        return getModel(ModelPaths.number(number), number)
+    }
+
+    /**
      * Fetch a building model by building ID.
      * Returns a Promise that resolves to a cloned model.
      */

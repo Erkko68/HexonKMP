@@ -25,9 +25,9 @@ class GameView(
         console.log("View: Drawing Hex at ${data.coord.q}, ${data.coord.r}, resource: ${data.resource}")
 
         // Fetch the hex model for this resource (wood, ore, sheep, etc.)
-        val modelPromise = modelRepository.getHexModel(data.resource)
+        val hexPromise = modelRepository.getHexModel(data.resource)
 
-        modelPromise.then { model: dynamic ->
+        hexPromise.then { model: dynamic ->
             // Update hex size from model dimensions
             hexSize = ModelLoader.getHexSizeFromModel(model).toFloat()
 
@@ -38,8 +38,46 @@ class GameView(
             renderer.scene.add(model)
 
             console.log("Rendered hex: ${data.resource} at (${data.coord.q}, ${data.coord.r})")
+
+            // Render number digits after hex is positioned
+            renderNumberOnHex(data.number, data.coord.q, data.coord.r)
         }.catch { error: dynamic ->
             console.error("Failed to render hex: ${data.resource}", error)
+        }
+    }
+
+    /**
+     * Render number on top of a hexagon.
+     * Multi-digit numbers are split into individual digit models and placed side by side.
+     */
+    private fun renderNumberOnHex(number: Int, q: Int, r: Int) {
+        val numberString = number.toString()
+        val digits = numberString.map { it.toString() }
+
+        console.log("Rendering number $number as ${digits.size} digit(s) at ($q, $r)")
+
+        // Load and position each digit
+        digits.forEachIndexed { index, digit ->
+            val digitPromise = modelRepository.getNumberModel(digit)
+
+            digitPromise.then { model: dynamic ->
+                // Position each digit side by side
+                ModelLoader.positionNumberDigit(
+                    model = model,
+                    q = q,
+                    r = r,
+                    hexSize = hexSize,
+                    digitIndex = index,
+                    totalDigits = digits.size
+                )
+
+                // Add the digit model to the scene
+                renderer.scene.add(model)
+
+                console.log("Rendered digit '$digit' (${index + 1}/${digits.size}) at ($q, $r)")
+            }.catch { error: dynamic ->
+                console.error("Failed to render digit: $digit", error)
+            }
         }
     }
 

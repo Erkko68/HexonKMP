@@ -42,6 +42,8 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
+            // Persistent Settings and Persistent Encrypted Data
+            implementation(libs.androidx.datastore.preferences)
         }
         commonMain.dependencies {
             implementation(libs.material.icons.extended)
@@ -68,9 +70,6 @@ kotlin {
             implementation(libs.koin.compose.viewmodel.navigation)
             implementation(libs.insert.koin.koin.core)
 
-            // Persistent Settings and Persistent Encrypted Data
-            implementation(libs.androidx.datastore.preferences)
-
             // Ktor Client
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.auth)
@@ -86,6 +85,8 @@ kotlin {
             implementation(libs.ktor.client.js)
         }
         iosMain.dependencies {
+            // Persistent Settings and Persistent Encrypted Data
+            implementation(libs.androidx.datastore.preferences)
             implementation(libs.ktor.client.darwin)
         }
     }
@@ -97,4 +98,10 @@ kotlin {
     compilerOptions{
         freeCompilerArgs.add("-Xskip-prerelease-check")
     }
+}
+
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "hexonkmp.composeapp.generated.resources"
+    generateResClass = always
 }
