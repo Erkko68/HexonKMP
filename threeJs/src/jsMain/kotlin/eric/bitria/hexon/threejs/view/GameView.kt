@@ -2,8 +2,10 @@ package eric.bitria.hexon.threejs.view
 
 import eric.bitria.hexon.game.data.def.PlacementType
 import eric.bitria.hexon.render.GameCommand
+import eric.bitria.hexon.threejs.AppBridge
 import eric.bitria.hexon.threejs.engine.GameController
 import eric.bitria.hexon.threejs.engine.Renderer
+import eric.bitria.hexon.threejs.input.Raycaster
 import eric.bitria.hexon.threejs.loader.ModelLoader
 import eric.bitria.hexon.threejs.loader.ModelRepository
 
@@ -19,9 +21,59 @@ class GameView(
     // Track ghost buildings for clearing
     private val ghostBuildings = mutableListOf<dynamic>()
 
+    // Raycaster for detecting clicks on ghost buildings
+    private val raycaster = Raycaster(renderer)
+
     init {
         // Link Engine to View
         gameController.view = this
+
+        // Setup click handler for ghost buildings
+        setupGhostBuildingClickHandler()
+    }
+
+    private fun setupGhostBuildingClickHandler() {
+        raycaster.onObjectClicked = { clickedObject ->
+            // Check if the clicked object is a ghost building
+            if (clickedObject.userData.isGhostBuilding == true) {
+                handleGhostBuildingClick(clickedObject)
+            }
+        }
+    }
+
+    private fun handleGhostBuildingClick(ghostObject: dynamic) {
+        val buildingId = ghostObject.userData.buildingId as? String
+        val placementType = ghostObject.userData.placementType as? String
+        val hexA = ghostObject.userData.hexA as? String
+        val hexB = ghostObject.userData.hexB as? String
+        val hexC = ghostObject.userData.hexC as? String
+
+        if (buildingId == null || placementType == null || hexA == null || hexB == null) {
+            console.error("Ghost building missing required metadata")
+            return
+        }
+
+        console.log("Ghost building clicked: $buildingId at ($hexA, $hexB, $hexC)")
+
+        // Create a plain JS object for the event
+        // HexCoord values are sent as strings in "q,r" format (matching HexCoordKeySerializer)
+        val eventData = js("{}")
+        eventData.buildingId = buildingId
+        eventData.type = placementType
+        eventData.hexA = hexA  // e.g., "0,0"
+        eventData.hexB = hexB  // e.g., "1,0"
+        eventData.hexC = hexC  // e.g., "0,1" or null
+
+        // Send event via AppBridge
+        if (js("typeof AppBridge !== 'undefined'") as Boolean) {
+            console.log("Sending GameEvent: ", eventData)
+            AppBridge.call("GameEvent", eventData)
+        } else {
+            console.error("AppBridge not available")
+        }
+
+        // Clear ghost buildings after placement
+        clearGhostBuildings()
     }
 
     // VISUAL API (Called by Engine)
@@ -149,6 +201,17 @@ class GameView(
                 // Apply ghost material (semi-transparent white)
                 applyGhostMaterial(model)
 
+                // Store metadata in userData for raycasting
+                model.userData.isGhostBuilding = true
+                model.userData.buildingId = cmd.buildingId
+                model.userData.placementType = "VERTEX"
+
+                // Store coordinates as strings in "q,r" format (matching HexCoordKeySerializer)
+                model.userData.hexA = "${hexA.q},${hexA.r}"
+                model.userData.hexB = "${hexB.q},${hexB.r}"
+                model.userData.hexC = "${hexC.q},${hexC.r}"
+
+
                 // Position the building at the vertex
                 ModelLoader.positionVertexBuilding(
                     model,
@@ -163,6 +226,49 @@ class GameView(
                 ghostBuildings.add(model)
 
                 console.log("Placed ghost building at vertex (${hexA}, ${hexB}, ${hexC})")
+            }.catch { error: dynamic ->
+                console.error("Failed to place ghost building: ${cmd.buildingId}", error)
+            }
+        }
+    }
+
+    fun showEdgeBuildingPositions(cmd: GameCommand.ShowEdgeBuildingPositions) {
+        console.log("View: Showing ${cmd.availablePositions.size} edge positions for building ${cmd.buildingId}")
+
+        // Clear any existing ghost buildings
+        clearGhostBuildings()
+
+        // Create ghost buildings at each available position
+        cmd.availablePositions.forEach { (hexA, hexB) ->
+            val modelPromise = modelRepository.getBuildingModel(cmd.buildingId)
+
+            modelPromise.then { model: dynamic ->
+                // Apply ghost material (semi-transparent white)
+                applyGhostMaterial(model)
+
+                // Store metadata in userData for raycasting
+                model.userData.isGhostBuilding = true
+                model.userData.buildingId = cmd.buildingId
+                model.userData.placementType = "EDGE"
+
+                // Store coordinates as strings in "q,r" format (matching HexCoordKeySerializer)
+                model.userData.hexA = "${hexA.q},${hexA.r}"
+                model.userData.hexB = "${hexB.q},${hexB.r}"
+                model.userData.hexC = null
+
+                // Position the building at the edge (with rotation)
+                ModelLoader.positionEdgeBuilding(
+                    model,
+                    hexA.q to hexA.r,
+                    hexB.q to hexB.r,
+                    hexSize
+                )
+
+                // Add to scene and track for later removal
+                renderer.scene.add(model)
+                ghostBuildings.add(model)
+
+                console.log("Placed ghost building at edge (${hexA}, ${hexB})")
             }.catch { error: dynamic ->
                 console.error("Failed to place ghost building: ${cmd.buildingId}", error)
             }
@@ -191,39 +297,6 @@ class GameView(
             // 'child.isMesh' is a boolean property in Three.js
             if (child.isMesh == true) {
                 child.material = ghostMaterial
-            }
-        }
-    }
-
-    fun showEdgeBuildingPositions(cmd: GameCommand.ShowEdgeBuildingPositions) {
-        console.log("View: Showing ${cmd.availablePositions.size} edge positions for building ${cmd.buildingId}")
-
-        // Clear any existing ghost buildings
-        clearGhostBuildings()
-
-        // Create ghost buildings at each available position
-        cmd.availablePositions.forEach { (hexA, hexB) ->
-            val modelPromise = modelRepository.getBuildingModel(cmd.buildingId)
-
-            modelPromise.then { model: dynamic ->
-                // Apply ghost material (semi-transparent white)
-                applyGhostMaterial(model)
-
-                // Position the building at the edge (with rotation)
-                ModelLoader.positionEdgeBuilding(
-                    model,
-                    hexA.q to hexA.r,
-                    hexB.q to hexB.r,
-                    hexSize
-                )
-
-                // Add to scene and track for later removal
-                renderer.scene.add(model)
-                ghostBuildings.add(model)
-
-                console.log("Placed ghost building at edge (${hexA}, ${hexB})")
-            }.catch { error: dynamic ->
-                console.error("Failed to place ghost building: ${cmd.buildingId}", error)
             }
         }
     }

@@ -27,6 +27,9 @@ fun GameScreen(
         ThreeJsView(
             modifier = Modifier.fillMaxSize(),
             commands = gameSceneViewModel.gameCommands,
+            onRenderEvent = { event ->
+                gameSceneViewModel.handleRenderEvent(event)
+            },
             onGameEvent = { event ->
                 gameSceneViewModel.handleGameEvent(event)
             }

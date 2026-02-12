@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 @Composable
 fun ThreeJsView(
     commands: Flow<GameCommand>,
+    onRenderEvent: (RenderEvent) -> Unit,
     onGameEvent: (GameEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -35,9 +36,14 @@ fun ThreeJsView(
     // 2. Register Events (JS -> Kotlin)
     LaunchedEffect(bridge) {
 
-        // A. The Initialization Signal
+        // A. Render Engine Events
         bridge.register<String, Unit>("onEngineReady") { _ ->
-            onGameEvent(GameEvent.Initialised)
+            onRenderEvent(RenderEvent.Initialised)
+        }
+
+        // B. Game Interaction Events
+        bridge.register<GameEvent.PlacedBuilding, Unit>("GameEvent") { event ->
+            onGameEvent(event)
         }
     }
 

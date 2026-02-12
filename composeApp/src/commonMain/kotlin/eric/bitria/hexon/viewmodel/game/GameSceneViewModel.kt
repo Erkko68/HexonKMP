@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexon.render.GameCommand
 import eric.bitria.hexon.render.GameEvent
+import eric.bitria.hexon.render.RenderEvent
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -23,18 +24,26 @@ class GameSceneViewModel : ViewModel() {
     private val _gameCommands = Channel<GameCommand>(Channel.BUFFERED)
     val gameCommands = _gameCommands.receiveAsFlow()
 
-    // Event Flow (UI/Engine -> ViewModel)
+    // Render Event Flow (UI/Engine -> ViewModel)
+    private val _renderEvents = MutableSharedFlow<RenderEvent>()
+    val renderEvents = _renderEvents.asSharedFlow()
+
+    // Game Event Flow (UI/Engine -> ViewModel)
     private val _gameEvents = MutableSharedFlow<GameEvent>()
     val gameEvents = _gameEvents.asSharedFlow()
 
-    fun handleGameEvent(event: GameEvent) {
+    fun handleRenderEvent(event: RenderEvent) {
         when (event) {
-            is GameEvent.Initialised -> {
+            is RenderEvent.Initialised -> {
                 isEngineReady = true
             }
-
-            is GameEvent.PlacedBuilding -> TODO()
         }
+        viewModelScope.launch {
+            _renderEvents.emit(event)
+        }
+    }
+
+    fun handleGameEvent(event: GameEvent) {
         viewModelScope.launch {
             _gameEvents.emit(event)
         }

@@ -17,6 +17,7 @@ import eric.bitria.hexon.game.data.def.PlacementType
 import eric.bitria.hexon.game.data.def.ResourceDef
 import eric.bitria.hexon.render.GameCommand.*
 import eric.bitria.hexon.render.GameEvent
+import eric.bitria.hexon.render.RenderEvent
 import eric.bitria.hexon.ws.GameplayEvent
 import eric.bitria.hexon.ws.GameplayIntent
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -90,10 +91,17 @@ class GameViewModel(
         field = MutableStateFlow(emptyMap())
 
     init {
-        // Listen to scene events
+        // Listen to render events (engine lifecycle)
+        viewModelScope.launch {
+            sceneViewModel.renderEvents.collect { event ->
+                handleRenderEvent(event)
+            }
+        }
+
+        // Listen to game events (user interactions)
         viewModelScope.launch {
             sceneViewModel.gameEvents.collect { event ->
-                handleSceneEvent(event)
+                handleGameEvent(event)
             }
         }
 
@@ -107,13 +115,19 @@ class GameViewModel(
         }
     }
 
-    // Read Messages Emitted by the Scene
-    private fun handleSceneEvent(event: GameEvent) {
+    // Read Messages Emitted by the Render Engine
+    private fun handleRenderEvent(event: RenderEvent) {
         when (event) {
-            is GameEvent.Initialised -> {
-                // The engine reinitialized, sync Board
+            is RenderEvent.Initialised -> {
+                // The engine initialized/reinitialized, sync Board
                 board.value?.let(::syncScene)
             }
+        }
+    }
+
+    // Read Messages Emitted by the Scene (User Interactions)
+    private fun handleGameEvent(event: GameEvent) {
+        when (event) {
             is GameEvent.PlacedBuilding -> {
                 onBuildingPlaced(event.buildingId, event.hexA, event.hexB, event.hexC)
             }
@@ -485,6 +499,7 @@ class GameViewModel(
         h3: HexCoord? = null
     ) {
         viewModelScope.launch {
+            println("Building placed: $buildingId at $h1, $h2, $h3")
             repository.sendMessage(
                 GameplayIntent.Build(
                     buildingId = buildingId,
