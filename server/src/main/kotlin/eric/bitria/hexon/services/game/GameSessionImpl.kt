@@ -15,6 +15,8 @@ import io.ktor.websocket.CloseReason
 import io.ktor.websocket.DefaultWebSocketSession
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -292,12 +294,16 @@ class GameSessionImpl(
     override suspend fun broadcast(message: GameMessage, excludeUserId: String?) {
         val jsonText = json.encodeToString(message)
 
-        connectedPlayers.forEach { (userId, session) ->
-            if (userId != excludeUserId) {
-                try {
-                    session.send(Frame.Text(jsonText))
-                } catch (e: Exception) {
-                    logger.error("Failed to broadcast ${message::class.simpleName} to $userId: ${e.message}")
+        coroutineScope {
+            connectedPlayers.forEach { (userId, session) ->
+                if (userId != excludeUserId) {
+                    launch {
+                        try {
+                            session.send(Frame.Text(jsonText))
+                        } catch (e: Exception) {
+                            logger.error("Failed to broadcast ${message::class.simpleName} to $userId: ${e.message}")
+                        }
+                    }
                 }
             }
         }
