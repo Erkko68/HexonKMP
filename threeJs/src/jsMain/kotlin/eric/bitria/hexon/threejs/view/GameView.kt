@@ -144,6 +144,9 @@ class GameView(
         val modelPromise = modelRepository.getBuildingModel(data.buildingId)
 
         modelPromise.then { model: dynamic ->
+            // Apply player color to the model
+            applyPlayerColor(model, data.color)
+
             when (data.placementType) {
                 PlacementType.VERTEX -> {
                     // Vertex buildings require 3 coordinates
@@ -297,6 +300,30 @@ class GameView(
             // 'child.isMesh' is a boolean property in Three.js
             if (child.isMesh == true) {
                 child.material = ghostMaterial
+            }
+        }
+    }
+
+    /**
+     * Apply player color to a model by finding the material named 'playerColor'
+     * and setting its color to the provided hex color string (e.g., "#FF0000").
+     */
+    private fun applyPlayerColor(model: dynamic, colorHex: String) {
+        model.traverse { child: dynamic ->
+            if (child.isMesh == true && child.material != null) {
+                // Handle both single material and material array
+                val materials = if (js("Array.isArray(child.material)") as Boolean) {
+                    child.material
+                } else {
+                    arrayOf(child.material)
+                }
+
+                materials.forEach { material: dynamic ->
+                    if (material.name == "playerColor") {
+                        material.color.set(colorHex)
+                        console.log("Applied player color $colorHex to material")
+                    }
+                }
             }
         }
     }

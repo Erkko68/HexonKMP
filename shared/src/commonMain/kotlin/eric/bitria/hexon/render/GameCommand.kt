@@ -16,6 +16,7 @@ sealed interface GameCommand {
     @Serializable
     data class PlaceBuilding(
         val player: PlayerId, val buildingId: BuildingId,
+        val color: String,
         val placementType: PlacementType,
         val hexA: HexCoord,
         val hexB: HexCoord,

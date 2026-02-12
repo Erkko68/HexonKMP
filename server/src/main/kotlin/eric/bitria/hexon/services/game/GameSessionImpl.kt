@@ -36,7 +36,14 @@ class GameSessionImpl(
     private val connectedPlayers = ConcurrentHashMap<String, DefaultWebSocketSession>()
     private val players = ConcurrentHashMap<String, LobbyPlayer>()
     private val reservedSlots = ConcurrentHashMap<String, Long>()
-    private val allColors = listOf("Red", "Blue", "White", "Orange", "Green", "Brown")
+    private val allColors = listOf(
+        "#FF0000", // Red
+        "#0000FF", // Blue
+        "#FFFFFF", // White
+        "#FFA500", // Orange
+        "#008000", // Green
+        "#A52A2A"  // Brown
+    )
 
     private val stateMutex = Mutex()
 

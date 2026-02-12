@@ -200,6 +200,7 @@ class GameViewModel(
             sceneViewModel.sendCommand(
                 PlaceBuilding(
                     player = building.ownerId,
+                    color = opponents.value[building.ownerId]?.color ?: (me.value?.color ?: "#FFFFFF"),
                     buildingId = building.def.id,
                     placementType = building.def.type,
                     hexA = coords[0],
@@ -507,7 +508,6 @@ class GameViewModel(
         h3: HexCoord? = null
     ) {
         viewModelScope.launch {
-            println("Building placed: $buildingId at $h1, $h2, $h3")
             repository.sendMessage(
                 GameplayIntent.Build(
                     buildingId = buildingId,
@@ -533,9 +533,16 @@ class GameViewModel(
         }
 
         // Send Command to Renderer
+        val playerColor = if (event.playerId == _me.value?.id) {
+            _me.value?.color ?: "#FFFFFF"
+        } else {
+            _opponents.value[event.playerId]?.color ?: "#FFFFFF"
+        }
+
         sceneViewModel.sendCommand(PlaceBuilding(
             player = event.playerId,
             buildingId = event.buildingId,
+            color = playerColor,
             placementType = def.type,
             hexA = event.hexA,
             hexB = event.hexB,

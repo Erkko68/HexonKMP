@@ -47,7 +47,7 @@ object ModelLoader {
         hexSize: Float = 1f,
         digitIndex: Int = 0,
         totalDigits: Int = 1,
-        heightOffset: Float = 0.1f,
+        heightOffset: Float = 0.01f,
         digitSpacing: Float = 0.8f
     ) {
         val sqrt3 = sqrt(3.0)
@@ -132,7 +132,7 @@ object ModelLoader {
         // Calculate midpoint (center of the edge)
         val avgX = (xA + xB) / 2.0
         val avgZ = (zA + zB) / 2.0
-        val y = 0.1
+        val y = 0.01
 
         // Normalize edge direction: calculate the difference vector
         val dq = qB - qA
