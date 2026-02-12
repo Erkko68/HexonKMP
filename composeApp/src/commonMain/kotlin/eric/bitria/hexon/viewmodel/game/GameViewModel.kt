@@ -17,11 +17,17 @@ import eric.bitria.hexon.game.data.def.BuildingDef
 import eric.bitria.hexon.game.data.def.PlacementType
 import eric.bitria.hexon.game.data.def.ResourceDef
 import eric.bitria.hexon.game.data.enums.TurnPhase
-import eric.bitria.hexon.render.GameCommand.*
+import eric.bitria.hexon.render.GameCommand.DiceRolled
+import eric.bitria.hexon.render.GameCommand.PlaceBuilding
+import eric.bitria.hexon.render.GameCommand.SetHex
+import eric.bitria.hexon.render.GameCommand.SetPort
+import eric.bitria.hexon.render.GameCommand.ShowEdgeBuildingPositions
+import eric.bitria.hexon.render.GameCommand.ShowVertexBuildingPositions
 import eric.bitria.hexon.render.GameEvent
 import eric.bitria.hexon.render.RenderEvent
 import eric.bitria.hexon.ws.GameplayEvent
 import eric.bitria.hexon.ws.GameplayIntent
+import eric.bitria.hexon.ws.LobbyEvent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -109,11 +115,19 @@ class GameViewModel(
             Logger.d(TAG) { "Starting repository incoming messages collection" }
             repository.incomingMessages.collect { message ->
                 Logger.d(TAG) { "Received repository message: ${message::class.simpleName}" }
-                if (message is GameplayEvent) {
-                    Logger.d(TAG) { "Message is GameplayEvent, handling..." }
-                    handleGameplayEvent(message)
-                } else {
-                    Logger.w(TAG) { "Message is not GameplayEvent: ${message::class.simpleName}" }
+                when (message) {
+                    is GameplayEvent -> {
+                        Logger.d(TAG) { "Handling GameplayEvent: ${message::class.simpleName}" }
+                        handleGameplayEvent(message)
+                    }
+                    is LobbyEvent -> {
+                        // GameViewModel might receive late LobbyEvents if it starts before
+                        // MatchmakingViewModel fully stops - just ignore them
+                        Logger.d(TAG) { "Ignoring LobbyEvent in GameViewModel: ${message::class.simpleName}" }
+                    }
+                    else -> {
+                        Logger.w(TAG) { "Unknown message type: ${message::class.simpleName}" }
+                    }
                 }
             }
         }

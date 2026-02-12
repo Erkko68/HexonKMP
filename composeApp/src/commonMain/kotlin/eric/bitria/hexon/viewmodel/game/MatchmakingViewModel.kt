@@ -9,7 +9,6 @@ import eric.bitria.hexon.data.repository.ApiResult
 import eric.bitria.hexon.data.repository.GameRepository
 import eric.bitria.hexon.data.repository.MatchmakingRepository
 import eric.bitria.hexon.dtos.matchmaking.JoinGameResult
-import eric.bitria.hexon.ws.GameMessage
 import eric.bitria.hexon.ws.LobbyEvent
 import eric.bitria.hexon.ws.LobbyIntent
 import eric.bitria.hexon.ws.lobby.GameMode
@@ -37,11 +36,17 @@ class MatchmakingViewModel(
         private set
 
     private var matchmakingJob: Job? = null
+    private var messageListenerJob: Job? = null
 
     init {
-        viewModelScope.launch {
+        // Listen to lobby messages
+        messageListenerJob = viewModelScope.launch {
             gameRepository.incomingMessages.collect { message ->
-                handleLobbyMessage(message)
+                // Only handle lobby messages
+                if (message is LobbyEvent) {
+                    handleLobbyMessage(message)
+                }
+                // Ignore other messages - GameViewModel will handle them
             }
         }
 
@@ -81,7 +86,7 @@ class MatchmakingViewModel(
         }
     }
 
-    private fun handleLobbyMessage(message: GameMessage) {
+    private fun handleLobbyMessage(message: LobbyEvent) {
         when (message) {
             is LobbyEvent.LobbySnapshot -> {
                 playersFound = message.lobbyPlayers.size
@@ -96,12 +101,24 @@ class MatchmakingViewModel(
             }
             is LobbyEvent.GameStarted -> {
                 statusMessage = "Starting Game..."
+
+                // Signal to server that we're ready to receive game initialization
+                viewModelScope.launch {
+                    gameRepository.sendMessage(LobbyIntent.ReadyForGame)
+                }
+
+                // Stop listening to messages - GameViewModel will take over
+                messageListenerJob?.cancel()
+
+                // Trigger navigation
                 _navigateToGameplay.value = true
             }
             is LobbyEvent.LobbyError -> {
                 statusMessage = message.errorMessage
             }
-            else -> {}
+            is LobbyEvent.PlayerUpdated -> {
+                // Ignore in matchmaking mode
+            }
         }
     }
 

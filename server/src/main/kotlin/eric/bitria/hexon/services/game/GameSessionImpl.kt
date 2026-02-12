@@ -18,8 +18,15 @@ import io.ktor.websocket.close
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * Manages a single game session through its lifecycle:
+ * 1. LOBBY: Players connect, configure settings
+ * 2. GAME_STARTING: GameStarted broadcast, waiting for all ReadyForGame signals
+ * 3. GAME_RUNNING: Game engine handles gameplay
+ */
 class GameSessionImpl(
     private val isCustom: Boolean = false,
     private val mode: GameMode,
@@ -27,38 +34,56 @@ class GameSessionImpl(
     override val sessionId: String = UuidCreator.getTimeBasedWithRandom().toString()
 ) : GameSession, GameMessageSender {
 
-    // --- State ---
-    @Volatile override var isGameStarted: Boolean = false
-        private set
+    private val logger = LoggerFactory.getLogger(GameSessionImpl::class.java)
+
+    // ==================== State Machine ====================
+
+    private enum class State {
+        LOBBY,           // Waiting for players
+        GAME_STARTING,   // GameStarted sent, waiting for ReadyForGame from all clients
+        GAME_RUNNING     // Engine is active, game in progress
+    }
+
+    @Volatile private var currentState = State.LOBBY
+    private val stateMutex = Mutex()
+
+    // ==================== Collections ====================
+
+    // Thread-safe maps for concurrent WebSocket access
+    private val connectedPlayers = ConcurrentHashMap<String, DefaultWebSocketSession>()
+    private val lobbyPlayers = ConcurrentHashMap<String, LobbyPlayer>()
+    private val reservedSlots = ConcurrentHashMap<String, Long>()
+    private val playersReadyForGame = ConcurrentHashMap.newKeySet<String>()
 
     private var engine: GameEngine? = null
 
-    private val connectedPlayers = ConcurrentHashMap<String, DefaultWebSocketSession>()
-    private val players = ConcurrentHashMap<String, LobbyPlayer>()
-    private val reservedSlots = ConcurrentHashMap<String, Long>()
-    private val allColors = listOf(
-        "#0000FF", // Blue
-        "#FF0000", // Red
-        "#FFFFFF", // White
-        "#FFA500", // Orange
-        "#008000", // Green
-        "#A52A2A"  // Brown
+    // ==================== Configuration ====================
+
+    private val availableColors = listOf(
+        "#0000FF", "#FF0000", "#FFFFFF",
+        "#FFA500", "#008000", "#A52A2A"
     )
 
-    private val stateMutex = Mutex()
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+        classDiscriminator = "type"
+    }
 
-    // --- Matchmaking Phase ---
+    // ==================== GameSession Interface ====================
+
+    override val isGameStarted: Boolean
+        get() = currentState != State.LOBBY
+
     override suspend fun reserveSlot(userId: String): Boolean {
-        stateMutex.withLock {
-            pruneExpiredSlots()
+        pruneExpiredSlots()
 
-            if (connectedPlayers.size + reservedSlots.size >= maxPlayers) {
-                return false
-            }
-
-            reservedSlots[userId] = System.currentTimeMillis()
-            return true
+        if (connectedPlayers.size + reservedSlots.size >= maxPlayers) {
+            return false
         }
+
+        reservedSlots[userId] = System.currentTimeMillis()
+        return true
     }
 
     override fun hasAvailableSlots(): Boolean {
@@ -66,193 +91,238 @@ class GameSessionImpl(
         return (connectedPlayers.size + reservedSlots.size) < maxPlayers
     }
 
-    // --- Connection Phase ---
-
-    override suspend fun connectPlayer(userId: String, username: String, session: DefaultWebSocketSession): Boolean {
-        stateMutex.withLock {
-            // 1. Validation
-            if (!reservedSlots.containsKey(userId) && !connectedPlayers.containsKey(userId)) {
-                return false
-            }
-
-            // 2. Accept Connection
-            reservedSlots.remove(userId)
-            connectedPlayers[userId] = session
-
-            // 3. Logic Branch
-            if (isGameStarted) {
-                // Reconnection
-                engine?.onPlayerRejoin(userId)
-            } else {
-                // --- LOBBY LOGIC ---
-                val isFirstPlayer = players.isEmpty()
-                val initialReady = !isCustom
-                val isHost = if (isCustom) isFirstPlayer else false
-
-                val newLobbyPlayer = LobbyPlayer(
-                    id = userId,
-                    name = username,
-                    color = assignAvailableColor(),
-                    isReady = initialReady,
-                    isHost = isHost
-                )
-
-                players[userId] = newLobbyPlayer
-
-                val snapshot = LobbyEvent.LobbySnapshot(
-                    lobbyId = sessionId,
-                    lobbyPlayers = players.values.toList(),
-                    maxPlayers = maxPlayers,
-                    availableColors = allColors
-                )
-                sendToPlayer(userId, snapshot)
-                broadcast(LobbyEvent.PlayerJoined(newLobbyPlayer), excludeUserId = userId)
-
-                if (!isCustom && connectedPlayers.size == maxPlayers) {
-                    launchGameEngine()
-                }
-            }
-            return true
+    override suspend fun connectPlayer(
+        userId: String,
+        username: String,
+        session: DefaultWebSocketSession
+    ): Boolean {
+        // Validate reservation exists
+        if (!reservedSlots.containsKey(userId) && !connectedPlayers.containsKey(userId)) {
+            logger.warn("Connection rejected for $userId - no reservation")
+            return false
         }
+
+        // Accept connection
+        reservedSlots.remove(userId)
+        connectedPlayers[userId] = session
+
+        // Handle based on current state
+        when (currentState) {
+            State.LOBBY -> handlePlayerJoinLobby(userId, username)
+            State.GAME_STARTING, State.GAME_RUNNING -> handlePlayerReconnect(userId)
+        }
+
+        return true
     }
 
     override suspend fun removePlayer(userId: String) {
-        stateMutex.withLock {
-            removePlayerInternal(userId)
+        when (currentState) {
+            State.LOBBY -> removePlayerFromLobby(userId)
+            State.GAME_STARTING, State.GAME_RUNNING -> handlePlayerDisconnect(userId)
         }
     }
-
-    /**
-     * Internal helper that contains the actual logic.
-     * MUST be called from within a `stateMutex.withLock` block.
-     */
-    private suspend fun removePlayerInternal(userId: String) {
-        // Idempotency check: If player is already gone, do nothing.
-        // This prevents double-broadcasting if 'LeaveLobby' is sent AND socket closes.
-        if (!players.containsKey(userId) && !connectedPlayers.containsKey(userId)) {
-            return
-        }
-
-        if (isGameStarted) {
-            // Game in progress: Logic handled by Engine
-            engine?.onPlayerLeave(userId)
-            connectedPlayers.remove(userId)
-        } else {
-            // Lobby Phase: Full cleanup
-            val session = connectedPlayers.remove(userId)
-            players.remove(userId)
-            reservedSlots.remove(userId)
-
-            // Notify others
-            broadcast(LobbyEvent.PlayerLeft(userId))
-
-            try {
-                session?.close(CloseReason(CloseReason.Codes.NORMAL, "Left Lobby"))
-            } catch (e: Exception) {
-                // Socket might already be closed
-            }
-        }
-    }
-
-    // --- Input Handling ---
 
     override suspend fun handleIncomingMessage(userId: String, message: GameMessage) {
-        if (isGameStarted && message is GameplayMessage) {
-            engine?.onMessage(userId, message)
-            return
+        when (message) {
+            is LobbyIntent -> handleLobbyIntent(userId, message)
+            is GameplayMessage -> handleGameplayMessage(userId, message)
+            else -> logger.warn("Unknown message type from $userId: ${message::class.simpleName}")
+        }
+    }
+
+    // ==================== Game Start Phase ====================
+
+    private suspend fun startGame() {
+        stateMutex.withLock {
+            if (currentState != State.LOBBY) return
+            currentState = State.GAME_STARTING
         }
 
-        if (message is LobbyIntent) {
-            stateMutex.withLock {
+        // Create engine (but don't initialize yet)
+        engine = GameEngineImpl(sessionId)
 
-                val player = players[userId] ?: return
+        logger.info("Game $sessionId starting, waiting for ${connectedPlayers.size} players to signal ready")
 
-                when (message) {
-                    is LobbyIntent.ChangeColor -> {
-                        if (!isCustom) return
-                        if (isColorAvailable(message.newColor)) {
-                            val updated = player.copy(color = message.newColor)
-                            players[userId] = updated
-                            broadcast(LobbyEvent.PlayerUpdated(updated))
-                        } else {
-                            sendToPlayer(userId, LobbyEvent.LobbyError("Color already taken", LobbyErrorCode.COLOR_TAKEN))
-                        }
-                    }
+        // Notify all clients - they will respond with ReadyForGame
+        broadcast(LobbyEvent.GameStarted)
+    }
 
-                    is LobbyIntent.ToggleReady -> {
-                        if (!isCustom) return
-                        val updated = player.copy(isReady = message.isReady)
-                        players[userId] = updated
-                        broadcast(LobbyEvent.PlayerUpdated(updated))
-                    }
+    private suspend fun handleReadyForGame(userId: String) {
+        if (currentState != State.GAME_STARTING) return
 
-                    is LobbyIntent.RequestStartGame -> {
-                        if (isCustom && player.isHost) {
-                            launchGameEngine()
-                        }
-                    }
+        playersReadyForGame.add(userId)
+        logger.debug("Player $userId ready for game (${playersReadyForGame.size}/${connectedPlayers.size})")
 
-                    is LobbyIntent.LeaveLobby -> {
-                        removePlayerInternal(userId)
-                    }
+        // Check if all players are ready
+        if (playersReadyForGame.containsAll(connectedPlayers.keys)) {
+            initializeGame()
+        }
+    }
+
+    private suspend fun initializeGame() {
+        stateMutex.withLock {
+            if (currentState != State.GAME_STARTING) return
+            currentState = State.GAME_RUNNING
+        }
+
+        logger.info("All players ready, initializing game $sessionId")
+
+        val currentEngine = engine ?: return
+        val players = lobbyPlayers.values.map { it.copy() }
+
+        currentEngine.start(players, this)
+    }
+
+    // ==================== Game Running Phase ====================
+
+    private suspend fun handleGameplayMessage(userId: String, message: GameplayMessage) {
+        if (currentState != State.GAME_RUNNING) return
+        engine?.onMessage(userId, message)
+    }
+
+    private suspend fun handlePlayerReconnect(userId: String) {
+        logger.info("Player $userId reconnecting to game $sessionId")
+        engine?.onPlayerRejoin(userId)
+    }
+
+    private suspend fun handlePlayerDisconnect(userId: String) {
+        logger.info("Player $userId disconnected from game $sessionId")
+        engine?.onPlayerLeave(userId)
+        connectedPlayers.remove(userId)
+    }
+
+    // ==================== GameMessageSender Interface ====================
+
+    private suspend fun handlePlayerJoinLobby(userId: String, username: String) {
+        val newPlayer = LobbyPlayer(
+            id = userId,
+            name = username,
+            color = assignAvailableColor(),
+            isReady = !isCustom,  // Auto-ready in matchmaking mode
+            isHost = isCustom && lobbyPlayers.isEmpty()
+        )
+
+        lobbyPlayers[userId] = newPlayer
+        logger.info("Player $username joined lobby $sessionId (${connectedPlayers.size}/$maxPlayers)")
+
+        // Send snapshot to the new player
+        sendToPlayer(userId, LobbyEvent.LobbySnapshot(
+            lobbyId = sessionId,
+            lobbyPlayers = lobbyPlayers.values.toList(),
+            maxPlayers = maxPlayers,
+            availableColors = availableColors
+        ))
+
+        // Notify others
+        broadcast(LobbyEvent.PlayerJoined(newPlayer), excludeUserId = userId)
+
+        // Auto-start in matchmaking mode when full
+        if (!isCustom && connectedPlayers.size == maxPlayers) {
+            startGame()
+        }
+    }
+
+    private suspend fun removePlayerFromLobby(userId: String) {
+        val session = connectedPlayers.remove(userId)
+        lobbyPlayers.remove(userId)
+        reservedSlots.remove(userId)
+
+        logger.info("Player $userId left lobby $sessionId")
+        broadcast(LobbyEvent.PlayerLeft(userId))
+
+        session?.closeGracefully("Left Lobby")
+    }
+
+    private suspend fun handleLobbyIntent(userId: String, intent: LobbyIntent) {
+        when (intent) {
+            is LobbyIntent.ReadyForGame -> handleReadyForGame(userId)
+            is LobbyIntent.LeaveLobby -> removePlayer(userId)
+
+            is LobbyIntent.ChangeColor -> {
+                if (!isCustom || currentState != State.LOBBY) return
+
+                val player = lobbyPlayers[userId] ?: return
+                if (isColorAvailable(intent.newColor)) {
+                    val updated = player.copy(color = intent.newColor)
+                    lobbyPlayers[userId] = updated
+                    broadcast(LobbyEvent.PlayerUpdated(updated))
+                } else {
+                    sendToPlayer(userId, LobbyEvent.LobbyError("Color already taken", LobbyErrorCode.COLOR_TAKEN))
+                }
+            }
+
+            is LobbyIntent.ToggleReady -> {
+                if (!isCustom || currentState != State.LOBBY) return
+
+                val player = lobbyPlayers[userId] ?: return
+                val updated = player.copy(isReady = intent.isReady)
+                lobbyPlayers[userId] = updated
+                broadcast(LobbyEvent.PlayerUpdated(updated))
+            }
+
+            is LobbyIntent.RequestStartGame -> {
+                if (!isCustom || currentState != State.LOBBY) return
+
+                val player = lobbyPlayers[userId] ?: return
+                if (player.isHost) {
+                    startGame()
                 }
             }
         }
     }
 
-    // --- Output Handling ---
     override suspend fun sendToPlayer(playerId: String, message: GameMessage) {
         val session = connectedPlayers[playerId] ?: return
+
         try {
-            val json = Json.encodeToString(message)
-            session.send(Frame.Text(json))
-        } catch (e: Exception) { /* Log */ }
+            val jsonText = json.encodeToString(message)
+            session.send(Frame.Text(jsonText))
+        } catch (e: Exception) {
+            logger.error("Failed to send ${message::class.simpleName} to $playerId: ${e.message}")
+        }
     }
 
     override suspend fun broadcast(message: GameMessage) {
-        broadcast(message, null)
+        broadcast(message, excludeUserId = null)
     }
 
     override suspend fun broadcast(message: GameMessage, excludeUserId: String?) {
-        val json = Json.encodeToString(message)
-        val frame = Frame.Text(json)
+        val jsonText = json.encodeToString(message)
+        val frame = Frame.Text(jsonText)
+
         connectedPlayers.forEach { (userId, session) ->
             if (userId != excludeUserId) {
-                try { session.send(frame) } catch (e: Exception) { /* Dead socket */ }
+                try {
+                    session.send(frame)
+                } catch (e: Exception) {
+                    logger.error("Failed to broadcast ${message::class.simpleName} to $userId: ${e.message}")
+                }
             }
         }
     }
 
-    // --- Helpers ---
+    // ==================== Helpers ====================
 
     private fun pruneExpiredSlots() {
-        val timeoutMs = 10_000L
         val now = System.currentTimeMillis()
-        reservedSlots.entries.removeIf { (_, timestamp) -> now - timestamp > timeoutMs }
+        val timeout = 10_000L
+        reservedSlots.entries.removeIf { (_, timestamp) -> now - timestamp > timeout }
     }
 
     private fun assignAvailableColor(): String {
-        val usedColors = players.values.map { it.color }.toSet()
-        return allColors.firstOrNull { it !in usedColors } ?: "Gray"
+        val usedColors = lobbyPlayers.values.map { it.color }.toSet()
+        return availableColors.firstOrNull { it !in usedColors } ?: "#808080"
     }
 
     private fun isColorAvailable(color: String): Boolean {
-        return players.values.none { it.color == color }
+        return lobbyPlayers.values.none { it.color == color }
     }
 
-    private suspend fun launchGameEngine() {
-        val newEngine = GameEngineImpl(sessionId)
-        this.engine = newEngine
-        isGameStarted = true
-
-        // Notify Game Started
-        broadcast(LobbyEvent.GameStarted)
-
-        // Startup logic
-        val engineLobbyPlayers = players.values.map { lobbyPlayer ->
-            LobbyPlayer(lobbyPlayer.id, lobbyPlayer.name, lobbyPlayer.color, lobbyPlayer.isReady, lobbyPlayer.isHost)
+    private suspend fun DefaultWebSocketSession.closeGracefully(reason: String) {
+        try {
+            close(CloseReason(CloseReason.Codes.NORMAL, reason))
+        } catch (_: Exception) {
+            // Socket might already be closed
         }
-
-        newEngine.start(engineLobbyPlayers, this)
     }
 }

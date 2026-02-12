@@ -23,4 +23,8 @@ sealed class LobbyIntent : LobbyMessage() {
 
     @Serializable
     data object RequestStartGame : LobbyIntent()
+
+    /** Client signals it received GameStarted and is ready for game initialization */
+    @Serializable
+    data object ReadyForGame : LobbyIntent()
 }

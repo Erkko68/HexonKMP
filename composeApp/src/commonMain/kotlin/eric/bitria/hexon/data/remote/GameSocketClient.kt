@@ -13,7 +13,7 @@ import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 
@@ -54,21 +54,37 @@ class KtorGameSocketClient(
     override fun observeMessages(session: DefaultWebSocketSession): Flow<GameMessage> {
         Logger.d(TAG) { "observeMessages() started" }
         return session.incoming.consumeAsFlow()
-            .filterIsInstance<Frame.Text>()
             .map { frame ->
-                val rawText = frame.readText()
-                Logger.d(TAG) { "Received WebSocket frame. Raw JSON length: ${rawText.length}" }
-                Logger.d(TAG) { "Raw JSON: $rawText" }
+                when (frame) {
+                    is Frame.Text -> {
+                        val rawText = frame.readText()
 
-                try {
-                    val message = json.decodeFromString<GameMessage>(rawText)
-                    Logger.d(TAG) { "Successfully decoded message: ${message::class.simpleName}" }
-                    message
-                } catch (e: Exception) {
-                    Logger.e(TAG, e) { "Failed to decode JSON message. Raw text: $rawText" }
-                    throw e
+                        // Filter out empty frames (WebSocket keep-alive, etc.)
+                        if (rawText.isBlank()) {
+                            Logger.d(TAG) { "Received empty frame, skipping" }
+                            return@map null
+                        }
+
+                        try {
+                            val message = json.decodeFromString<GameMessage>(rawText)
+                            Logger.d(TAG) { "Received: ${message::class.simpleName}" }
+                            message
+                        } catch (e: Exception) {
+                            Logger.e(TAG, e) { "Failed to decode message: ${rawText.take(100)}" }
+                            throw e
+                        }
+                    }
+                    is Frame.Ping, is Frame.Pong -> {
+                        Logger.d(TAG) { "Received ${frame::class.simpleName}" }
+                        null
+                    }
+                    else -> {
+                        Logger.d(TAG) { "Received ${frame::class.simpleName}, ignoring" }
+                        null
+                    }
                 }
             }
+            .filterNotNull()
     }
 
     override suspend fun sendMessage(session: DefaultWebSocketSession, message: GameMessage) {
