@@ -37,8 +37,8 @@ class GameSessionImpl(
     private val players = ConcurrentHashMap<String, LobbyPlayer>()
     private val reservedSlots = ConcurrentHashMap<String, Long>()
     private val allColors = listOf(
-        "#FF0000", // Red
         "#0000FF", // Blue
+        "#FF0000", // Red
         "#FFFFFF", // White
         "#FFA500", // Orange
         "#008000", // Green

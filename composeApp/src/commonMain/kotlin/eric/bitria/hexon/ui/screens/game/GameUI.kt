@@ -83,9 +83,9 @@ fun GameUI(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     PlayerTurnBar(
+                        activePlayerId = activePlayerId,
                         me = me,
                         opponents = players,
-                        activePlayerId = activePlayerId,
                         modifier = Modifier.weight(1f).fillMaxHeight()
                             .padding(horizontal = spacing.small)
                     )
@@ -121,7 +121,7 @@ fun GameUI(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(rowHeight * 4.1f),
+                        .height(rowHeight * 4.5f),
                     horizontalArrangement = Arrangement.spacedBy(spacing.medium),
                     verticalAlignment = Alignment.Bottom
                 ) {

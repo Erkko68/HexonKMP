@@ -63,6 +63,9 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)
 
+            // Logging
+            implementation(libs.kermit)
+
             // Koin Dependency Injection
             implementation(project.dependencies.platform(libs.koin.bom))
             implementation(libs.koin.compose)

@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import eric.bitria.hexon.game.GamePlayer
 import eric.bitria.hexon.game.data.PlayerId
 import eric.bitria.hexon.game.data.PlayerSnapshot
+import eric.bitria.hexon.ui.utils.parseHexColor
 
 @Composable
 fun PlayerTurnBar(
@@ -51,7 +52,7 @@ fun PlayerTurnBar(
                 // 2. THE CONTENT (Icon)
                 // This sits inside the square box
                 PlayerIcon(
-                    color = Color.White, // Replace with dynamic color
+                    color = parseHexColor(player.color),
                     isActive = player.id == activePlayerId,
                     modifier = Modifier.fillMaxSize(0.85f) // Fill 85% of the square Box
                 )
