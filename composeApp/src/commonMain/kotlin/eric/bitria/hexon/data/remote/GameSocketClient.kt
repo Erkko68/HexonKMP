@@ -1,5 +1,6 @@
 package eric.bitria.hexon.data.remote
 
+import co.touchlab.kermit.Logger
 import eric.bitria.hexon.config.EnvConfig
 import eric.bitria.hexon.ws.GameMessage
 import io.ktor.client.HttpClient
@@ -15,6 +16,8 @@ import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
+
+private const val TAG = "GameSocketClient"
 
 interface GameSocketClient {
     suspend fun connect(sessionId: String): DefaultWebSocketSession
@@ -33,27 +36,47 @@ class KtorGameSocketClient(
     }
 
     override suspend fun connect(sessionId: String): DefaultWebSocketSession {
-        return client.webSocketSession {
+        Logger.d(TAG) { "connect() called with sessionId: $sessionId" }
+        val session = client.webSocketSession {
             url {
                 val base = Url(EnvConfig.BASE_URL)
                 protocol = if (base.protocol.name == "https") URLProtocol.WSS else URLProtocol.WS
                 host = base.host
                 port = base.port
                 path("game", sessionId)
+                Logger.d(TAG) { "WebSocket URL: ${protocol.name}://${host}:${port}/game/${sessionId}" }
             }
         }
+        Logger.d(TAG) { "WebSocket connection established successfully" }
+        return session
     }
 
     override fun observeMessages(session: DefaultWebSocketSession): Flow<GameMessage> {
+        Logger.d(TAG) { "observeMessages() started" }
         return session.incoming.consumeAsFlow()
             .filterIsInstance<Frame.Text>()
             .map { frame ->
-                json.decodeFromString<GameMessage>(frame.readText())
+                val rawText = frame.readText()
+                Logger.d(TAG) { "Received WebSocket frame. Raw JSON length: ${rawText.length}" }
+                Logger.d(TAG) { "Raw JSON: $rawText" }
+
+                try {
+                    val message = json.decodeFromString<GameMessage>(rawText)
+                    Logger.d(TAG) { "Successfully decoded message: ${message::class.simpleName}" }
+                    message
+                } catch (e: Exception) {
+                    Logger.e(TAG, e) { "Failed to decode JSON message. Raw text: $rawText" }
+                    throw e
+                }
             }
     }
 
     override suspend fun sendMessage(session: DefaultWebSocketSession, message: GameMessage) {
+        Logger.d(TAG) { "sendMessage() called with message type: ${message::class.simpleName}" }
         val text = json.encodeToString(message)
+        Logger.d(TAG) { "Encoded JSON length: ${text.length}" }
+        Logger.d(TAG) { "Sending JSON: $text" }
         session.send(Frame.Text(text))
+        Logger.d(TAG) { "Message sent successfully" }
     }
 }

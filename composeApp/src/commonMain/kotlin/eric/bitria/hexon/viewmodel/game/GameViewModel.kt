@@ -2,6 +2,7 @@ package eric.bitria.hexon.viewmodel.game
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Logger
 import eric.bitria.hexon.data.repository.GameRepository
 import eric.bitria.hexon.game.Board
 import eric.bitria.hexon.game.GamePlayer
@@ -28,6 +29,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val TAG = "GameViewModel"
 
 class GameViewModel(
     private val repository: GameRepository,
@@ -81,28 +84,41 @@ class GameViewModel(
     val tradeResponses: StateFlow<Map<PlayerId, Boolean?>> = _tradeResponses
 
     init {
+        Logger.d(TAG) { "GameViewModel init started" }
+
         // Listen to render events (engine lifecycle)
         viewModelScope.launch {
+            Logger.d(TAG) { "Starting render events collection" }
             sceneViewModel.renderEvents.collect { event ->
+                Logger.d(TAG) { "Received render event: ${event::class.simpleName}" }
                 handleRenderEvent(event)
             }
         }
 
         // Listen to game events (user interactions)
         viewModelScope.launch {
+            Logger.d(TAG) { "Starting game events collection" }
             sceneViewModel.gameEvents.collect { event ->
+                Logger.d(TAG) { "Received game event: ${event::class.simpleName}" }
                 handleGameEvent(event)
             }
         }
 
         // Listen to the Repository's Flow
         viewModelScope.launch {
+            Logger.d(TAG) { "Starting repository incoming messages collection" }
             repository.incomingMessages.collect { message ->
+                Logger.d(TAG) { "Received repository message: ${message::class.simpleName}" }
                 if (message is GameplayEvent) {
+                    Logger.d(TAG) { "Message is GameplayEvent, handling..." }
                     handleGameplayEvent(message)
+                } else {
+                    Logger.w(TAG) { "Message is not GameplayEvent: ${message::class.simpleName}" }
                 }
             }
         }
+
+        Logger.d(TAG) { "GameViewModel init completed" }
     }
 
     // Read Messages Emitted by the Render Engine
@@ -127,37 +143,83 @@ class GameViewModel(
     // Logic
 
     private fun handleGameplayEvent(event: GameplayEvent) {
+        Logger.d(TAG) { "handleGameplayEvent() called with: ${event::class.simpleName}" }
         when (event) {
             // Game Flow
-            is GameplayEvent.GameConfigLoaded -> initializeGame(event.config)
-            is GameplayEvent.PlayerJoined -> addOpponent(event.player)
-            is GameplayEvent.GamePlayerStats -> updateMyStats(event.player)
-            is GameplayEvent.TurnChanged -> onTurnChanged(event)
-            is GameplayEvent.GameSnapshot -> onGameSnapshot(event)
+            is GameplayEvent.GameConfigLoaded -> {
+                Logger.d(TAG) { "Handling GameConfigLoaded" }
+                initializeGame(event.config)
+            }
+            is GameplayEvent.PlayerJoined -> {
+                Logger.d(TAG) { "Handling PlayerJoined: ${event.player.id}" }
+                addOpponent(event.player)
+            }
+            is GameplayEvent.GamePlayerStats -> {
+                Logger.d(TAG) { "Handling GamePlayerStats" }
+                updateMyStats(event.player)
+            }
+            is GameplayEvent.TurnChanged -> {
+                Logger.d(TAG) { "Handling TurnChanged: newPlayer=${event.newPlayerId}, phase=${event.turnPhase}" }
+                onTurnChanged(event)
+            }
+            is GameplayEvent.GameSnapshot -> {
+                Logger.d(TAG) { "Handling GameSnapshot" }
+                onGameSnapshot(event)
+            }
 
             // Resources
-            is GameplayEvent.DiceRolled -> handleDiceRolled(event)
-            is GameplayEvent.ResourcesUpdated -> handleResourcesUpdated(event)
-            is GameplayEvent.ResourceCountUpdated -> handleResourceCountUpdated(event)
+            is GameplayEvent.DiceRolled -> {
+                Logger.d(TAG) { "Handling DiceRolled: ${event.values}" }
+                handleDiceRolled(event)
+            }
+            is GameplayEvent.ResourcesUpdated -> {
+                Logger.d(TAG) { "Handling ResourcesUpdated: ${event.changes}" }
+                handleResourcesUpdated(event)
+            }
+            is GameplayEvent.ResourceCountUpdated -> {
+                Logger.d(TAG) { "Handling ResourceCountUpdated: player=${event.playerId}, changes=${event.changes}" }
+                handleResourceCountUpdated(event)
+            }
 
             // Robber
-            is GameplayEvent.RobberUpdated -> onRobberUpdated(event)
+            is GameplayEvent.RobberUpdated -> {
+                Logger.d(TAG) { "Handling RobberUpdated" }
+                onRobberUpdated(event)
+            }
 
             // Buildings
-            is GameplayEvent.ObjectBuilt -> handleObjectBuilt(event)
+            is GameplayEvent.ObjectBuilt -> {
+                Logger.d(TAG) { "Handling ObjectBuilt: buildingId=${event.buildingId}, player=${event.playerId}" }
+                handleObjectBuilt(event)
+            }
 
             // Trade
-            is GameplayEvent.TradeProposed -> onTradeProposed(event)
-            is GameplayEvent.TradeResponse -> onTradeResponse(event)
-            is GameplayEvent.TradeCompleted -> onTradeCompleted(event)
-            is GameplayEvent.TradeCancelled -> onTradeCancelled(event)
+            is GameplayEvent.TradeProposed -> {
+                Logger.d(TAG) { "Handling TradeProposed from ${event.offererId}" }
+                onTradeProposed(event)
+            }
+            is GameplayEvent.TradeResponse -> {
+                Logger.d(TAG) { "Handling TradeResponse: accepted=${event.accepted}" }
+                onTradeResponse(event)
+            }
+            is GameplayEvent.TradeCompleted -> {
+                Logger.d(TAG) { "Handling TradeCompleted" }
+                onTradeCompleted(event)
+            }
+            is GameplayEvent.TradeCancelled -> {
+                Logger.d(TAG) { "Handling TradeCancelled" }
+                onTradeCancelled(event)
+            }
 
             // End Game
-            is GameplayEvent.GameOver -> TODO()
+            is GameplayEvent.GameOver -> {
+                Logger.d(TAG) { "Handling GameOver" }
+                TODO()
+            }
 
             // Errors
             is GameplayEvent.GameError -> {
-                println("Game Error: ${event.message}")
+                Logger.e(TAG) { "Game Error: ${event.message}" }
             }
         }
     }
@@ -165,19 +227,27 @@ class GameViewModel(
     // --- State Updaters ---
 
     private fun initializeGame(config: GameConfig) {
+        Logger.d(TAG) { "initializeGame() called" }
+        Logger.d(TAG) { "Config: victoryPoints=${config.victoryPoints}, resources=${config.resourceDefs.size}, buildings=${config.buildingDefs.size}" }
+
         _gameConfig.value = config
 
         val boardInstance = Board().apply {
             initialize(config)
         }
+        Logger.d(TAG) { "Board initialized with ${boardInstance.tiles.size} tiles" }
 
         _board.value = boardInstance
         _victoryPoints.value = config.victoryPoints
 
         syncScene(boardInstance)
+        Logger.d(TAG) { "initializeGame() completed" }
     }
 
     private fun syncScene(board: Board) {
+        Logger.d(TAG) { "syncScene() called" }
+        var commandCount = 0
+
         // Tiles
         board.tiles.values.forEach { tile ->
             sceneViewModel.sendCommand(
@@ -187,7 +257,9 @@ class GameViewModel(
                     number = tile.numberToken
                 )
             )
+            commandCount++
         }
+        Logger.d(TAG) { "Synced ${board.tiles.size} tiles" }
 
         // Buildings
         board.buildings.forEach { (location, building) ->
@@ -208,11 +280,15 @@ class GameViewModel(
                     hexC = coords.getOrNull(2)
                 )
             )
+            commandCount++
         }
+        Logger.d(TAG) { "Synced ${board.buildings.size} buildings" }
 
         board.ports.values.forEach {
             sceneViewModel.sendCommand(SetPort(it))
+            commandCount++
         }
+        Logger.d(TAG) { "Synced ${board.ports.size} ports. Total commands sent: $commandCount" }
     }
 
     private fun onTurnChanged(event: GameplayEvent.TurnChanged) {
@@ -451,14 +527,20 @@ class GameViewModel(
     }
 
     private fun handleResourcesUpdated(event: GameplayEvent.ResourcesUpdated) {
-        println("Resources Updated: $event")
-        val currentMe = _me.value ?: return
+        Logger.d(TAG) { "handleResourcesUpdated() called with changes: ${event.changes}" }
+        val currentMe = _me.value
+
+        if (currentMe == null) {
+            Logger.w(TAG) { "Cannot update resources: _me.value is null" }
+            return
+        }
 
         // Create a NEW resources map with changes applied
         val newResources = currentMe.resources.toMutableMap()
         event.changes.forEach { (resId, amount) ->
             val current = newResources[resId] ?: 0
             val newValue = current + amount
+            Logger.d(TAG) { "Resource $resId: $current + $amount = $newValue" }
             if (newValue <= 0) {
                 newResources.remove(resId)
             } else {
@@ -468,6 +550,7 @@ class GameViewModel(
 
         // Create a new GamePlayer with the new resources map
         _me.value = currentMe.copy(resources = newResources)
+        Logger.d(TAG) { "Resources updated successfully. New total: ${newResources.values.sum()}" }
     }
 
     private fun handleResourceCountUpdated(event: GameplayEvent.ResourceCountUpdated) {
