@@ -38,7 +38,7 @@ fun Route.matchmakingRoutes(){
                 ?: return@post call.respond(HttpStatusCode.Unauthorized)
 
             val request = call.receive<JoinGameRequest>()
-            val response = matchMakingService.findGameForPlayer(userId = userId, mode = request.mode, maxPlayers = 1)
+            val response = matchMakingService.findGameForPlayer(userId = userId, mode = request.mode, maxPlayers = 2)
             call.respond(response.status.toHttpStatus(), response)
         }
 

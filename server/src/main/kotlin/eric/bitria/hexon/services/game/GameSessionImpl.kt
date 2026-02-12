@@ -186,9 +186,10 @@ class GameSessionImpl(
     }
 
     private suspend fun handlePlayerDisconnect(userId: String) {
-        logger.info("Player $userId disconnected from game $sessionId")
-        engine?.onPlayerLeave(userId)
-        connectedPlayers.remove(userId)
+        if (connectedPlayers.remove(userId) != null) {
+            logger.info("Player $userId disconnected from game $sessionId")
+            engine?.onPlayerLeave(userId)
+        }
     }
 
     // ==================== GameMessageSender Interface ====================
@@ -224,11 +225,13 @@ class GameSessionImpl(
 
     private suspend fun removePlayerFromLobby(userId: String) {
         val session = connectedPlayers.remove(userId)
-        lobbyPlayers.remove(userId)
+        val removedPlayer = lobbyPlayers.remove(userId)
         reservedSlots.remove(userId)
 
-        logger.info("Player $userId left lobby $sessionId")
-        broadcast(LobbyEvent.PlayerLeft(userId))
+        if (removedPlayer != null) {
+            logger.info("Player $userId left lobby $sessionId")
+            broadcast(LobbyEvent.PlayerLeft(userId))
+        }
 
         session?.closeGracefully("Left Lobby")
     }
@@ -288,12 +291,11 @@ class GameSessionImpl(
 
     override suspend fun broadcast(message: GameMessage, excludeUserId: String?) {
         val jsonText = json.encodeToString(message)
-        val frame = Frame.Text(jsonText)
 
         connectedPlayers.forEach { (userId, session) ->
             if (userId != excludeUserId) {
                 try {
-                    session.send(frame)
+                    session.send(Frame.Text(jsonText))
                 } catch (e: Exception) {
                     logger.error("Failed to broadcast ${message::class.simpleName} to $userId: ${e.message}")
                 }
