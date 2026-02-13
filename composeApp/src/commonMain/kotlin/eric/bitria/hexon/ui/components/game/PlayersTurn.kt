@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -34,32 +35,38 @@ fun PlayerTurnBar(
 
     if (allPlayers.isEmpty()) return
 
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        // Packs items to the left (Start) with a small gap
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start)
-    ) {
-        allPlayers.forEach { player ->
-            // 1. THE CONTAINER (Square)
-            // This Box looks at the Row's height, fills it, and forces itself to be a square.
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()  // Step 1: Match the parent Row's height
-                    .aspectRatio(1f), // Step 2: Set width equal to height (Square)
-                contentAlignment = Alignment.Center
-            ) {
-                // 2. THE CONTENT (Icon)
-                // This sits inside the square box
-                PlayerIcon(
-                    color = parseHexColor(player.color),
-                    isActive = player.id == activePlayerId,
-                    modifier = Modifier.fillMaxSize(0.85f) // Fill 85% of the square Box
-                )
+    BoxWithConstraints(modifier = modifier) {
+
+        // Since each icon fills max height and is square,
+        // the icon size equals maxHeight.
+        val iconSize = maxHeight
+
+        // Make spacing relative to icon size (e.g. 20% of width)
+        val dynamicSpacing = iconSize * 0.2f
+
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(dynamicSpacing)
+        ) {
+            allPlayers.forEach { player ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    PlayerIcon(
+                        color = parseHexColor(player.color),
+                        isActive = player.id == activePlayerId,
+                        modifier = Modifier.fillMaxSize(0.85f)
+                    )
+                }
             }
         }
     }
 }
+
 
 @Composable
 private fun PlayerIcon(

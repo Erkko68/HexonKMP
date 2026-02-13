@@ -31,8 +31,16 @@ fun VictoryPointsIndicator(
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier) {
+
         val height = maxHeight
-        val spacing = HexonTheme.dimensions.spacing
+
+        // --- Relative sizing ---
+        val borderWidth = height * 0.04f
+        val horizontalPadding = height * 0.30f
+        val iconSizeFraction = 0.65f
+        val textSpacing = height * 0.08f
+        val textVerticalOffset = height * 0.05f
+        val fontSize = (height * 0.5f).value.sp
 
         Row(
             modifier = Modifier
@@ -40,36 +48,37 @@ fun VictoryPointsIndicator(
                 .clip(CircleShape)
                 .background(Color.Black.copy(alpha = 0.4f))
                 .border(
-                    width = spacing.extraSmall * 0.5f,
+                    width = borderWidth,
                     color = Color.White.copy(alpha = 0.1f),
                     shape = CircleShape
                 )
-                .padding(horizontal = height * 0.3f),
+                .padding(horizontal = horizontalPadding),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 Icons.Filled.MilitaryTech,
                 contentDescription = "Victory Points",
-                tint = Color(0xFFFFD700), // Gold
+                tint = Color(0xFFFFD700),
                 modifier = Modifier
-                    .fillMaxHeight(0.65f)
+                    .fillMaxHeight(iconSizeFraction)
                     .aspectRatio(1f)
             )
 
             TextCanvas(
                 text = "${victoryPoints.first} / ${victoryPoints.second}",
                 textStyle = MaterialTheme.typography.labelLarge.copy(
-                    fontSize = (height * 0.5f).value.sp,
+                    fontSize = fontSize,
                     color = Color.White,
                     fontWeight = FontWeight.ExtraBold
                 ),
                 modifier = Modifier
-                    .padding(start = spacing.extraSmall)
-                    .padding(top = height * 0.05f)
+                    .padding(start = textSpacing)
+                    .padding(top = textVerticalOffset)
             )
         }
     }
 }
+
 
 @Preview
 @Composable

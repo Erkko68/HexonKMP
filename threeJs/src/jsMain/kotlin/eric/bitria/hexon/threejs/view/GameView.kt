@@ -309,17 +309,31 @@ class GameView(
     private fun applyPlayerColor(model: dynamic, colorHex: String) {
         model.traverse { child: dynamic ->
             if (child.isMesh == true && child.material != null) {
-                // Handle both single material and material array
-                val materials = if (js("Array.isArray(child.material)") as Boolean) {
-                    child.material
-                } else {
-                    arrayOf(child.material)
-                }
+                // check if the material is an array
+                val isArray = js("Array.isArray(child.material)") as Boolean
 
-                materials.forEach { material: dynamic ->
+                if (isArray) {
+                    // Handle material array
+                    val materials = child.material as Array<dynamic> // Cast to array for access
+                    val newMaterials = materials.map { material ->
+                        if (material.name == "playerColor") {
+                            val newMaterial = material.clone()
+                            newMaterial.color.set(colorHex)
+                            console.log("Applied player color $colorHex to cloned material")
+                            newMaterial
+                        } else {
+                            material
+                        }
+                    }.toTypedArray()
+                    child.material = newMaterials
+                } else {
+                    // Handle single material
+                    val material = child.material
                     if (material.name == "playerColor") {
-                        material.color.set(colorHex)
-                        console.log("Applied player color $colorHex to material")
+                        val newMaterial = material.clone()
+                        newMaterial.color.set(colorHex)
+                        child.material = newMaterial
+                        console.log("Applied player color $colorHex to cloned material")
                     }
                 }
             }
