@@ -31,6 +31,7 @@ import eric.bitria.hexon.ws.LobbyEvent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -63,7 +64,6 @@ class GameViewModel(
     val victoryPoints: StateFlow<Int> = _victoryPoints
 
     private val _board = MutableStateFlow<Board?>(null)
-    val board: StateFlow<Board?> = _board
 
     // My Full State (Private info visible only to me)
     private val _me = MutableStateFlow<GamePlayer?>(null)
@@ -458,36 +458,19 @@ class GameViewModel(
         }
     }
 
-    val canSendBankExchangeBool: Boolean
-        get() = canSendBankExchange()
+    val canSendBankExchangeBool: StateFlow<Boolean> = combine(
+        me, offeredResources, requestedResources, _gameConfig
+    ) { m, o, r, c ->
+        val p = m ?: return@combine false
+        val cfg = c ?: return@combine false
+        r.any { it.value > 0 } && p.calculateBankExchangeCost(o, r, cfg.tradeRatio) != null
+    }.stateIn(viewModelScope, SharingStarted.Lazily, false)
 
-    fun canSendBankExchange(): Boolean {
-        val player = _me.value ?: return false
-        val config = _gameConfig.value ?: return false
-
-        val offered = _offeredResources.value
-        val requested = _requestedResources.value
-
-        // 1. Basic validation: Must actually want something
-        if (requested.isEmpty() || requested.values.sum() == 0) {
-            return false
-        }
-
-        // 2. Use the shared math logic from GamePlayer
-        // This returns NULL if the 'offered' value isn't high enough to buy the 'requested' items.
-        val cost = player.calculateBankExchangeCost(
-            give = offered,
-            get = requested,
-            defaultRatio = config.tradeRatio
-        )
-
-        return cost != null
-    }
-
-    fun canSendPlayerTrade(): Boolean {
-        val player = _me.value ?: return false
-        return player.canProposeTrade(_offeredResources.value, _requestedResources.value)
-    }
+    val canSendPlayerTradeBool: StateFlow<Boolean> = combine(
+        me, offeredResources, requestedResources
+    ) { m, o, r ->
+        m?.canProposeTrade(o, r) == true
+    }.stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     // Event
     fun onTradeProposed(event: GameplayEvent.TradeProposed) {

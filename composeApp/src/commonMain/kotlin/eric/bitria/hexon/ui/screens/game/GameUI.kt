@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -23,7 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import eric.bitria.hexon.game.data.enums.TurnPhase
-import eric.bitria.hexon.ui.components.game.ControlButton
+import eric.bitria.hexon.ui.components.game.IconActionButton
 import eric.bitria.hexon.ui.components.game.OptionsButton
 import eric.bitria.hexon.ui.components.game.PlayerTurnBar
 import eric.bitria.hexon.ui.components.game.VictoryPointsIndicator
@@ -31,6 +32,7 @@ import eric.bitria.hexon.ui.components.game.assets.BuildingRow
 import eric.bitria.hexon.ui.components.game.assets.PlayerResourceRow
 import eric.bitria.hexon.ui.components.game.assets.ResourceRow
 import eric.bitria.hexon.ui.components.game.assets.TradeResourceRow
+import eric.bitria.hexon.ui.components.game.trade.TradeRequest
 import eric.bitria.hexon.viewmodel.game.GameViewModel
 
 @Composable
@@ -49,6 +51,9 @@ fun GameUI(
 
     val phase by viewModel.turnPhase.collectAsState()
     val activePlayerId by viewModel.activePlayerId.collectAsState()
+    val trades by viewModel.trades.collectAsState()
+    val canSendBankExchange by viewModel.canSendBankExchangeBool.collectAsState()
+    val canSendPlayerTrade by viewModel.canSendPlayerTradeBool.collectAsState()
 
     BoxWithConstraints(
         modifier = Modifier.fillMaxSize()
@@ -71,7 +76,7 @@ fun GameUI(
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(if (isLandscape) 0.25f else 0.10f)
+                    .weight(if (isLandscape) 0.3f else 0.2f)
             ) {
                 val sectionSpacing = maxHeight * 0.08f
 
@@ -82,7 +87,7 @@ fun GameUI(
 
                     // ---- Top Bar ----
                     BoxWithConstraints(
-                        modifier = Modifier.weight(0.6f)
+                        modifier = Modifier.weight(0.3f)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxSize(),
@@ -111,7 +116,7 @@ fun GameUI(
 
                     // ---- Victory Points ----
                     BoxWithConstraints(
-                        modifier = Modifier.weight(0.4f)
+                        modifier = Modifier.weight(0.2f)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxSize(),
@@ -125,6 +130,33 @@ fun GameUI(
                                 ),
                                 modifier = Modifier.fillMaxHeight()
                             )
+                        }
+                    }
+
+                    // ---- Trade Requests ----
+                    BoxWithConstraints(
+                        modifier = Modifier.weight(0.5f)
+                    ) {
+                        if (trades.isNotEmpty()) {
+                            val tradeHeight = maxHeight / trades.size
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                //verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                trades.forEach { (playerId, tradeOffer) ->
+                                    val playerColor = players[playerId]?.color ?: me?.color ?: "#000000"
+                                    TradeRequest(
+                                        playerId = playerId,
+                                        playerColor = playerColor,
+                                        tradeOffer = tradeOffer,
+                                        onAccept = { viewModel.sendTradeResponse(playerId, true) },
+                                        onDecline = { viewModel.sendTradeResponse(playerId, false) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(tradeHeight)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -218,6 +250,8 @@ fun GameUI(
                                     .fillMaxWidth()
                                     .height(rowHeight)
                             )
+
+                            // Trade Requests moved to top section
                         }
                     }
 
@@ -235,41 +269,69 @@ fun GameUI(
 
                             if (phase == TurnPhase.TRADE) {
 
-                                ControlButton(
+                                IconActionButton(
                                     icon = Icons.Default.AccountBalance,
-                                    color = MaterialTheme.colorScheme.tertiary,
-                                    description = "Bank Trade",
+                                    contentDescription = "Bank Trade",
                                     onClick = { viewModel.sendBankExchange() },
-                                    enabled = viewModel.canSendBankExchangeBool,
+                                    enabled = canSendBankExchange,
+                                    colors = IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.tertiary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                                        disabledContainerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f),
+                                        disabledContentColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
                                     modifier = Modifier.size(rowHeight)
                                 )
 
-                                ControlButton(
+                                IconActionButton(
                                     icon = Icons.Default.Group,
-                                    color = MaterialTheme.colorScheme.tertiary,
-                                    description = "Trade Players",
+                                    contentDescription = "Player Trade",
                                     onClick = { viewModel.sendPlayerExchange() },
-                                    enabled = viewModel.canSendPlayerTrade(),
+                                    enabled = canSendPlayerTrade,
+                                    colors = IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.tertiary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                                        disabledContainerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f),
+                                        disabledContentColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    modifier = Modifier.size(rowHeight)
+                                )
+
+                                IconActionButton(
+                                    icon = Icons.Filled.SwapHoriz,
+                                    contentDescription = "Trade",
+                                    onClick = { viewModel.switchTradePanel() },
+                                    enabled = phase == TurnPhase.TRADE || phase == TurnPhase.MAIN_PHASE,
+                                    colors = IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.tertiary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
                                     modifier = Modifier.size(rowHeight)
                                 )
 
                             } else {
 
-                                ControlButton(
+                                IconActionButton(
                                     icon = Icons.AutoMirrored.Filled.ArrowForward,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    description = "End Turn",
+                                    contentDescription = "End Turn",
                                     onClick = { viewModel.onEndTurn() },
+                                    colors = IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
                                     modifier = Modifier.size(rowHeight)
                                 )
                             }
 
-                            ControlButton(
+                            IconActionButton(
                                 icon = Icons.Filled.SwapHoriz,
-                                color = MaterialTheme.colorScheme.tertiary,
-                                description = "Trade",
+                                contentDescription = "Trade",
                                 onClick = { viewModel.switchTradePanel() },
                                 enabled = phase == TurnPhase.TRADE || phase == TurnPhase.MAIN_PHASE,
+                                colors = IconButtonDefaults.filledIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.tertiary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                ),
                                 modifier = Modifier.size(rowHeight)
                             )
                         }

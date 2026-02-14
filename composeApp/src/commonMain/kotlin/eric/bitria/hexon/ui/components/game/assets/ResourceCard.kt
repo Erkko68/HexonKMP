@@ -52,7 +52,7 @@ fun ResourceCard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(height * 0.2f))
+                .clip(RoundedCornerShape(percent = 20))
                 .background(cardBackgroundColor) // Applies color to the whole card
         ) {
             // 3. Render Icon (Stateless)

@@ -50,7 +50,7 @@ fun BuildingCard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(height * 0.2f))
+                .clip(RoundedCornerShape(percent = 20))
                 .background(cardBackgroundColor)
         ) {
             // 4. Render the Icon (Stateless)
