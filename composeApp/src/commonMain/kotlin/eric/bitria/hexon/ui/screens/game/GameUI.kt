@@ -1,17 +1,18 @@
 package eric.bitria.hexon.ui.screens.game
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccountBalance
@@ -24,8 +25,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.unit.times
 import eric.bitria.hexon.game.data.enums.TurnPhase
 import eric.bitria.hexon.ui.components.game.IconActionButton
 import eric.bitria.hexon.ui.components.game.OptionsButton
@@ -37,7 +36,6 @@ import eric.bitria.hexon.ui.components.game.assets.ResourceRow
 import eric.bitria.hexon.ui.components.game.assets.TradeResourceRow
 import eric.bitria.hexon.ui.components.game.trade.TradeRequest
 import eric.bitria.hexon.viewmodel.game.GameViewModel
-import kotlin.math.max
 
 @Composable
 fun GameUI(
@@ -70,17 +68,22 @@ fun GameUI(
         val outerPaddingH = baseDim * 0.03f
         val outerPaddingV = baseDim * 0.03f
 
+        // Calculate explicit layout percentages so they sum exactly to 1.0f
+        val topWeight = if (isLandscape) 0.2f else 0.10f
+        val bottomWeight = if (isLandscape) 0.50f else 0.25f
+        val middleWeight = 1f - topWeight - bottomWeight
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = outerPaddingH, vertical = outerPaddingV)
         ) {
 
-            // ================= TOP SECTION =================
+            // ================= 1. TOP SECTION =================
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(if (isLandscape) 0.3f else 0.15f)
+                    .weight(topWeight) // Fixed percentage
             ) {
                 val sectionSpacing = maxHeight * 0.08f
 
@@ -88,11 +91,8 @@ fun GameUI(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(sectionSpacing)
                 ) {
-
                     // ---- Top Bar ----
-                    BoxWithConstraints(
-                        modifier = Modifier.weight(0.4f)
-                    ) {
+                    Box(modifier = Modifier.weight(0.6f)) {
                         Row(
                             modifier = Modifier.fillMaxSize(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -119,9 +119,7 @@ fun GameUI(
                     }
 
                     // ---- Victory Points ----
-                    BoxWithConstraints(
-                        modifier = Modifier.weight(0.3f)
-                    ) {
+                    Box(modifier = Modifier.weight(0.4f)) {
                         Row(
                             modifier = Modifier.fillMaxSize(),
                             horizontalArrangement = Arrangement.End,
@@ -136,46 +134,52 @@ fun GameUI(
                             )
                         }
                     }
+                }
+            }
 
-                    // ---- Trade Requests ----
+            // ================= 2. MIDDLE SECTION (Trades + Empty Space) =================
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(middleWeight),
+                contentAlignment = Alignment.TopStart
+            ) {
+                if (trades.isNotEmpty()) {
                     BoxWithConstraints(
-                        modifier = Modifier.weight(0.3f)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(baseDim * (if (isLandscape) 0.12f else 0.1f))
                     ) {
-                        if (trades.isNotEmpty()) {
-                            val tradeHeight = maxHeight / trades.size
-                            val width = maxWidth
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                            ) {
-                                trades.forEach { (playerId, tradeOffer) ->
-                                    val playerColor = players[playerId]?.color ?: me?.color ?: "#000000"
-                                    TradeRequest(
-                                        playerId = playerId,
-                                        playerColor = playerColor,
-                                        tradeOffer = tradeOffer,
-                                        onAccept = { viewModel.sendTradeResponse(playerId, true) },
-                                        onDecline = { viewModel.sendTradeResponse(playerId, false) },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(tradeHeight)
-                                    )
-                                }
+                        val tradeHeight = maxHeight
+
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(maxHeight * 0.05f)
+                        ) {
+                            items(trades.toList()) { (playerId, tradeOffer) ->
+                                val playerColor = players[playerId]?.color ?: me?.color ?: "#000000"
+                                TradeRequest(
+                                    playerId = playerId,
+                                    playerColor = playerColor,
+                                    tradeOffer = tradeOffer,
+                                    onAccept = { viewModel.sendTradeResponse(playerId, true) },
+                                    onDecline = { viewModel.sendTradeResponse(playerId, false) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(tradeHeight)
+                                )
                             }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.weight(if (isLandscape) 0.2f else 0.7f))
-
-            // ================= BOTTOM SECTION =================
+            // ================= 3. BOTTOM SECTION =================
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(if (isLandscape) 0.55f else 0.25f)
+                    .weight(bottomWeight) // Fixed percentage
             ) {
-
                 val rowSpacing = maxHeight * 0.025f
                 val columnSpacing = maxWidth * 0.03f
                 val rowHeight = (maxHeight - rowSpacing * 3f) / 4f
@@ -183,11 +187,11 @@ fun GameUI(
                 Row(
                     modifier = Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.spacedBy(columnSpacing),
-                    verticalAlignment = Alignment.Bottom   // 👈 anchor to bottom
+                    verticalAlignment = Alignment.Bottom
                 ) {
 
                     // ---------- LEFT COLUMN ----------
-                    BoxWithConstraints(
+                    Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
@@ -199,9 +203,7 @@ fun GameUI(
                                 alignment = Alignment.Bottom
                             )
                         ) {
-
                             if (phase == TurnPhase.TRADE) {
-
                                 ResourceRow(
                                     resources = resources,
                                     onClick = {
@@ -231,9 +233,7 @@ fun GameUI(
                                         .fillMaxWidth()
                                         .height(rowHeight)
                                 )
-
                             } else {
-
                                 BuildingRow(
                                     buildings = buildings,
                                     onClick = {
@@ -255,25 +255,21 @@ fun GameUI(
                                     .fillMaxWidth()
                                     .height(rowHeight)
                             )
-
-                            // Trade Requests moved to top section
                         }
                     }
 
                     // ---------- RIGHT COLUMN ----------
-                    BoxWithConstraints(
+                    Box(
                         modifier = Modifier.fillMaxHeight()
                     ) {
                         Column(
                             modifier = Modifier.fillMaxHeight(),
                             verticalArrangement = Arrangement.spacedBy(
                                 rowSpacing,
-                                alignment = Alignment.Bottom   // 👈 grow upward
+                                alignment = Alignment.Bottom
                             )
                         ) {
-
                             if (phase == TurnPhase.TRADE) {
-
                                 IconActionButton(
                                     icon = Icons.Default.AccountBalance,
                                     contentDescription = "Bank Trade",
@@ -301,9 +297,7 @@ fun GameUI(
                                     ),
                                     modifier = Modifier.size(rowHeight)
                                 )
-
                             } else {
-
                                 IconActionButton(
                                     icon = Icons.AutoMirrored.Filled.ArrowForward,
                                     contentDescription = "End Turn",
