@@ -34,9 +34,9 @@ fun BuildingCard(
 
     // 2. Get Background Color
     val cardBackgroundColor = if (iconState != null) {
-        parseHexColor(iconState!!.color).copy(alpha = 0.6f)
+        parseHexColor(iconState!!.color)
     } else {
-        Color.Black.copy(alpha = 0.6f)
+        Color.Black
     }
 
     BoxWithConstraints(

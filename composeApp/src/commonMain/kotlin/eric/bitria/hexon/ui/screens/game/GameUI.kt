@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccountBalance
@@ -23,6 +24,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.unit.times
 import eric.bitria.hexon.game.data.enums.TurnPhase
 import eric.bitria.hexon.ui.components.game.IconActionButton
 import eric.bitria.hexon.ui.components.game.OptionsButton
@@ -34,6 +37,7 @@ import eric.bitria.hexon.ui.components.game.assets.ResourceRow
 import eric.bitria.hexon.ui.components.game.assets.TradeResourceRow
 import eric.bitria.hexon.ui.components.game.trade.TradeRequest
 import eric.bitria.hexon.viewmodel.game.GameViewModel
+import kotlin.math.max
 
 @Composable
 fun GameUI(
@@ -76,7 +80,7 @@ fun GameUI(
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(if (isLandscape) 0.3f else 0.2f)
+                    .weight(if (isLandscape) 0.3f else 0.15f)
             ) {
                 val sectionSpacing = maxHeight * 0.08f
 
@@ -87,7 +91,7 @@ fun GameUI(
 
                     // ---- Top Bar ----
                     BoxWithConstraints(
-                        modifier = Modifier.weight(0.3f)
+                        modifier = Modifier.weight(0.4f)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxSize(),
@@ -116,7 +120,7 @@ fun GameUI(
 
                     // ---- Victory Points ----
                     BoxWithConstraints(
-                        modifier = Modifier.weight(0.2f)
+                        modifier = Modifier.weight(0.3f)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxSize(),
@@ -135,13 +139,14 @@ fun GameUI(
 
                     // ---- Trade Requests ----
                     BoxWithConstraints(
-                        modifier = Modifier.weight(0.5f)
+                        modifier = Modifier.weight(0.3f)
                     ) {
                         if (trades.isNotEmpty()) {
                             val tradeHeight = maxHeight / trades.size
+                            val width = maxWidth
                             Column(
-                                modifier = Modifier.fillMaxSize(),
-                                //verticalArrangement = Arrangement.spacedBy(4.dp)
+                                modifier = Modifier
+                                    .fillMaxHeight()
                             ) {
                                 trades.forEach { (playerId, tradeOffer) ->
                                     val playerColor = players[playerId]?.color ?: me?.color ?: "#000000"
@@ -162,7 +167,7 @@ fun GameUI(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(if (isLandscape) 0.2f else 0.65f))
+            Spacer(modifier = Modifier.weight(if (isLandscape) 0.2f else 0.7f))
 
             // ================= BOTTOM SECTION =================
             BoxWithConstraints(
@@ -191,7 +196,7 @@ fun GameUI(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(
                                 rowSpacing,
-                                alignment = Alignment.Bottom   // 👈 grow upward
+                                alignment = Alignment.Bottom
                             )
                         ) {
 
@@ -293,18 +298,6 @@ fun GameUI(
                                         contentColor = MaterialTheme.colorScheme.onPrimary,
                                         disabledContainerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f),
                                         disabledContentColor = MaterialTheme.colorScheme.onPrimary
-                                    ),
-                                    modifier = Modifier.size(rowHeight)
-                                )
-
-                                IconActionButton(
-                                    icon = Icons.Filled.SwapHoriz,
-                                    contentDescription = "Trade",
-                                    onClick = { viewModel.switchTradePanel() },
-                                    enabled = phase == TurnPhase.TRADE || phase == TurnPhase.MAIN_PHASE,
-                                    colors = IconButtonDefaults.filledIconButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.tertiary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary
                                     ),
                                     modifier = Modifier.size(rowHeight)
                                 )

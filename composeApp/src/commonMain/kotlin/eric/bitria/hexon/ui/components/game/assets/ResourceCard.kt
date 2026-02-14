@@ -36,9 +36,9 @@ fun ResourceCard(
 
     // 2. Determine background color (Dynamic with fallback)
     val cardBackgroundColor = if (iconState != null) {
-        parseHexColor(iconState!!.color).copy(alpha = 0.6f)
+        parseHexColor(iconState!!.color)
     } else {
-        Color.Black.copy(alpha = 0.6f)
+        Color.Black
     }
 
     BoxWithConstraints(

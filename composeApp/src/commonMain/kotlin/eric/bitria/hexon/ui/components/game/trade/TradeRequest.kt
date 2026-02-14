@@ -2,29 +2,31 @@ package eric.bitria.hexon.ui.components.game.trade
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import eric.bitria.hexon.game.data.PlayerId
 import eric.bitria.hexon.game.data.TradeOffer
 import eric.bitria.hexon.ui.components.game.IconActionButton
@@ -41,7 +43,7 @@ fun TradeRequest(
     modifier: Modifier = Modifier
 ) {
     BoxWithConstraints(modifier = modifier) {
-        val horizontalSpacing = maxWidth * 0.03f
+        val horizontalSpacing = maxWidth * 0.015f
         val verticalSpacing = maxHeight * 0.03f
         val borderWidth = maxHeight * 0.02f
 
@@ -62,30 +64,61 @@ fun TradeRequest(
                     .border(borderWidth, Color.White.copy(alpha = 0.5f), CircleShape)
             )
 
-            // Resources Column
-            Column(
+            // Separator
+            VerticalDivider(
+                modifier = Modifier.fillMaxHeight(0.6f),
+                color = Color.White.copy(alpha = 0.2f)
+            )
+
+            // Given Resources with Arrow Up
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(horizontalSpacing * 0.5f),
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                verticalArrangement = Arrangement.SpaceBetween
+                    .fillMaxHeight()
             ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowUpward,
+                    contentDescription = "Given Resources",
+                    tint = Color.Red,
+                    modifier = Modifier.fillMaxHeight(0.3f)
+                )
                 TradeResourceRow(
                     selected = tradeOffer.give,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(bottom = verticalSpacing / 2)
-                        .background(Color.Red.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                    modifier = Modifier.fillMaxHeight()
+                )
+            }
+
+            // Separator
+            VerticalDivider(
+                modifier = Modifier.fillMaxHeight(0.6f),
+                color = Color.White.copy(alpha = 0.2f)
+            )
+
+            // Wanted Resources with Arrow Down
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(horizontalSpacing * 0.5f),
+                modifier = Modifier
+                    .fillMaxHeight()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowDownward,
+                    contentDescription = "Wanted Resources",
+                    tint = Color.Green,
+                    modifier = Modifier.fillMaxHeight(0.3f)
                 )
                 TradeResourceRow(
                     selected = tradeOffer.want,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(top = verticalSpacing / 2)
-                        .background(Color.Green.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                    modifier = Modifier.fillMaxHeight()
                 )
             }
+
+            // Separator
+            VerticalDivider(
+                modifier = Modifier.fillMaxHeight(0.6f),
+                color = Color.White.copy(alpha = 0.2f)
+            )
 
             // Buttons Row - Maintain square aspect ratio
             Row(
