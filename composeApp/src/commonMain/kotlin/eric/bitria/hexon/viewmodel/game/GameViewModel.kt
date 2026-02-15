@@ -86,8 +86,13 @@ class GameViewModel(
     private val _trades = MutableStateFlow<Map<PlayerId, TradeOffer>>(emptyMap())
     val trades: StateFlow<Map<PlayerId, TradeOffer>> = _trades
 
-    private val _tradeResponses = MutableStateFlow<Map<PlayerId, Boolean?>>(emptyMap())
-    val tradeResponses: StateFlow<Map<PlayerId, Boolean?>> = _tradeResponses
+    // Map of offererId -> Map of responderId -> accepted/declined/pending
+    private val _tradeResponses = MutableStateFlow<Map<PlayerId, Map<PlayerId, Boolean?>>>(emptyMap())
+    val tradeResponses: StateFlow<Map<PlayerId, Map<PlayerId, Boolean?>>> = _tradeResponses
+
+    // My active trade offer (if I'm the offerer)
+    private val _myTradeOffer = MutableStateFlow<TradeOffer?>(null)
+    val myTradeOffer: StateFlow<TradeOffer?> = _myTradeOffer
 
     init {
         Logger.d(TAG) { "GameViewModel init started" }
@@ -474,28 +479,40 @@ class GameViewModel(
 
     // Event
     fun onTradeProposed(event: GameplayEvent.TradeProposed) {
-        // Store new Trade
-        _trades.value = _trades.value.toMutableMap().apply {
-            put(event.offererId, TradeOffer(event.give, event.want))
+        val newOffer = TradeOffer(event.give, event.want)
+
+        // Simplifies map update using the plus (+) operator
+        _trades.value += (event.offererId to newOffer)
+
+        if (event.offererId == _me.value?.id) {
+            _myTradeOffer.value = newOffer
+            // Initialize all opponents with null (pending) responses
+            val initialResponses = _opponents.value.keys.associateWith { null as Boolean? }
+            _tradeResponses.value += (event.offererId to initialResponses)
         }
     }
 
     fun onTradeResponse(event: GameplayEvent.TradeResponse) {
-        // Store new Trade
-        _tradeResponses.value = _tradeResponses.value.toMutableMap().apply {
-            put(event.offererId, event.accepted)
-        }
+        // 1. Get the existing map for this offerer
+        val currentOfferResponses = _tradeResponses.value[event.offererId] ?: emptyMap()
+
+        // 2. Create a new inner map with the new response
+        val updatedOfferResponses = currentOfferResponses + (event.responderId to event.accepted)
+
+        // 3. Update the top-level map with the new inner map
+        _tradeResponses.value += (event.offererId to updatedOfferResponses)
     }
 
-    fun onTradeCompleted(event: GameplayEvent.TradeCompleted){
-        _trades.value = _trades.value.toMutableMap().apply {
-            remove(event.offererId)
-        }
-    }
+    fun onTradeCompleted(event: GameplayEvent.TradeCompleted) = clearTrade(event.offererId)
 
-    fun onTradeCancelled(event: GameplayEvent.TradeCancelled){
-        _trades.value = _trades.value.toMutableMap().apply {
-            remove(event.offererId)
+    fun onTradeCancelled(event: GameplayEvent.TradeCancelled) = clearTrade(event.offererId)
+
+    private fun clearTrade(offererId: String) {
+        _trades.value -= offererId
+        _tradeResponses.value -= offererId
+
+        if (offererId == _me.value?.id) {
+            _myTradeOffer.value = null
         }
     }
 

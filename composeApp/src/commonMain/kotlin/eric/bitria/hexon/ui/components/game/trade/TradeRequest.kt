@@ -2,7 +2,6 @@ package eric.bitria.hexon.ui.components.game.trade
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -78,9 +76,9 @@ fun TradeRequest(
                     .fillMaxHeight()
             ) {
                 Icon(
-                    imageVector = Icons.Default.ArrowUpward,
-                    contentDescription = "Given Resources",
-                    tint = Color.Red,
+                    imageVector = Icons.Default.ArrowDownward,
+                    contentDescription = "Wanted Resources",
+                    tint = Color.Green,
                     modifier = Modifier.fillMaxHeight(0.3f)
                 )
                 TradeResourceRow(
@@ -103,9 +101,9 @@ fun TradeRequest(
                     .fillMaxHeight()
             ) {
                 Icon(
-                    imageVector = Icons.Default.ArrowDownward,
-                    contentDescription = "Wanted Resources",
-                    tint = Color.Green,
+                    imageVector = Icons.Default.ArrowUpward,
+                    contentDescription = "Given Resources",
+                    tint = Color.Red,
                     modifier = Modifier.fillMaxHeight(0.3f)
                 )
                 TradeResourceRow(

@@ -35,6 +35,7 @@ import eric.bitria.hexon.ui.components.game.assets.PlayerResourceRow
 import eric.bitria.hexon.ui.components.game.assets.ResourceRow
 import eric.bitria.hexon.ui.components.game.assets.TradeResourceRow
 import eric.bitria.hexon.ui.components.game.trade.TradeRequest
+import eric.bitria.hexon.ui.components.game.trade.TradeResponseDialog
 import eric.bitria.hexon.viewmodel.game.GameViewModel
 
 @Composable
@@ -54,6 +55,8 @@ fun GameUI(
     val phase by viewModel.turnPhase.collectAsState()
     val activePlayerId by viewModel.activePlayerId.collectAsState()
     val trades by viewModel.trades.collectAsState()
+    val myTradeOffer by viewModel.myTradeOffer.collectAsState()
+    val tradeResponses by viewModel.tradeResponses.collectAsState()
     val canSendBankExchange by viewModel.canSendBankExchangeBool.collectAsState()
     val canSendPlayerTrade by viewModel.canSendPlayerTradeBool.collectAsState()
 
@@ -144,7 +147,37 @@ fun GameUI(
                     .weight(middleWeight),
                 contentAlignment = Alignment.TopStart
             ) {
-                if (trades.isNotEmpty()) {
+                // Show my trade offer with responses
+                val myId = me?.id
+                if (myTradeOffer != null && myId != null) {
+                    val responses = tradeResponses[myId] ?: emptyMap()
+                    val playerColors =
+                        responses.keys.associateWith { playerId -> (players[playerId]?.color ?: "#666666") }
+
+                    BoxWithConstraints(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(baseDim * (if (isLandscape) 0.12f else 0.1f))
+                    ) {
+                        val tradeHeight = maxHeight
+
+                        TradeResponseDialog(
+                            tradeOffer = myTradeOffer!!,
+                            playerResponses = responses,
+                            playerColors = playerColors,
+                            onConfirmTrade = { playerId ->
+                                viewModel.sendTradeConfirmation(playerId)
+                            },
+                            onCancelTrade = {
+                                viewModel.sendCancelTrade()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(tradeHeight)
+                        )
+                    }
+                } else if (trades.isNotEmpty()) {
+                    // Show trade requests from other players
                     BoxWithConstraints(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -314,7 +347,7 @@ fun GameUI(
                                 icon = Icons.Filled.SwapHoriz,
                                 contentDescription = "Trade",
                                 onClick = { viewModel.switchTradePanel() },
-                                enabled = phase == TurnPhase.TRADE || phase == TurnPhase.MAIN_PHASE,
+                                enabled = phase == TurnPhase.TRADE || phase == TurnPhase.MAIN_PHASE || phase == TurnPhase.WAITING,
                                 colors = IconButtonDefaults.filledIconButtonColors(
                                     containerColor = MaterialTheme.colorScheme.tertiary,
                                     contentColor = MaterialTheme.colorScheme.onPrimary
