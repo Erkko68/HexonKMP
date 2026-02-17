@@ -54,5 +54,6 @@ sealed class LobbyEvent : LobbyMessage() {
 }
 
 enum class LobbyErrorCode{
-    COLOR_TAKEN
+    COLOR_TAKEN,
+    NOT_ALL_READY
 }

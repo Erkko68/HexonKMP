@@ -119,4 +119,10 @@ sealed class GameplayEvent : GameplayMessage() {
     data class GameOver(
         val winnerId: String
     ) : GameplayEvent()
+
+    @Serializable
+    data class GameEnded(
+        val winnerId: String?,
+        val gameId: String
+    ) : GameplayEvent()
 }

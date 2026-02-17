@@ -2,8 +2,8 @@ package eric.bitria.hexon.services.matchmaking
 
 import eric.bitria.hexon.dtos.matchmaking.JoinGameResponse
 import eric.bitria.hexon.dtos.matchmaking.JoinGameResult
-import eric.bitria.hexon.services.game.GameSessionImpl
 import eric.bitria.hexon.services.game.GameSessionRepository
+import eric.bitria.hexon.services.game.session.MatchmakingGameSession
 import eric.bitria.hexon.ws.lobby.GameMode
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -42,7 +42,7 @@ class MatchmakingServiceImpl(
             }
 
             // 2. No session found or reservation failed, create a new one
-            val newSession = GameSessionImpl(
+            val newSession = MatchmakingGameSession(
                 mode = mode,
                 maxPlayers = maxPlayers
             )

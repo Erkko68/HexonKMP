@@ -23,6 +23,8 @@ import eric.bitria.hexon.services.email.verification.EmailVerificationService
 import eric.bitria.hexon.services.email.verification.EmailVerificationServiceImpl
 import eric.bitria.hexon.services.game.GameSessionRepository
 import eric.bitria.hexon.services.game.InMemoryGameSessionRepository
+import eric.bitria.hexon.services.matchmaking.LobbyService
+import eric.bitria.hexon.services.matchmaking.LobbyServiceImpl
 import eric.bitria.hexon.services.matchmaking.MatchmakingService
 import eric.bitria.hexon.services.matchmaking.MatchmakingServiceImpl
 import eric.bitria.hexon.services.social.SocialService
@@ -69,5 +71,6 @@ fun appModule(config: ApplicationConfig) = module {
     single<UserAccountService> { UserAccountServiceImpl(get(), get()) }
     single<SocialService> { SocialServiceImpl(get(), get(), get()) }
     single<MatchmakingService> { MatchmakingServiceImpl(get()) }
+    single<LobbyService> { LobbyServiceImpl(get()) }
     single<LogoutService> { LogoutServiceImpl(get(), get()) }
 }

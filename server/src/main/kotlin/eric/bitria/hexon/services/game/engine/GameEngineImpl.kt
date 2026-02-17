@@ -21,8 +21,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 class GameEngineImpl(
-    private val sessionId: String,
-    private val gameConfig: GameConfig = GameConfigLoader.default(sessionId)
+    private val gameId: String,
+    private val gameConfig: GameConfig = GameConfigLoader.default(gameId)
 ) : GameEngine {
 
     // Infrastructure
@@ -45,7 +45,7 @@ class GameEngineImpl(
     private var currentTurnPlayerId: PlayerId = ""
     private var currentPhase: TurnPhase = TurnPhase.SETUP
 
-    override suspend fun start(lobbyPlayers: List<LobbyPlayer>, sender: GameMessageSender) {
+    override suspend fun start(gameId: String, lobbyPlayers: List<LobbyPlayer>, sender: GameMessageSender) {
         mutex.withLock {
             this.sender = sender
 
@@ -78,8 +78,12 @@ class GameEngineImpl(
         }
     }
 
-    override suspend fun end(){
+    override suspend fun endGame(winnerId: String?) {
         currentPhase = TurnPhase.GAME_OVER
+        // Broadcast game ended event to all players
+        sender.broadcast(GameplayEvent.GameEnded(winnerId, gameId))
+        // Notify session that game has ended
+        sender.onGameEnded(winnerId)
     }
 
     override suspend fun onMessage(userId: String, message: GameMessage) {
@@ -301,7 +305,7 @@ class GameEngineImpl(
                     winnerId = player.id
                 )
             )
-            end()
+            endGame(player.id)
         }
     }
 

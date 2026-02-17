@@ -6,8 +6,10 @@ import eric.bitria.hexon.ws.lobby.LobbyPlayer
 
 interface GameEngine {
     // Called once when the room hits maxPlayers
-    suspend fun start(lobbyPlayers: List<LobbyPlayer>, sender: GameMessageSender)
-    suspend fun end()
+    suspend fun start(gameId: String, lobbyPlayers: List<LobbyPlayer>, sender: GameMessageSender)
+
+    // Called to end the game (broadcasts GameEnded and returns control to session)
+    suspend fun endGame(winnerId: String?)
 
     // Called when a running game receives input
     suspend fun onMessage(userId: String, message: GameMessage)
