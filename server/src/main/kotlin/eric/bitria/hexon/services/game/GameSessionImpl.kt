@@ -22,6 +22,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.text.clear
 
 /**
  * Manages a single game session through its lifecycle:
@@ -192,6 +193,34 @@ class GameSessionImpl(
             logger.info("Player $userId disconnected from game $sessionId")
             engine?.onPlayerLeave(userId)
         }
+    }
+
+    // ==================== Game Ended Phase ====================
+    private suspend fun terminateGame() {
+        stateMutex.withLock {
+            if (currentState == State.LOBBY) return // No need to terminate if the game hasn't started
+            currentState = State.LOBBY // Reset state to allow new games
+        }
+
+        logger.info("Terminating game session $sessionId")
+
+        // Close all WebSocket connections gracefully
+        connectedPlayers.forEach { (userId, session) ->
+            try {
+                session.close(CloseReason(CloseReason.Codes.NORMAL, "Game ended"))
+            } catch (e: Exception) {
+                logger.error("Failed to close connection for $userId: ${e.message}")
+            }
+        }
+
+        // Clear session state
+        connectedPlayers.clear()
+        lobbyPlayers.clear()
+        reservedSlots.clear()
+        playersReadyForGame.clear()
+        engine = null // Release the game engine instance
+
+        logger.info("Game session $sessionId cleaned up successfully")
     }
 
     // ==================== GameMessageSender Interface ====================

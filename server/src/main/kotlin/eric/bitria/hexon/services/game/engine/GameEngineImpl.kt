@@ -78,6 +78,10 @@ class GameEngineImpl(
         }
     }
 
+    override suspend fun end(){
+        currentPhase = TurnPhase.GAME_OVER
+    }
+
     override suspend fun onMessage(userId: String, message: GameMessage) {
         mutex.withLock {
             // We only care about Gameplay Intents here
@@ -271,6 +275,9 @@ class GameEngineImpl(
             return sender.sendToPlayer(userId, GameplayEvent.GameError("Placement failed (Internal Logic)", GameErrorCode.INVALID_PLACEMENT))
         }
 
+        // Update victory points
+        player.victoryPoints += def.points
+
         // NOW deduct resources after successful placement
         player.deductResources(def.cost)
 
@@ -287,6 +294,15 @@ class GameEngineImpl(
                 hexC = intent.h3
             )
         )
+
+        if(player.victoryPoints >= gameConfig.victoryPoints){
+            sender.broadcast(
+                GameplayEvent.GameOver(
+                    winnerId = player.id
+                )
+            )
+            end()
+        }
     }
 
     private suspend fun handleRobberMove(userId: PlayerId, intent: GameplayIntent.MoveRobber) {

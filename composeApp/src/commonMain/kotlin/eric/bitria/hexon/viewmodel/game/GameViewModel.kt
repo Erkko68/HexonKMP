@@ -233,7 +233,7 @@ class GameViewModel(
             // End Game
             is GameplayEvent.GameOver -> {
                 Logger.d(TAG) { "Handling GameOver" }
-                TODO()
+                onGameOver(event)
             }
 
             // Errors
@@ -310,6 +310,16 @@ class GameViewModel(
         Logger.d(TAG) { "Synced ${board.ports.size} ports. Total commands sent: $commandCount" }
     }
 
+    private fun onGameOver(event: GameplayEvent.GameOver) {
+        _turnPhase.value = TurnPhase.GAME_OVER
+        _activePlayerId.value = event.winnerId
+        viewModelScope.launch {
+            repository.disconnect()
+        }
+        Logger.d(TAG) { "Game over! Winner: ${event.winnerId}" }
+
+    }
+
     private fun onTurnChanged(event: GameplayEvent.TurnChanged) {
         _activePlayerId.value = event.newPlayerId
         if(event.turnPhase == TurnPhase.SETUP){
@@ -330,6 +340,8 @@ class GameViewModel(
     }
 
     fun onExitGame() {
+        Logger.d(TAG) { "onExitGame() called" }
+
         viewModelScope.launch {
             repository.disconnect()
         }
@@ -399,7 +411,7 @@ class GameViewModel(
     }
 
     // Intent
-    fun sendBankExchange() {
+    fun sendBankExchange(){
         viewModelScope.launch {
             repository.sendMessage(
                 GameplayIntent.ExchangeWithBank(
@@ -579,6 +591,21 @@ class GameViewModel(
     }
 
     // --- Buildings ---
+
+    val placeableBuildings: StateFlow<Set<BuildingId>> =
+        combine(me, buildingsDef) { player, defs ->
+            if (player == null) return@combine emptySet()
+
+            defs
+                .asSequence() // small micro-optimization
+                .filter { player.canDeductResources(it.cost) }
+                .map { it.id }
+                .toSet()
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.Lazily,
+            emptySet()
+        )
 
     // Intent
     fun showAvailableBuildingPositions(buildingId: BuildingId) {

@@ -26,6 +26,7 @@ import eric.bitria.hexon.ui.utils.rememberAssetData
 @Composable
 fun BuildingCard(
     building: BuildingDef,
+    enabled: Boolean = true,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -42,7 +43,10 @@ fun BuildingCard(
     BoxWithConstraints(
         modifier = modifier
             .aspectRatio(1f)
-            .clickable { onClick() }
+            .clickable(
+                enabled = enabled,
+                onClick = onClick
+            )
     ) {
         val height = maxHeight
 

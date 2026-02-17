@@ -30,6 +30,7 @@ import eric.bitria.hexon.ui.components.game.IconActionButton
 import eric.bitria.hexon.ui.components.game.OptionsButton
 import eric.bitria.hexon.ui.components.game.PlayerTurnBar
 import eric.bitria.hexon.ui.components.game.VictoryPointsIndicator
+import eric.bitria.hexon.ui.components.game.WinnerOverlay
 import eric.bitria.hexon.ui.components.game.assets.BuildingRow
 import eric.bitria.hexon.ui.components.game.assets.PlayerResourceRow
 import eric.bitria.hexon.ui.components.game.assets.ResourceRow
@@ -59,6 +60,7 @@ fun GameUI(
     val tradeResponses by viewModel.tradeResponses.collectAsState()
     val canSendBankExchange by viewModel.canSendBankExchangeBool.collectAsState()
     val canSendPlayerTrade by viewModel.canSendPlayerTradeBool.collectAsState()
+    val placeable by viewModel.placeableBuildings.collectAsState()
 
     BoxWithConstraints(
         modifier = Modifier.fillMaxSize()
@@ -75,6 +77,16 @@ fun GameUI(
         val topWeight = if (isLandscape) 0.2f else 0.10f
         val bottomWeight = if (isLandscape) 0.50f else 0.25f
         val middleWeight = 1f - topWeight - bottomWeight
+
+        if(phase == TurnPhase.GAME_OVER) {
+            WinnerOverlay(
+                playerName = activePlayerId ?: "Unknown",
+                onDismissRequest = {
+                    viewModel.onExitGame()
+                    onExitClicked()
+                }
+            )
+        }
 
         Column(
             modifier = Modifier
@@ -112,8 +124,8 @@ fun GameUI(
 
                             OptionsButton(
                                 onExitClicked = {
-                                    onExitClicked()
                                     viewModel.onExitGame()
+                                    onExitClicked()
                                 },
                                 onAboutClicked = {},
                                 modifier = Modifier.fillMaxHeight()
@@ -269,9 +281,8 @@ fun GameUI(
                             } else {
                                 BuildingRow(
                                     buildings = buildings,
-                                    onClick = {
-                                        viewModel.showAvailableBuildingPositions(it)
-                                    },
+                                    enabled = { it in placeable },
+                                    onClick = { viewModel.showAvailableBuildingPositions(it) },
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(rowHeight)
@@ -335,6 +346,7 @@ fun GameUI(
                                     icon = Icons.AutoMirrored.Filled.ArrowForward,
                                     contentDescription = "End Turn",
                                     onClick = { viewModel.onEndTurn() },
+                                    enabled = phase == TurnPhase.TRADE || phase == TurnPhase.MAIN_PHASE || phase == TurnPhase.SETUP,
                                     colors = IconButtonDefaults.filledIconButtonColors(
                                         containerColor = MaterialTheme.colorScheme.primary,
                                         contentColor = MaterialTheme.colorScheme.onPrimary

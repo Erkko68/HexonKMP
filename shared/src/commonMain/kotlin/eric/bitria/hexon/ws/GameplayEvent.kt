@@ -117,7 +117,6 @@ sealed class GameplayEvent : GameplayMessage() {
 
     @Serializable
     data class GameOver(
-        val winnerId: String,
-        val stats: Map<String, String>,
+        val winnerId: String
     ) : GameplayEvent()
 }

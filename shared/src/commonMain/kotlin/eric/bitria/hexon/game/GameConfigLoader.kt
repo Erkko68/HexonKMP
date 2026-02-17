@@ -17,7 +17,7 @@ object GameConfigLoader {
     fun default(seed: String = "default"): GameConfig {
         return GameConfig(
             seed = seed,
-            victoryPoints = 10,
+            victoryPoints = 3,
             tradeRatio = 4,
             // Rules
             resourceDefs = defaultResourceDef(),

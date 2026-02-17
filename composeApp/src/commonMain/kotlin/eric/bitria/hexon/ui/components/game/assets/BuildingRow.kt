@@ -16,6 +16,7 @@ import eric.bitria.hexon.game.data.def.BuildingDef
 @Composable
 fun BuildingRow(
     buildings: List<BuildingDef>,
+    enabled: (BuildingId) -> Boolean = { true },
     onClick: (BuildingId) -> Unit = {},
     modifier: Modifier
 ) {
@@ -34,6 +35,7 @@ fun BuildingRow(
                 key(building.id) {
                     BuildingCard(
                         building = building,
+                        enabled = enabled(building.id),
                         onClick = { onClick(building.id) },
                         modifier = Modifier.fillMaxHeight()
                     )
