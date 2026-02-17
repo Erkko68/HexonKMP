@@ -60,7 +60,7 @@ data class GamePlayer(
      * Helper to safely remove resources.
      * Returns false if insufficient funds.
      */
-    fun tryDeductResources(cost: Map<ResourceId, Int>): Boolean {
+    fun deductResources(cost: Map<ResourceId, Int>): Boolean {
         // 1. Check if they have enough
         val canAfford = cost.all { (resId, amount) ->
             (resources[resId] ?: 0) >= amount

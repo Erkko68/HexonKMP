@@ -3,14 +3,13 @@ package eric.bitria.hexon.services.game.engine
 import eric.bitria.hexon.game.Board
 import eric.bitria.hexon.game.GameConfigLoader
 import eric.bitria.hexon.game.GamePlayer
-import eric.bitria.hexon.game.data.def.BuildingDef
 import eric.bitria.hexon.game.data.BuildingId
-import eric.bitria.hexon.game.data.config.GameConfig
-import eric.bitria.hexon.game.data.def.PlacementType
 import eric.bitria.hexon.game.data.PlayerId
-import eric.bitria.hexon.game.data.def.ResourceDef
 import eric.bitria.hexon.game.data.ResourceId
 import eric.bitria.hexon.game.data.TradeOffer
+import eric.bitria.hexon.game.data.config.GameConfig
+import eric.bitria.hexon.game.data.def.BuildingDef
+import eric.bitria.hexon.game.data.def.PlacementType
 import eric.bitria.hexon.game.data.enums.GameErrorCode
 import eric.bitria.hexon.game.data.enums.TurnPhase
 import eric.bitria.hexon.game.data.enums.UpdateReason
@@ -20,7 +19,6 @@ import eric.bitria.hexon.ws.GameplayIntent
 import eric.bitria.hexon.ws.lobby.LobbyPlayer
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlin.collections.forEach
 
 class GameEngineImpl(
     private val sessionId: String,
@@ -36,8 +34,6 @@ class GameEngineImpl(
     private val board = Board()
     val buildings: Map<BuildingId, BuildingDef> =
         gameConfig.buildingDefs.associateBy { it.id }
-    val resources: Map<ResourceId, ResourceDef> =
-        gameConfig.resourceDefs.associateBy { it.id }
     private val trades = mutableMapOf<PlayerId,TradeOffer>()
     private val tradeAcceptances = mutableMapOf<PlayerId, MutableSet<PlayerId>>()
 
@@ -276,7 +272,7 @@ class GameEngineImpl(
         }
 
         // NOW deduct resources after successful placement
-        player.tryDeductResources(def.cost)
+        player.deductResources(def.cost)
 
         // Notify resource deduction for building
         val deduction = def.cost.mapValues { -it.value }
@@ -316,7 +312,7 @@ class GameEngineImpl(
             ?.let { mapOf(it to 1) } ?: return
 
         // 1. Remove from victim
-        players[victimId]?.tryDeductResources(stolenResource)
+        players[victimId]?.deductResources(stolenResource)
         notifyResourceChanges(
             victimId,
             stolenResource.mapValues { -it.value },
@@ -431,16 +427,24 @@ class GameEngineImpl(
         if (!responder.canDeductResources(trade.want)) {
             // Remove invalid responder and notify offerer
             acceptedPlayers.remove(intent.responderId)
+            sender.sendToPlayer(
+                receiverId = offerer.id,
+                GameplayEvent.TradeResponse(
+                    offererId = offerer.id,
+                    responderId = intent.responderId,
+                    accepted = false
+                )
+            )
             return sender.sendToPlayer(userId, GameplayEvent.GameError("Responder lacks resources. Offer removed.", GameErrorCode.INSUFFICIENT_RESOURCES))
         }
 
         // 5. Execute Swap
         // Offerer: -Give, +Want
-        offerer.tryDeductResources(trade.give)
+        offerer.deductResources(trade.give)
         offerer.addResources(trade.want)
 
         // Responder: -Want, +Give
-        responder.tryDeductResources(trade.want)
+        responder.deductResources(trade.want)
         responder.addResources(trade.give)
 
         // 6. Cleanup & Notify
@@ -456,7 +460,9 @@ class GameEngineImpl(
         )
 
         // 7. Send Private Inventory Updates
-        val offererChanges = trade.give.mapValues { -it.value } + trade.want
+        val offererChanges = (trade.give.mapValues { -it.value }.asSequence() + trade.want.asSequence())
+            .groupBy({ it.key }, { it.value })
+            .mapValues { (_, values) -> values.sum() }
         notifyResourceChanges(userId, offererChanges, UpdateReason.TRADE)
 
         val responderChanges = trade.want.mapValues { -it.value } + trade.give
@@ -504,7 +510,7 @@ class GameEngineImpl(
             return
         }
 
-        player.tryDeductResources(toDeduct)
+        player.deductResources(toDeduct)
         player.addResources(intent.get)
 
         val changes = toDeduct.mapValues { -it.value } + intent.get

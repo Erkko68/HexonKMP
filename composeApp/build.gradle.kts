@@ -70,7 +70,6 @@ kotlin {
             implementation(project.dependencies.platform(libs.koin.bom))
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
-            implementation(libs.koin.compose.viewmodel.navigation)
             implementation(libs.insert.koin.koin.core)
 
             // Ktor Client

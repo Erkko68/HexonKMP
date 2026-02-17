@@ -276,14 +276,14 @@ class GameSessionImpl(
         }
     }
 
-    override suspend fun sendToPlayer(playerId: String, message: GameMessage) {
-        val session = connectedPlayers[playerId] ?: return
+    override suspend fun sendToPlayer(receiverId: String, message: GameMessage) {
+        val session = connectedPlayers[receiverId] ?: return
 
         try {
             val jsonText = json.encodeToString(message)
             session.send(Frame.Text(jsonText))
         } catch (e: Exception) {
-            logger.error("Failed to send ${message::class.simpleName} to $playerId: ${e.message}")
+            logger.error("Failed to send ${message::class.simpleName} to $receiverId: ${e.message}")
         }
     }
 
