@@ -7,6 +7,7 @@ import eric.bitria.hexon.dtos.auth.LoginRequest
 import eric.bitria.hexon.dtos.auth.LoginResult
 import eric.bitria.hexon.dtos.auth.LogoutRequest
 import eric.bitria.hexon.dtos.auth.RefreshRequest
+import eric.bitria.hexon.dtos.auth.RefreshResponse
 import eric.bitria.hexon.dtos.auth.RefreshResult
 import eric.bitria.hexon.dtos.auth.RegisterRequest
 import eric.bitria.hexon.security.UserSession
@@ -68,7 +69,10 @@ fun Route.authRoutes() {
             }
 
             if (refreshToken.isNullOrBlank()) {
-                call.respond(HttpStatusCode.Unauthorized, "No refresh token found")
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    RefreshResponse(RefreshResult.INVALID_TOKEN, "No refresh token found")
+                )
                 return@post
             }
 

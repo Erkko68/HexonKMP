@@ -34,4 +34,3 @@ class InMemoryUserPreferencesRepository : UserPreferencesRepository {
         _preferences.update { it.copy(disableGameInvites = enabled) }
     }
 }
-

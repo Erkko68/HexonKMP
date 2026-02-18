@@ -18,6 +18,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.encodedPath
+import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.core.module.Module
@@ -55,16 +56,30 @@ val networkModule: Module = module {
 
                     refreshTokens {
                         val refreshToken = tokenStorage.getRefresh() ?: return@refreshTokens null
-                        val response: RefreshResponse = client.post("/auth/refresh") {
-                            setBody(RefreshRequest(refreshToken))
-                            markAsRefreshTokenRequest()
-                        }.body()
+                        
+                        try {
+                            val httpResponse = client.post("/auth/refresh") {
+                                setBody(RefreshRequest(refreshToken))
+                                markAsRefreshTokenRequest()
+                            }
 
-                        if (response.result == RefreshResult.SUCCESS && response.accessToken != null) {
-                            tokenStorage.saveAccess(response.accessToken!!)
-                            response.refreshToken?.let { tokenStorage.saveRefresh(it) }
-                            BearerTokens(response.accessToken!!, response.refreshToken ?: refreshToken)
-                        } else {
+                            if (httpResponse.status.isSuccess()) {
+                                val response: RefreshResponse = httpResponse.body()
+                                if (response.result == RefreshResult.SUCCESS && response.accessToken != null) {
+                                    tokenStorage.saveAccess(response.accessToken!!)
+                                    response.refreshToken?.let { tokenStorage.saveRefresh(it) }
+                                    BearerTokens(response.accessToken!!, response.refreshToken ?: refreshToken)
+                                } else {
+                                    tokenStorage.clear()
+                                    null
+                                }
+                            } else {
+                                // Non-success response (401, 403, etc.)
+                                tokenStorage.clear()
+                                null
+                            }
+                        } catch (e: Exception) {
+                            // Handle deserialization errors or network issues
                             tokenStorage.clear()
                             null
                         }
