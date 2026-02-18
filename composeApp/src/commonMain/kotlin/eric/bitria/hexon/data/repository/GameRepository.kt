@@ -15,6 +15,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 private const val TAG = "GameRepository"
 
@@ -42,7 +43,7 @@ class GameRepositoryImpl(
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     // Flow for messages with initial buffering.
-    private val _incomingMessages = MutableSharedFlow<GameMessage>(replay = 8)
+    private val _incomingMessages = MutableSharedFlow<GameMessage>(replay = 4)
     override val incomingMessages: Flow<GameMessage> = _incomingMessages.asSharedFlow()
 
     override suspend fun connect(sessionId: String) {
@@ -103,6 +104,7 @@ class GameRepositoryImpl(
         }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun disconnect() {
         Logger.d(TAG) { "disconnect() called" }
         sessionMutex.withLock {
@@ -118,5 +120,12 @@ class GameRepositoryImpl(
                 Logger.d(TAG) { "Session set to null" }
             }
         }
+
+        // Clear the replay buffer to prevent old messages from being replayed
+        // to new subscribers (e.g., when a new GameViewModel is created after
+        // a game ends)
+        Logger.d(TAG) { "Resetting message buffer" }
+        _incomingMessages.resetReplayCache()
+        Logger.d(TAG) { "disconnect() completed" }
     }
 }

@@ -80,7 +80,7 @@ fun GameUI(
 
         if(phase == TurnPhase.GAME_OVER) {
             WinnerOverlay(
-                playerName = activePlayerId ?: "Unknown",
+                playerName = players[activePlayerId]?.name ?: me?.name ?: "You shouldn't be seeing this",
                 onDismissRequest = {
                     viewModel.onExitGame()
                     onExitClicked()

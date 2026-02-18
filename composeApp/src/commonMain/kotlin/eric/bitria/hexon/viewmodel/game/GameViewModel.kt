@@ -48,6 +48,9 @@ class GameViewModel(
     private val _turnPhase = MutableStateFlow(TurnPhase.WAITING)
     val turnPhase: StateFlow<TurnPhase> = _turnPhase
 
+    // Track if this ViewModel instance has been initialized with a game
+    private var isGameInitialized = false
+
     // --- Definitions (Derived from Config) ---
     private val _gameConfig = MutableStateFlow<GameConfig?>(null)
 
@@ -231,7 +234,7 @@ class GameViewModel(
             }
 
             // End Game
-            is GameplayEvent.GameOver -> {
+            is GameplayEvent.GameEnded -> {
                 Logger.d(TAG) { "Handling GameOver" }
                 onGameOver(event)
             }
@@ -250,6 +253,7 @@ class GameViewModel(
         Logger.d(TAG) { "Config: victoryPoints=${config.victoryPoints}, resources=${config.resourceDefs.size}, buildings=${config.buildingDefs.size}" }
 
         _gameConfig.value = config
+        isGameInitialized = true
 
         val boardInstance = Board().apply {
             initialize(config)
@@ -310,7 +314,14 @@ class GameViewModel(
         Logger.d(TAG) { "Synced ${board.ports.size} ports. Total commands sent: $commandCount" }
     }
 
-    private fun onGameOver(event: GameplayEvent.GameOver) {
+    private fun onGameOver(event: GameplayEvent.GameEnded) {
+        // Ignore if this game instance hasn't been initialized yet
+        // (protects against stale events from previous games)
+        if (!isGameInitialized) {
+            Logger.w(TAG) { "Ignoring GameEnded event - game not initialized in this ViewModel instance" }
+            return
+        }
+
         _turnPhase.value = TurnPhase.GAME_OVER
         _activePlayerId.value = event.winnerId
         viewModelScope.launch {

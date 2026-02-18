@@ -300,11 +300,6 @@ class GameEngineImpl(
         )
 
         if(player.victoryPoints >= gameConfig.victoryPoints){
-            sender.broadcast(
-                GameplayEvent.GameOver(
-                    winnerId = player.id
-                )
-            )
             endGame(player.id)
         }
     }
