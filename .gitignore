@@ -28,3 +28,4 @@ kotlin-js-store/*
 
 # Generated config files
 shared/src/*/kotlin/eric/bitria/hexon/config/EnvConfig.kt
+/gradle/gradle-daemon-jvm.properties

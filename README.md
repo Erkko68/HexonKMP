@@ -2,22 +2,20 @@ This is a Kotlin Multiplatform project targeting Android, iOS, Server.
 
 ## Environment Configuration
 
-This project uses a modular environment configuration system. See [env/README.md](./env/README.md) for full documentation.
+This project uses a simplified environment configuration system.
 
 **Quick start:**
 ```bash
-# Use debug config (default)
+# Generate EnvConfig from .env files
 ./gradlew generateEnvConfig
-
-# Use release config
-./gradlew generateEnvConfig -PbuildVariant=release
 ```
 
 **File structure:**
-- `env/.env.debug` - Development config
-- `env/.env.debug.android` - Android-specific overrides
-- `env/.env.staging` - Staging config
-- `env/.env.release` - Production config
+- `.env` - Base configuration for all platforms
+- `.env.android` - Android-specific overrides (optional)
+- `.env.ios` - iOS-specific overrides (optional)
+- `.env.js` - Web-specific overrides (optional)
+- `.env.jvm` - Server-specific overrides (optional)
 
 ## Project Structure
 
