@@ -21,7 +21,10 @@ server/src/main/resources/application.conf
 composeApp/src/commonMain/composeResources/files/threeJs.js
 kotlin-js-store/*
 
-# Environment files
-env/.env.*
-!env/.env.example
+# Environment files - don't commit
+.env
+.env.*
+!.env.example
+
+# Generated config files
 shared/src/*/kotlin/eric/bitria/hexon/config/EnvConfig.kt
