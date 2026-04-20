@@ -7,7 +7,7 @@ plugins {
 }
 
 kotlin {
-    androidLibrary {
+    android {
         compileSdk = 36
         namespace = "eric.bitria.hexon.compose"
         androidResources {

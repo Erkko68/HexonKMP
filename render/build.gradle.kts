@@ -7,7 +7,7 @@ plugins {
 }
 
 kotlin {
-    androidLibrary {
+    android {
         namespace = "eric.bitria.hexon.render"
         minSdk = 24
         compileSdk = 36
