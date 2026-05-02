@@ -1,269 +1,144 @@
 # Hexon Domain Model
 
-Complete class-level reference for the server and shared KMP modules, organized by domain.
+Visual class-level overview of the Hexon server and the shared KMP module. Interfaces represent each capability; concrete implementations are noted but not detailed. Methods are grouped by intent to keep the diagrams readable.
 
 ---
 
-## 1. Infrastructure & Routing
+## 1. Application Layer — Bootstrap & HTTP/WS Routing
 
 ```mermaid
 classDiagram
     direction TB
 
-    namespace Infrastructure {
-        class Application {
-            <<Ktor Module>>
-            +main(args: Array~String~)
-            +module()
-            +configureRouting()
-            +configureSecurity()
-            +configureSerialization()
-            +configureWebSockets()
-        }
-        class DatabaseFactory {
-            <<object>>
-            +init(config: ApplicationConfig)
-            +dbQuery(block: () → T) T
-            -retryConnect(config: ApplicationConfig)
-        }
-        class AppModule {
-            +appModule() Module
-        }
-        class JwtConfig {
-            <<data>>
-            +issuer: String
-            +audience: String
-            +secret: String
-            +realm: String
-            +accessTokenTtlMillis: Long
-            +refreshTokenTtlMillis: Long
-        }
-        class SmtpConfig {
-            <<data>>
-            +smtpUser: String
-            +smtpPassword: String
-            +smtpHost: String
-            +smtpPort: String
-            +fromConfig(config: ApplicationConfig) SmtpConfig
-        }
-        class CookieConfig {
-            <<data>>
-            +secret: String
-            +maxAge: Int
-        }
+    class Application {
+        <<Ktor>>
+        + module / configure*()
+    }
+    class AppModule {
+        <<Koin DI>>
+        + appModule() : Module
+    }
+    class DatabaseFactory {
+        <<object>>
+        + init(config)
+        + dbQuery(block)
+    }
+    class Configs {
+        <<data>>
+        JwtConfig
+        SmtpConfig
+        CookieConfig
     }
 
-    namespace Routes {
-        class AuthRoutes {
-            <<Route>>
-            POST /auth/register
-            POST /auth/login
-            POST /auth/refresh
-            POST /auth/logout
-        }
-        class UsersRoutes {
-            <<Route>>
-            POST /users/email/confirm
-            POST /users/email/resend
-            POST /users/password/change
-            POST /users/password/forgot
-            POST /users/password/reset
-            POST /users/me/delete/initiate
-            DELETE /users/me
-            GET /users/me
-            GET /users/id
-        }
-        class SocialRoutes {
-            <<Route>>
-            GET /friends
-            GET /friends/requests
-            POST /friends/add
-            POST /friends/respond
-        }
-        class MatchmakingRoutes {
-            <<Route>>
-            POST /game
-            POST /lobby
-            WS /game/sessionId
-        }
+    class AuthRoutes {
+        <<REST>>
+        /auth/register · /login
+        /refresh · /logout
+    }
+    class UsersRoutes {
+        <<REST>>
+        /users/me · /id
+        /email/* · /password/*
+        /me/delete/*
+    }
+    class SocialRoutes {
+        <<REST>>
+        /friends · /requests
+        /add · /respond
+    }
+    class MatchmakingRoutes {
+        <<REST + WS>>
+        POST /game · /lobby
+        WS   /game/{sessionId}
     }
 
-    Application ..> AppModule : loads DI
-    Application ..> DatabaseFactory : initializes
-    Application ..> AuthRoutes : registers
-    Application ..> UsersRoutes : registers
-    Application ..> SocialRoutes : registers
-    Application ..> MatchmakingRoutes : registers
-    AppModule ..> JwtConfig : provides
-    AppModule ..> SmtpConfig : provides
-    AppModule ..> CookieConfig : provides
+    Application --> AppModule : loads
+    Application --> DatabaseFactory : initializes
+    Application --> AuthRoutes
+    Application --> UsersRoutes
+    Application --> SocialRoutes
+    Application --> MatchmakingRoutes
+    AppModule --> Configs : provides
 ```
 
 ---
 
-## 2. Authentication Domain
+## 2. Authentication & User Account Domain
 
 ```mermaid
 classDiagram
     direction TB
 
     class User {
-        <<data>>
-        +id: String
-        +email: String
-        +username: String
-        +password: String
-        +isVerified: Boolean
+        <<entity>>
+        id, email, username
+        password, isVerified
     }
 
     class TokenService {
         <<interface>>
-        +generateAccessToken(userId: String, username: String) String
-        +generateRefreshToken(userId: String) String
-        +validateRefreshToken(token: String) String?
-    }
-
-    class JwtTokenService {
-        -config: JwtConfig
+        + generate / validate tokens
     }
 
     class AuthRepository {
         <<interface>>
-        +isEmailRegistered(email: String) Boolean
-        +isUsernameTaken(username: String) Boolean
-        +createUser(email: String, username: String, passwordHash: String) User
-        +findUserByEmail(email: String) User?
-        +findUserById(userId: String) User?
-        +findUserByUsername(username: String) User?
-        +addRefreshToken(userId: String, hash: String, expiresAt: LocalDateTime)
-        +updateRefreshToken(oldHash: String, newHash: String, expiresAt: LocalDateTime) Boolean
-        +hasRefreshTokenHash(hash: String) Boolean
-        +revokeRefreshToken(hash: String)
-        +revokeAllRefreshTokens(userId: String)
-        +clearExpiredSessions()
-        +verifyUser(userId: String)
-        +updatePassword(userId: String, newHash: String)
-        +deleteUser(userId: String)
-    }
-
-    class ExposedAuthRepository {
-        <<Exposed ORM>>
+        + user CRUD & lookup
+        + refresh-token store
+        + verification & deletion
     }
 
     class LoginService {
         <<interface>>
-        +login(request: LoginRequest) LoginResponse
+        + login(request)
     }
-
-    class LoginServiceImpl {
-        -authRepository: AuthRepository
-        -tokenService: TokenService
-    }
-
     class RegisterService {
         <<interface>>
-        +register(request: RegisterRequest) RegisterResponse
+        + register(request)
     }
-
-    class RegisterServiceImpl {
-        -authRepository: AuthRepository
-        -emailVerificationService: EmailVerificationService
-    }
-
     class RefreshService {
         <<interface>>
-        +refresh(request: RefreshRequest) RefreshResponse
+        + refresh(request)
     }
-
-    class RefreshServiceImpl {
-        -authRepository: AuthRepository
-        -tokenService: TokenService
-    }
-
     class LogoutService {
         <<interface>>
-        +logout(request: LogoutRequest) LogoutResponse
+        + logout(request)
     }
-
-    class LogoutServiceImpl {
-        -authRepository: AuthRepository
-        -tokenService: TokenService
-    }
-
-    class EmailVerificationService {
-        <<interface>>
-        +sendVerificationCodeByEmail(email: String, type: EmailVerificationType)
-        +sendVerificationCodeByUserId(userId: String, type: EmailVerificationType)
-        +verifyCodeByEmail(email: String, code: String, type: EmailVerificationType) Boolean
-        +verifyCodeByUserId(userId: String, code: String, type: EmailVerificationType) Boolean
-    }
-
     class AccountVerificationService {
         <<interface>>
-        +verifyEmail(request: VerifyEmailRequest) VerifyEmailResponse
-        +resendVerificationCode(request: ResendVerificationCodeRequest) ResendVerificationCodeResponse
+        + verifyEmail()
+        + resendCode()
     }
-
-    class AccountVerificationServiceImpl {
-        -authRepository: AuthRepository
-        -emailVerificationService: EmailVerificationService
-        -tokenService: TokenService
-        -profileRepository: ProfileRepository
-    }
-
     class UserAccountService {
         <<interface>>
-        +changePassword(userId: String, request: ChangePasswordRequest) ChangePasswordResponse
-        +forgotPassword(request: ForgotPasswordRequest) ForgotPasswordResponse
-        +resetPassword(request: ResetPasswordRequest) ResetPasswordResponse
-        +requestAccountDeletion(userId: String) RequestDeleteAccountResponse
-        +confirmAccountDeletion(userId: String, request: ConfirmDeleteAccountRequest) ConfirmDeleteAccountResponse
+        + change / forgot / reset password
+        + request / confirm deletion
     }
 
-    class UserAccountServiceImpl {
-        -authRepository: AuthRepository
-        -emailVerificationService: EmailVerificationService
-    }
-
-    TokenService <|.. JwtTokenService
-    AuthRepository <|.. ExposedAuthRepository
-    LoginService <|.. LoginServiceImpl
-    RegisterService <|.. RegisterServiceImpl
-    RefreshService <|.. RefreshServiceImpl
-    LogoutService <|.. LogoutServiceImpl
-    AccountVerificationService <|.. AccountVerificationServiceImpl
-    UserAccountService <|.. UserAccountServiceImpl
-
-    LoginServiceImpl --> AuthRepository
-    LoginServiceImpl --> TokenService
-    RegisterServiceImpl --> AuthRepository
-    RegisterServiceImpl --> EmailVerificationService
-    RefreshServiceImpl --> AuthRepository
-    RefreshServiceImpl --> TokenService
-    LogoutServiceImpl --> AuthRepository
-    LogoutServiceImpl --> TokenService
-    AccountVerificationServiceImpl --> AuthRepository
-    AccountVerificationServiceImpl --> EmailVerificationService
-    AccountVerificationServiceImpl --> TokenService
-    UserAccountServiceImpl --> AuthRepository
-    UserAccountServiceImpl --> EmailVerificationService
-    AuthRepository ..> User : returns
+    LoginService ..> AuthRepository
+    LoginService ..> TokenService
+    RegisterService ..> AuthRepository
+    RegisterService ..> EmailVerificationService
+    RefreshService ..> AuthRepository
+    RefreshService ..> TokenService
+    LogoutService ..> AuthRepository
+    LogoutService ..> TokenService
+    AccountVerificationService ..> AuthRepository
+    AccountVerificationService ..> EmailVerificationService
+    AccountVerificationService ..> ProfileRepository
+    UserAccountService ..> AuthRepository
+    UserAccountService ..> EmailVerificationService
+    AuthRepository ..> User
 ```
+
+> Implementations: `JwtTokenService`, `ExposedAuthRepository`, and `*ServiceImpl` classes wired through Koin.
 
 ---
 
-## 3. Email, Profile & Social Domain
+## 3. Email Verification, Profiles & Social Domain
 
 ```mermaid
 classDiagram
     direction TB
-
-    class StoredVerificationCode {
-        <<data>>
-        +codeHash: String
-        +type: EmailVerificationType
-        +expiresAt: Instant
-    }
 
     class EmailVerificationType {
         <<enum>>
@@ -272,536 +147,290 @@ classDiagram
         ACCOUNT_DELETION
     }
 
-    class EmailVerificationRepository {
-        <<interface>>
-        +saveVerificationCode(email: String, hash: String, type: EmailVerificationType, expiresAt: Instant)
-        +getVerificationCode(email: String) StoredVerificationCode?
-        +incrementAttempts(email: String)
-        +deleteVerificationCode(email: String)
-        +deleteExpiredCodes()
-    }
-
-    class ExposedEmailVerificationRepository {
-        <<Exposed ORM>>
-    }
-
     class SmtpService {
         <<interface>>
-        +sendEmail(to: String, subject: String, body: String)
+        + sendEmail(to, subject, body)
     }
-
-    class SmtpServiceImp {
-        -smtpConfig: SmtpConfig
-        -session: Session
+    class EmailVerificationRepository {
+        <<interface>>
+        + save / get / delete codes
+        + incrementAttempts()
     }
-
-    class EmailVerificationServiceImpl {
-        -verificationRepo: EmailVerificationRepository
-        -smtpService: SmtpService
-        -authRepository: AuthRepository
-        -codeValidityDuration: Duration
-        -bcryptCost: Int
-        +sendVerificationCodeByEmail(email, type)
-        +sendVerificationCodeByUserId(userId, type)
-        +verifyCodeByEmail(email, code, type) Boolean
-        +verifyCodeByUserId(userId, code, type) Boolean
+    class EmailVerificationService {
+        <<interface>>
+        + sendCode(byEmail / byUserId)
+        + verifyCode(byEmail / byUserId)
     }
 
     class UserProfile {
-        <<data>>
-        +userId: String
-        +email: String
-        +username: String
-        +gamesWon: Int
-        +gamesLost: Int
+        <<entity>>
+        userId, email, username
+        gamesWon, gamesLost
     }
-
     class ProfileRepository {
         <<interface>>
-        +createProfile(userId: String)
-        +getUserProfile(userId: String) UserProfile?
-        +updateStats(userId: String, isWin: Boolean)
+        + create / get / updateStats
     }
-
-    class ExposedProfileRepository {
-        <<Exposed ORM>>
-    }
-
     class UserProfileService {
         <<interface>>
-        +getMyProfile(userId: String) UserProfileResponse
-        +getPublicProfile(userId: String) PublicUserProfileResponse?
-    }
-
-    class UserProfileServiceImpl {
-        -profileRepository: ProfileRepository
+        + getMyProfile()
+        + getPublicProfile()
     }
 
     class Friend {
-        <<data>>
-        +id: String
-        +username: String
-        +isOnline: Boolean
+        <<entity>>
+        id, username, isOnline
     }
-
     class FriendsRepository {
         <<interface>>
-        +getFriendsForUser(userId: String) List~Friend~
-        +areFriends(userId1: String, userId2: String) Boolean
-        +addFriendship(userId1: String, userId2: String) Boolean
-        +removeFriendship(userId1: String, userId2: String) Boolean
+        + list / check / add / remove
     }
-
-    class ExposedFriendsRepository {
-        <<Exposed ORM>>
-    }
-
     class FriendRequestRepository {
         <<interface>>
-        +hasPendingRequest(requesterId: String, receiverId: String) Boolean
-        +getIncomingRequests(receiverId: String) List~Friend~
-        +createRequest(requesterId: String, receiverId: String) Boolean
-        +deleteRequest(requesterId: String, receiverId: String) Boolean
+        + create / list / delete requests
     }
-
-    class ExposedFriendRequestRepository {
-        <<Exposed ORM>>
-    }
-
     class SocialService {
         <<interface>>
-        +getFriends(userId: String) GetFriendsResponse
-        +getFriendRequests(userId: String) GetFriendRequestsResponse
-        +sendFriendRequest(requesterId: String, targetUsername: String) AddFriendResponse
-        +respondToRequest(userId: String, requesterUsername: String, action: FriendRequestAction) RespondFriendResponse
+        + getFriends / getRequests
+        + sendRequest / respond
     }
 
-    class SocialServiceImpl {
-        -friendsRepository: FriendsRepository
-        -requestsRepository: FriendRequestRepository
-        -authRepository: AuthRepository
-    }
+    EmailVerificationService ..> EmailVerificationRepository
+    EmailVerificationService ..> SmtpService
+    EmailVerificationService ..> AuthRepository
+    EmailVerificationRepository ..> EmailVerificationType
 
-    EmailVerificationRepository <|.. ExposedEmailVerificationRepository
-    EmailVerificationRepository ..> StoredVerificationCode : returns
-    SmtpService <|.. SmtpServiceImp
-    EmailVerificationServiceImpl --> EmailVerificationRepository
-    EmailVerificationServiceImpl --> SmtpService
-    ProfileRepository <|.. ExposedProfileRepository
-    ProfileRepository ..> UserProfile : returns
-    UserProfileService <|.. UserProfileServiceImpl
-    UserProfileServiceImpl --> ProfileRepository
-    FriendsRepository <|.. ExposedFriendsRepository
-    FriendsRepository ..> Friend : returns
-    FriendRequestRepository <|.. ExposedFriendRequestRepository
-    FriendRequestRepository ..> Friend : returns
-    SocialService <|.. SocialServiceImpl
-    SocialServiceImpl --> FriendsRepository
-    SocialServiceImpl --> FriendRequestRepository
+    UserProfileService ..> ProfileRepository
+    ProfileRepository ..> UserProfile
+
+    SocialService ..> FriendsRepository
+    SocialService ..> FriendRequestRepository
+    SocialService ..> AuthRepository
+    FriendsRepository ..> Friend
+    FriendRequestRepository ..> Friend
 ```
 
 ---
 
-## 4. Game Session Domain
+## 4. Matchmaking & Game Session Domain
 
 ```mermaid
 classDiagram
     direction TB
 
-    class LobbyPlayer {
-        <<data>>
-        +id: String
-        +name: String
-        +color: String
-        +isReady: Boolean
-        +isHost: Boolean
-    }
-
     class GameMode {
         <<enum>>
         CLASSIC
     }
+    class LobbyPlayer {
+        <<entity>>
+        id, name, color
+        isReady, isHost
+    }
 
     class MatchmakingService {
         <<interface>>
-        +findGameForPlayer(userId: String, mode: GameMode, maxPlayers: Int) JoinGameResponse
+        + findGameForPlayer()
     }
-
-    class MatchmakingServiceImpl {
-        -repository: GameSessionRepository
-        -mutex: Mutex
-    }
-
     class LobbyService {
         <<interface>>
-        +createCustomGame(creatorId: String, mode: GameMode, maxPlayers: Int) CreateLobbyResponse
-        +invitePlayer(sessionId: String, invitedUserId: String) Boolean
-    }
-
-    class LobbyServiceImpl {
-        -repository: GameSessionRepository
-        -mutex: Mutex
+        + createCustomGame()
+        + invitePlayer()
     }
 
     class GameSessionRepository {
         <<interface>>
-        +addSession(mode: GameMode, session: BaseGameSession)
-        +removeSession(mode: GameMode, sessionId: String)
-        +getSession(sessionId: String) BaseGameSession?
-        +findAvailableSession(mode: GameMode) BaseGameSession?
-    }
-
-    class InMemoryGameSessionRepository {
-        <<In-Memory>>
-        -allSessions: ConcurrentHashMap~String, BaseGameSession~
-        -availableQueuesByMode: ConcurrentHashMap~GameMode, Queue~
-        -sessionModes: ConcurrentHashMap~String, GameMode~
+        + add / remove / get session
+        + findAvailableSession()
     }
 
     class SessionLifecycleListener {
         <<interface>>
-        +onGameStarting(sessionId: String, gameId: String)
-        +onGameEnded(sessionId: String, gameId: String)
-        +onSessionEmpty(sessionId: String)
+        + onGameStarting / Ended
+        + onSessionEmpty
     }
-
     class GameMessageSender {
         <<interface>>
-        +sendToPlayer(receiverId: String, message: GameMessage)
-        +broadcast(message: GameMessage)
-        +broadcast(message: GameMessage, excludeUserId: String?)
-        +onGameEnded(winnerId: String?)
+        + sendToPlayer / broadcast
+        + onGameEnded(winnerId)
     }
 
     class BaseGameSession {
         <<interface>>
-        +sessionId: String
-        +hasAvailableSlots() Boolean
-        +reserveSlot(userId: String) Boolean
-        +connectPlayer(userId: String, username: String, session: DefaultWebSocketSession) Boolean
-        +removePlayer(userId: String)
-        +handleIncomingMessage(userId: String, message: GameMessage)
-        +setLifecycleListener(listener: SessionLifecycleListener)
+        sessionId
+        + slot reservation
+        + connect / remove player
+        + handleIncomingMessage
+        + setLifecycleListener
     }
-
     class MatchmakingGameSession {
-        State: WAITING → STARTING → RUNNING → DISPOSED
-        +sessionId: String
-        -mode: GameMode
-        -maxPlayers: Int
-        -connectedPlayers: ConcurrentHashMap~String, WebSocketSession~
-        -lobbyPlayers: ConcurrentHashMap~String, LobbyPlayer~
-        -reservedSlots: ConcurrentHashMap~String, Long~
-        -playersReadyForGame: ConcurrentSet~String~
-        -engine: GameEngine?
-        -currentGameId: String?
-        -availableColors: List~String~
-        +hasAvailableSlots() Boolean
-        +reserveSlot(userId) Boolean
-        +connectPlayer(userId, username, session) Boolean
-        +removePlayer(userId)
-        +handleIncomingMessage(userId, message)
-        +setLifecycleListener(listener)
-        +onGameEnded(winnerId: String?)
+        <<WAITING→RUNNING→DISPOSED>>
     }
-
     class CustomLobbySession {
-        State: LOBBY ⇄ GAME_STARTING → GAME_RUNNING → LOBBY
-        +sessionId: String
-        -mode: GameMode
-        -maxPlayers: Int
-        -connectedPlayers: ConcurrentHashMap~String, WebSocketSession~
-        -lobbyPlayers: ConcurrentHashMap~String, LobbyPlayer~
-        -reservedSlots: ConcurrentHashMap~String, Long~
-        -playersReadyForGame: ConcurrentSet~String~
-        -engine: GameEngine?
-        -currentGameId: String?
-        -availableColors: List~String~
-        +hasAvailableSlots() Boolean
-        +reserveSlot(userId) Boolean
-        +connectPlayer(userId, username, session) Boolean
-        +removePlayer(userId)
-        +handleIncomingMessage(userId, message)
-        +setLifecycleListener(listener)
-        +onGameEnded(winnerId: String?)
+        <<LOBBY⇄GAME_RUNNING>>
     }
 
     class GameEngine {
         <<interface>>
-        +start(gameId: String, lobbyPlayers: List~LobbyPlayer~, sender: GameMessageSender)
-        +endGame(winnerId: String?)
-        +onMessage(userId: String, message: GameMessage)
-        +onPlayerLeave(userId: String)
-        +onPlayerRejoin(userId: String)
+        + start(gameId, players, sender)
+        + onMessage / onPlayerLeave / onPlayerRejoin
+        + endGame(winnerId)
     }
 
-    class GameEngineImpl {
-        -gameId: String
-        -gameConfig: GameConfig
-        -sender: GameMessageSender
-        -mutex: Mutex
-        -players: MutableMap~String, GamePlayer~
-        -board: Board
-        -buildings: Map~BuildingId, BuildingDef~
-        -trades: MutableMap~PlayerId, TradeOffer~
-        -tradeAcceptances: MutableMap~PlayerId, Set~PlayerId~~
-        -playerQueue: MutableList~String~
-        -setupQueue: MutableList~String~
-        -setupTurnIndex: Int
-        -turnIndex: Int
-        -currentTurnPlayerId: String
-        -currentPhase: TurnPhase
-    }
+    MatchmakingService ..> GameSessionRepository
+    LobbyService ..> GameSessionRepository
+    GameSessionRepository ..> BaseGameSession
+    GameSessionRepository ..|> SessionLifecycleListener
 
-    MatchmakingService <|.. MatchmakingServiceImpl
-    LobbyService <|.. LobbyServiceImpl
-    MatchmakingServiceImpl --> GameSessionRepository
-    LobbyServiceImpl --> GameSessionRepository
-    GameSessionRepository <|.. InMemoryGameSessionRepository
-    InMemoryGameSessionRepository ..|> SessionLifecycleListener
     BaseGameSession <|.. MatchmakingGameSession
     BaseGameSession <|.. CustomLobbySession
-    GameMessageSender <|.. MatchmakingGameSession
-    GameMessageSender <|.. CustomLobbySession
+    MatchmakingGameSession ..|> GameMessageSender
+    CustomLobbySession ..|> GameMessageSender
     MatchmakingGameSession --> GameEngine
     CustomLobbySession --> GameEngine
-    GameEngine <|.. GameEngineImpl
-    GameEngineImpl --> GameMessageSender
+    GameEngine ..> GameMessageSender
+    BaseGameSession --> LobbyPlayer
+    BaseGameSession --> GameMode
 ```
+
+> Implementations: `MatchmakingServiceImpl`, `LobbyServiceImpl`, `InMemoryGameSessionRepository`, `GameEngineImpl`.
 
 ---
 
-## 5. Shared Game Logic
+## 5. Shared — Game Configuration & Board Model
 
 ```mermaid
 classDiagram
     direction TB
 
     class HexCoord {
-        <<data>>
-        +q: Int
-        +r: Int
-        +compareTo(other: HexCoord) Int
-        +getHexId(h: HexCoord) String$
-        +getEdgeId(h1: HexCoord, h2: HexCoord) String$
-        +getVertexId(h1: HexCoord, h2: HexCoord, h3: HexCoord) String$
-        +fromHexId(id: String) HexCoord$
-        +fromEdgeId(id: String) Pair~HexCoord,HexCoord~$
-        +fromVertexId(id: String) Triple~HexCoord,HexCoord,HexCoord~$
-    }
-
-    class ResourceDef {
-        <<data>>
-        +id: ResourceId
-        +name: String
-    }
-
-    class BuildingDef {
-        <<data>>
-        +id: BuildingId
-        +name: String
-        +type: PlacementType
-        +cost: Map~ResourceId, Int~
-        +upgrade: BuildingId?
-        +downgrade: BuildingId?
-        +production: Int
-        +points: Int
-        +limitPerPlayer: Int
-    }
-
-    class PlacementType {
-        <<enum>>
-        EDGE
-        VERTEX
-    }
-
-    class PortDef {
-        <<data>>
-        +h1: HexCoord
-        +h2: HexCoord
-        +h3: HexCoord
-        +resourceId: String?
-        +ratio: Int
-    }
-
-    class FixedTile {
-        <<data>>
-        +resource: ResourceId
-        +number: Int
+        <<value>>
+        q, r
+        + hex/edge/vertex id helpers
     }
 
     class GameConfig {
         <<data>>
-        +seed: String
-        +victoryPoints: Int
-        +tradeRatio: Int
-        +resourceDefs: List~ResourceDef~
-        +buildingDefs: List~BuildingDef~
-        +initialBuildings: List~BuildingId~
-        +gridCoords: List~HexCoord~
-        +ports: List~PortDef~
-        +tileResourcePool: List~ResourceId~
-        +tileNumberPool: List~Int~
-        +fixedTiles: Map~HexCoord, FixedTile~
+        seed, victoryPoints, tradeRatio
+        resourceDefs, buildingDefs
+        gridCoords, ports, fixedTiles
     }
-
     class GameConfigLoader {
         <<object>>
-        +default(seed: String) GameConfig
-        +generateHexGrid(radius: Int) List~HexCoord~
-        +defaultResourcePool() List~ResourceId~
-        +defaultPorts() List~PortDef~
-        +defaultResourceDef() List~ResourceDef~
-        +defaultBuildingDef() List~BuildingDef~
-        +defaultInitialBuildings() List~BuildingId~
+        + default(seed)
+        + generateHexGrid()
+        + default* pools
     }
 
+    class ResourceDef {
+        id, name
+    }
+    class BuildingDef {
+        id, name, type
+        cost, production, points
+        upgrade / downgrade chain
+    }
+    class PlacementType {
+        <<enum>>
+        EDGE · VERTEX
+    }
+    class PortDef {
+        h1, h2, h3
+        resourceId, ratio
+    }
+    class FixedTile {
+        resource, number
+    }
     class HexTile {
-        <<data>>
-        +coordinate: HexCoord
-        +resourceId: ResourceId
-        +numberToken: Int
+        coordinate, resourceId, numberToken
     }
-
     class PlacedBuilding {
-        <<data>>
-        +ownerId: PlayerId
-        +def: BuildingDef
+        ownerId, def
     }
 
     class Board {
-        +availableResources: MutableMap~ResourceId, ResourceDef~
-        +availableBuildings: MutableMap~BuildingId, BuildingDef~
-        +tiles: MutableMap~String, HexTile~
-        +buildings: MutableMap~String, PlacedBuilding~
-        +ports: MutableMap~PortVertex, PortDef~
-        +robberLocation: HexCoord
-        +initialize(config: GameConfig)
-        +addTile(coord: HexCoord, resource: ResourceId, number: Int)
-        +addPort(h1: HexCoord, h2: HexCoord, h3: HexCoord, resource: ResourceId?, ratio: Int)
-        +placeVertexBuilding(typeId, ownerId, h1, h2, h3, checkConnection) Boolean
-        +placeEdgeBuilding(typeId, ownerId, h1, h2) Boolean
-        +getBuildingAt(locId: String) PlacedBuilding?
-        +canPlaceVertexBuilding(ownerId, h1, h2, h3, targetTypeId, checkConnection) Boolean
-        +canPlaceEdgeBuilding(ownerId, h1, h2, targetTypeId) Boolean
-        +getAvailableVertexPlacements(ownerId, buildingId, checkConnection) List~Triple~
-        +getAvailableEdgePlacements(ownerId, buildingId) List~Pair~
-        +getProductionForRoll(roll: Int) Map~String, Map~ResourceId, Int~~
-        +moveRobber(target: HexCoord) List~PlayerId~
+        + initialize(config)
+        + add tile / port
+        + place / canPlace (vertex|edge)
+        + getAvailable*Placements
+        + getProductionForRoll(roll)
+        + moveRobber(target)
     }
 
-    class TradeOffer {
-        <<data>>
-        +give: Map~ResourceId, Int~
-        +want: Map~ResourceId, Int~
-    }
-
-    class PlayerSnapshot {
-        <<data>>
-        +id: PlayerId
-        +name: String
-        +color: String
-        +victoryPoints: Int
-        +resourceCount: Int
-        +devCardCount: Int
-        +playedKnights: Int
-        +longestRoad: Boolean
-        +largestArmy: Boolean
-    }
-
-    class BuildingSnapshot {
-        <<data>>
-        +ownerId: PlayerId
-        +typeId: BuildingId
-        +hexA: HexCoord
-        +hexB: HexCoord
-        +hexC: HexCoord?
-    }
-
-    class GamePlayer {
-        <<data>>
-        +id: String
-        +name: String
-        +color: String
-        +isHost: Boolean
-        +resources: MutableMap~ResourceId, Int~
-        +ports: MutableMap~String, PortDef~
-        +buildingCounts: MutableMap~BuildingId, Int~
-        +developmentCardsHand: MutableList~String~
-        +developmentCardsPlayed: MutableList~String~
-        +victoryPoints: Int
-        +knightsPlayed: Int
-        +hasLongestRoad: Boolean
-        +hasLargestArmy: Boolean
-        +hasPlayedDevCardThisTurn: Boolean
-        +addResources(changes: Map~ResourceId, Int~)
-        +deductResources(cost: Map~ResourceId, Int~) Boolean
-        +totalResourceCount() Int
-        +canDeductResources(cost: Map~ResourceId, Int~) Boolean
-        +canProposeTrade(give: Map~ResourceId,Int~, want: Map~ResourceId,Int~) Boolean
-        +getPortDiscountRatio(resource: String?) Int
-        +getEffectiveTradeRatio(resourceId: ResourceId, defaultRatio: Int) Int
-        +calculateBankExchangeCost(give: Map~ResourceId,Int~, get: Map~ResourceId,Int~, defaultRatio: Int) Map~ResourceId,Int~?
-        +toSnapshot() PlayerSnapshot
-    }
-
-    class TurnPhase {
-        <<enum>>
-        SETUP
-        WAITING
-        TRADE
-        MAIN_PHASE
-        ROBBER_RESOLUTION
-        GAME_OVER
-    }
-
-    class UpdateReason {
-        <<enum>>
-        INITIAL
-        PRODUCTION
-        BUILD
-        TRADE
-        THEFT
-        BANK
-        DEV_CARD
-        COST
-        START
-    }
-
-    class GameErrorCode {
-        <<enum>>
-        NOT_YOUR_TURN
-        INSUFFICIENT_RESOURCES
-        INVALID_PLACEMENT
-        INVALID_TRADE
-        UNKNOWN_BUILDING
-        UNKNOW_ACTION
-        GAME_ENDED
-    }
-
-    GameConfigLoader ..> GameConfig : creates
+    GameConfigLoader ..> GameConfig
     GameConfig --> ResourceDef
     GameConfig --> BuildingDef
     GameConfig --> PortDef
-    GameConfig --> HexCoord
     GameConfig --> FixedTile
+    GameConfig --> HexCoord
     BuildingDef --> PlacementType
     Board --> HexTile
     Board --> PlacedBuilding
-    Board --> HexCoord
     Board --> PortDef
-    Board --> BuildingDef
-    Board --> ResourceDef
-    PlacedBuilding --> BuildingDef
     HexTile --> HexCoord
-    GamePlayer --> PortDef
-    GamePlayer ..> PlayerSnapshot : creates
-    BuildingSnapshot --> HexCoord
+    PlacedBuilding --> BuildingDef
 ```
 
 ---
 
-## 6. WebSocket Message Protocol
+## 6. Shared — Player State & Turn Model
+
+```mermaid
+classDiagram
+    direction TB
+
+    class GamePlayer {
+        id, name, color, isHost
+        resources, ports, buildingCounts
+        developmentCards, victoryPoints
+        knightsPlayed, longestRoad, largestArmy
+        + add / deduct resources
+        + canDeduct / canProposeTrade
+        + port & bank exchange ratios
+        + toSnapshot()
+    }
+    class PlayerSnapshot {
+        <<dto>>
+        id, name, color, victoryPoints
+        resourceCount, devCardCount
+        playedKnights, longestRoad, largestArmy
+    }
+    class BuildingSnapshot {
+        <<dto>>
+        ownerId, typeId
+        hexA, hexB, hexC
+    }
+    class TradeOffer {
+        give, want
+    }
+    class TurnPhase {
+        <<enum>>
+        SETUP · WAITING · TRADE
+        MAIN_PHASE · ROBBER_RESOLUTION
+        GAME_OVER
+    }
+    class UpdateReason {
+        <<enum>>
+        INITIAL · PRODUCTION · BUILD
+        TRADE · THEFT · BANK · DEV_CARD
+        COST · START
+    }
+    class GameErrorCode {
+        <<enum>>
+        NOT_YOUR_TURN
+        INSUFFICIENT_RESOURCES
+        INVALID_PLACEMENT · INVALID_TRADE
+        UNKNOWN_BUILDING · UNKNOWN_ACTION
+        GAME_ENDED
+    }
+
+    GamePlayer ..> PlayerSnapshot
+    GamePlayer --> TradeOffer
+```
+
+---
+
+## 7. Shared — WebSocket Message Protocol
 
 ```mermaid
 classDiagram
@@ -810,129 +439,41 @@ classDiagram
     class GameMessage {
         <<sealed>>
     }
-
     class LobbyMessage {
         <<sealed>>
     }
-
     class GameplayMessage {
         <<sealed>>
     }
 
     class LobbyIntent {
-        <<sealed · client→server>>
+        <<client→server>>
+        LeaveLobby · ToggleReady
+        ChangeColor · RequestStartGame
+        ReadyForGame
     }
-
     class LobbyEvent {
-        <<sealed · server→client>>
+        <<server→client>>
+        LobbySnapshot · PlayerJoined/Left/Updated
+        GameStarted · LobbyError
     }
 
     class GameplayIntent {
-        <<sealed · client→server>>
+        <<client→server>>
+        EndTurn · Build · MoveRobber
+        ProposeTrade · RespondToTrade
+        ConfirmTrade · CancelTrade
+        ExchangeWithBank
     }
-
     class GameplayEvent {
-        <<sealed · server→client>>
-    }
-
-    class LeaveLobby { <<object>> }
-    class RequestStartGame { <<object>> }
-    class ReadyForGame { <<object>> }
-    class ToggleReady { +isReady: Boolean }
-    class ChangeColor { +newColor: String }
-
-    class LobbySnapshot {
-        +lobbyId: String
-        +lobbyPlayers: List~LobbyPlayer~
-        +maxPlayers: Int
-        +availableColors: List~String~
-    }
-    class LobbyPlayerJoined { +lobbyPlayer: LobbyPlayer }
-    class LobbyPlayerLeft { +playerId: String }
-    class LobbyPlayerUpdated { +lobbyPlayer: LobbyPlayer }
-    class GameStarted { <<object>> }
-    class LobbyError {
-        +errorMessage: String
-        +code: LobbyErrorCode
-    }
-
-    class EndTurn { <<object>> }
-    class Build {
-        +buildingId: BuildingId
-        +h1: HexCoord
-        +h2: HexCoord
-        +h3: HexCoord?
-    }
-    class MoveRobber { +hexA: HexCoord }
-    class ProposeTrade {
-        +give: Map~ResourceId, Int~
-        +want: Map~ResourceId, Int~
-    }
-    class RespondToTrade {
-        +offererId: PlayerId
-        +accepted: Boolean
-    }
-    class ConfirmTrade { +responderId: PlayerId }
-    class CancelTrade { +offererId: PlayerId }
-    class ExchangeWithBank {
-        +give: Map~ResourceId, Int~
-        +get: Map~ResourceId, Int~
-    }
-
-    class GameConfigLoaded { +config: GameConfig }
-    class GamePlayerStats { +player: GamePlayer }
-    class GameSnapshot {
-        +boardState: List~BuildingSnapshot~
-        +players: List~PlayerSnapshot~
-        +currentTurnPlayerId: String
-        +diceResult: List~Int~?
-        +robberLocation: HexCoord?
-    }
-    class GameplayPlayerJoined { +player: PlayerSnapshot }
-    class RobberUpdated { +location: HexCoord }
-    class ResourcesUpdated {
-        +changes: Map~ResourceId, Int~
-        +reason: UpdateReason
-    }
-    class ResourceCountUpdated {
-        +playerId: PlayerId
-        +changes: Int
-        +reason: UpdateReason
-    }
-    class ObjectBuilt {
-        +playerId: PlayerId
-        +buildingId: BuildingId
-        +hexA: HexCoord
-        +hexB: HexCoord
-        +hexC: HexCoord?
-    }
-    class DiceRolled { +values: Pair~Int, Int~ }
-    class TurnChanged {
-        +turnPhase: TurnPhase
-        +newPlayerId: PlayerId
-    }
-    class TradeProposed {
-        +give: Map~ResourceId, Int~
-        +want: Map~ResourceId, Int~
-        +offererId: PlayerId
-    }
-    class TradeResponse {
-        +offererId: PlayerId
-        +responderId: PlayerId
-        +accepted: Boolean
-    }
-    class TradeCompleted {
-        +responderId: PlayerId
-        +offererId: PlayerId
-    }
-    class TradeCancelled { +offererId: PlayerId }
-    class GameError {
-        +message: String
-        +code: GameErrorCode
-    }
-    class GameEnded {
-        +winnerId: String?
-        +gameId: String
+        <<server→client>>
+        GameConfigLoaded · GameSnapshot
+        PlayerJoined · PlayerStats
+        DiceRolled · TurnChanged
+        ObjectBuilt · RobberUpdated
+        Resources(Count)Updated
+        Trade(Proposed/Response/Completed/Cancelled)
+        GameError · GameEnded
     }
 
     GameMessage <|-- LobbyMessage
@@ -941,43 +482,12 @@ classDiagram
     LobbyMessage <|-- LobbyEvent
     GameplayMessage <|-- GameplayIntent
     GameplayMessage <|-- GameplayEvent
-
-    LobbyIntent <|-- LeaveLobby
-    LobbyIntent <|-- ToggleReady
-    LobbyIntent <|-- ChangeColor
-    LobbyIntent <|-- RequestStartGame
-    LobbyIntent <|-- ReadyForGame
-
-    LobbyEvent <|-- LobbySnapshot
-    LobbyEvent <|-- LobbyPlayerJoined
-    LobbyEvent <|-- LobbyPlayerLeft
-    LobbyEvent <|-- LobbyPlayerUpdated
-    LobbyEvent <|-- GameStarted
-    LobbyEvent <|-- LobbyError
-
-    GameplayIntent <|-- EndTurn
-    GameplayIntent <|-- Build
-    GameplayIntent <|-- MoveRobber
-    GameplayIntent <|-- ProposeTrade
-    GameplayIntent <|-- RespondToTrade
-    GameplayIntent <|-- ConfirmTrade
-    GameplayIntent <|-- CancelTrade
-    GameplayIntent <|-- ExchangeWithBank
-
-    GameplayEvent <|-- GameConfigLoaded
-    GameplayEvent <|-- GameplayPlayerJoined
-    GameplayEvent <|-- GamePlayerStats
-    GameplayEvent <|-- GameSnapshot
-    GameplayEvent <|-- RobberUpdated
-    GameplayEvent <|-- ResourcesUpdated
-    GameplayEvent <|-- ResourceCountUpdated
-    GameplayEvent <|-- ObjectBuilt
-    GameplayEvent <|-- DiceRolled
-    GameplayEvent <|-- TurnChanged
-    GameplayEvent <|-- TradeProposed
-    GameplayEvent <|-- TradeResponse
-    GameplayEvent <|-- TradeCompleted
-    GameplayEvent <|-- TradeCancelled
-    GameplayEvent <|-- GameError
-    GameplayEvent <|-- GameEnded
 ```
+
+---
+
+### Reading guide
+
+- **Interfaces** describe every capability of the server. Concrete implementations (`*Impl`, `Exposed*`, `InMemory*`) are wired via Koin and follow a one-to-one mapping with their interface.
+- **Solid arrows (→)** are *uses / depends on* relationships; **dashed-impl arrows (..|>)** denote interface implementation; **inheritance triangles (<|--)** denote sealed-class hierarchies.
+- The shared module (sections 5–7) is consumed by both the server and the KMP clients, guaranteeing a single source of truth for game rules and the WebSocket protocol.
