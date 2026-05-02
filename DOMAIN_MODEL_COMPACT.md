@@ -7,7 +7,7 @@ classDiagram
     direction TB
 
     %% ── Application & Routing ─────────────────────────────────────────────
-    namespace Application {
+    namespace Bootstrap {
         class Application { <<Ktor>> module, configure* }
         class AppModule { <<Koin DI>> appModule() }
         class DatabaseFactory { <<object>> init, dbQuery }
