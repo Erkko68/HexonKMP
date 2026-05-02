@@ -37,7 +37,7 @@ classDiagram
     }
     class UsersRoutes {
         <<REST>>
-        /users/me · /id
+        /users/me · /{id}
         /email/* · /password/*
         /me/delete/*
     }

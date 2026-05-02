@@ -1,87 +1,190 @@
 # Hexon Domain Model (Compact)
 
-High-level overview of the server architecture and shared game logic. For detailed method signatures, see [SINGLE_DOMAIN_MODEL.md](file:///Users/eric/StudioProjects/HexonKMP/SINGLE_DOMAIN_MODEL.md).
+Single-diagram overview of the Hexon server and shared KMP module — every domain on one page. For grouped per-domain diagrams with method bundles, see [DOMAIN_MODEL.md](DOMAIN_MODEL.md).
 
 ```mermaid
 classDiagram
     direction TB
 
-    %% ── Identity & Access ──────────────────────────────────────────────────
+    %% ── Application & Routing ─────────────────────────────────────────────
+    namespace Application {
+        class Application { <<Ktor>> module, configure* }
+        class AppModule { <<Koin DI>> appModule() }
+        class DatabaseFactory { <<object>> init, dbQuery }
+        class Configs { <<data>> Jwt, Smtp, Cookie }
+        class AuthRoutes { <<REST>> /auth/* }
+        class UsersRoutes { <<REST>> /users/me, /{id}, /email/*, /password/*, /me/delete/* }
+        class SocialRoutes { <<REST>> /friends, /requests, /add, /respond }
+        class MatchmakingRoutes { <<REST + WS>> POST /game, /lobby · WS /game/{id} }
+    }
+
+    %% ── Identity & Account ────────────────────────────────────────────────
     namespace Identity {
-        class AuthRoutes { <<Route>> register, login, refresh, profile }
-        class AuthService { <<Interface>> handle login, registration, tokens }
-        class AccountService { <<Interface>> passwords, verification, deletion }
-        class AuthRepository { <<Interface>> CRUD for Users and Sessions }
-        class User { id, email, username, isVerified }
+        class User { <<entity>> id, email, username, isVerified }
+        class TokenService { <<interface>> generate / validate tokens }
+        class AuthRepository { <<interface>> users, refresh tokens, deletion }
+        class LoginService { <<interface>> login }
+        class RegisterService { <<interface>> register }
+        class RefreshService { <<interface>> refresh }
+        class LogoutService { <<interface>> logout }
+        class AccountVerificationService { <<interface>> verifyEmail, resendCode }
+        class UserAccountService { <<interface>> password & deletion flows }
     }
 
-    %% ── Social Layer ────────────────────────────────────────────────────────
-    namespace Social {
-        class SocialRoutes { <<Route>> friends, requests }
-        class SocialService { <<Interface>> manage friendship & requests }
-        class UserProfileService { <<Interface>> get public/private stats }
-        class FriendsRepo { <<Interface>> friendship persistence }
-        class UserProfile { userId, username, stats }
+    %% ── Email, Profile & Social ──────────────────────────────────────────
+    namespace Communication {
+        class SmtpService { <<interface>> sendEmail }
+        class EmailVerificationRepository { <<interface>> store / fetch codes }
+        class EmailVerificationService { <<interface>> sendCode, verifyCode }
+        class EmailVerificationType { <<enum>> CONFIRM, RESET, DELETE }
+        class UserProfile { <<entity>> userId, username, stats }
+        class ProfileRepository { <<interface>> create, get, updateStats }
+        class UserProfileService { <<interface>> getMy / Public Profile }
+        class Friend { <<entity>> id, username, isOnline }
+        class FriendsRepository { <<interface>> friendship CRUD }
+        class FriendRequestRepository { <<interface>> request CRUD }
+        class SocialService { <<interface>> getFriends, sendRequest, respond }
     }
 
-    %% ── Game Infrastructure ─────────────────────────────────────────────────
+    %% ── Matchmaking & Sessions ───────────────────────────────────────────
     namespace Matchmaking {
-        class MatchmakingService { <<Interface>> find/queue classic games }
-        class LobbyService { <<Interface>> create/manage custom lobbies }
-        class SessionRepository { <<Interface>> manage active game sessions }
+        class GameMode { <<enum>> CLASSIC }
+        class LobbyPlayer { <<entity>> id, name, color, isReady, isHost }
+        class MatchmakingService { <<interface>> findGameForPlayer }
+        class LobbyService { <<interface>> createCustomGame, invitePlayer }
+        class GameSessionRepository { <<interface>> add, get, findAvailable }
+        class SessionLifecycleListener { <<interface>> onStarting/Ended/Empty }
+        class GameMessageSender { <<interface>> sendToPlayer, broadcast }
+        class BaseGameSession { <<interface>> connect, remove, handleMessage }
+        class MatchmakingGameSession { <<state>> WAITING→RUNNING→DISPOSED }
+        class CustomLobbySession { <<state>> LOBBY⇄GAME_RUNNING }
+        class GameEngine { <<interface>> start, onMessage, endGame }
     }
 
-    %% ── Game Loop ───────────────────────────────────────────────────────────
-    namespace Gaming {
-        class WebSocketHandler { <<WS>> sync game state & intents }
-        class BaseGameSession { <<Interface>> player lifecycle, message routing }
-        class GameEngine { <<Interface>> turn logic, rule enforcement }
-        class GameMessageSender { <<Interface>> broadcast state updates }
+    %% ── Shared · Board & Configuration ───────────────────────────────────
+    namespace SharedBoard {
+        class HexCoord { <<value>> q, r · id helpers }
+        class GameConfig { <<data>> seed, rules, defs, layout }
+        class GameConfigLoader { <<object>> default(seed), grid, pools }
+        class ResourceDef { id, name }
+        class BuildingDef { id, type, cost, production, points }
+        class PlacementType { <<enum>> EDGE, VERTEX }
+        class PortDef { hexes, resource, ratio }
+        class HexTile { coord, resource, number }
+        class PlacedBuilding { ownerId, def }
+        class Board { tiles, buildings, ports, robber · place, canPlace, production, moveRobber }
     }
 
-    %% ── Core Game Logic ─────────────────────────────────────────────────────
-    namespace SharedLogic {
-        class Board { tiles, buildings, ports, robber }
-        class GamePlayer { id, color, resources, victoryPoints }
-        class HexCoord { q, r, geometry helpers }
-        class GameConfig { map layout, resource pools, rules }
-        class Defs { resourceDef, buildingDef, portDef }
+    %% ── Shared · Player & Turn Model ─────────────────────────────────────
+    namespace SharedPlayer {
+        class GamePlayer { resources, ports, devCards, VP · trade & cost helpers }
+        class PlayerSnapshot { <<dto>> public stats }
+        class BuildingSnapshot { <<dto>> ownerId, typeId, hexes }
+        class TradeOffer { give, want }
+        class TurnPhase { <<enum>> SETUP, TRADE, MAIN, ROBBER, GAME_OVER }
+        class UpdateReason { <<enum>> PRODUCTION, BUILD, TRADE, THEFT, BANK, ... }
+        class GameErrorCode { <<enum>> NOT_YOUR_TURN, INVALID_*, GAME_ENDED }
     }
 
-    %% ── Connectivity & Messaging ────────────────────────────────────────────
-    namespace Messaging {
-        class ClientIntent { <<Sealed>> Build, Trade, Roll, EndTurn, Chat }
-        class ServerEvent { <<Sealed>> Snapshot, Update, Roll, TurnChange, End }
+    %% ── Shared · WebSocket Protocol ──────────────────────────────────────
+    namespace Protocol {
+        class GameMessage { <<sealed>> }
+        class LobbyIntent { <<client→server>> Leave, ToggleReady, ChangeColor, Start, Ready }
+        class LobbyEvent { <<server→client>> Snapshot, Joined/Left/Updated, Started, Error }
+        class GameplayIntent { <<client→server>> EndTurn, Build, MoveRobber, Trade*, Bank }
+        class GameplayEvent { <<server→client>> Snapshot, Dice, Turn, Built, Resources*, Trade*, Error, Ended }
     }
 
-    %% ── Core Flow ───────────────────────────────────────────────────────────
-    AuthRoutes ..> AuthService
-    AuthService ..> AuthRepository
+    %% ── Routing → Services ────────────────────────────────────────────────
+    Application --> AppModule
+    Application --> DatabaseFactory
+    AppModule --> Configs
+    AuthRoutes ..> LoginService
+    AuthRoutes ..> RegisterService
+    AuthRoutes ..> RefreshService
+    AuthRoutes ..> LogoutService
+    UsersRoutes ..> AccountVerificationService
+    UsersRoutes ..> UserAccountService
+    UsersRoutes ..> UserProfileService
+    SocialRoutes ..> SocialService
+    MatchmakingRoutes ..> MatchmakingService
+    MatchmakingRoutes ..> LobbyService
+    MatchmakingRoutes ..> BaseGameSession
+
+    %% ── Identity wiring ─────────────────────────────────────────────────
+    LoginService ..> AuthRepository
+    LoginService ..> TokenService
+    RegisterService ..> AuthRepository
+    RegisterService ..> EmailVerificationService
+    RefreshService ..> AuthRepository
+    RefreshService ..> TokenService
+    LogoutService ..> AuthRepository
+    LogoutService ..> TokenService
+    AccountVerificationService ..> AuthRepository
+    AccountVerificationService ..> EmailVerificationService
+    AccountVerificationService ..> ProfileRepository
+    UserAccountService ..> AuthRepository
+    UserAccountService ..> EmailVerificationService
     AuthRepository ..> User
 
-    SocialRoutes ..> SocialService
-    SocialService ..> FriendsRepo
+    %% ── Communication wiring ────────────────────────────────────────────
+    EmailVerificationService ..> EmailVerificationRepository
+    EmailVerificationService ..> SmtpService
+    EmailVerificationService ..> AuthRepository
+    EmailVerificationRepository ..> EmailVerificationType
+    UserProfileService ..> ProfileRepository
+    ProfileRepository ..> UserProfile
+    SocialService ..> FriendsRepository
+    SocialService ..> FriendRequestRepository
     SocialService ..> AuthRepository
+    FriendsRepository ..> Friend
+    FriendRequestRepository ..> Friend
 
-    MatchmakingService ..> SessionRepository
-    SessionRepository ..> BaseGameSession
-    
-    BaseGameSession *-- GameEngine
-    GameEngine o-- Board
-    GameEngine o-- GamePlayer
-    GameEngine --> GameMessageSender
-    
-    Board *-- HexCoord
-    Board *-- Defs
+    %% ── Game session wiring ──────────────────────────────────────────────
+    MatchmakingService ..> GameSessionRepository
+    LobbyService ..> GameSessionRepository
+    GameSessionRepository ..> BaseGameSession
+    GameSessionRepository ..|> SessionLifecycleListener
+    BaseGameSession <|.. MatchmakingGameSession
+    BaseGameSession <|.. CustomLobbySession
+    MatchmakingGameSession ..|> GameMessageSender
+    CustomLobbySession ..|> GameMessageSender
+    MatchmakingGameSession --> GameEngine
+    CustomLobbySession --> GameEngine
+    BaseGameSession --> LobbyPlayer
+    BaseGameSession --> GameMode
+    GameEngine ..> GameMessageSender
+
+    %% ── Engine ↔ Shared model ────────────────────────────────────────────
+    GameEngine --> Board
+    GameEngine --> GamePlayer
     GameEngine --> GameConfig
-    
-    WebSocketHandler ..> ClientIntent : receives
-    WebSocketHandler ..> ServerEvent : sends
+    GameConfigLoader ..> GameConfig
+    GameConfig --> ResourceDef
+    GameConfig --> BuildingDef
+    GameConfig --> PortDef
+    GameConfig --> HexCoord
+    BuildingDef --> PlacementType
+    Board --> HexTile
+    Board --> PlacedBuilding
+    Board --> PortDef
+    HexTile --> HexCoord
+    PlacedBuilding --> BuildingDef
+    GamePlayer ..> PlayerSnapshot
+    GamePlayer --> TradeOffer
+
+    %% ── Protocol carried over WebSockets ─────────────────────────────────
+    BaseGameSession ..> GameMessage : exchanges
+    GameMessage <|-- LobbyIntent
+    GameMessage <|-- LobbyEvent
+    GameMessage <|-- GameplayIntent
+    GameMessage <|-- GameplayEvent
 ```
 
 ## Key Architectural Patterns
 
-- **Separation of Concerns**: Routes handle HTTP/WS logic, Services handle business logic, and Repositories handle persistence (Exposed ORM or In-Memory).
-- **In-Memory Game State**: Active game sessions are stored in memory (`SessionRepository`) rather than a database for performance.
-- **Sealed Messaging**: All communication via WebSockets uses sealed class hierarchies (`ClientIntent` and `ServerEvent`) to ensure type safety across KMP.
-- **Stateless Domain Logic**: The `Board` and `GameEngine` operate on pure data structures where possible, making the logic testable and portable between server and client.
+- **Layered separation** — Routes (HTTP/WS) → Services (business logic) → Repositories (Exposed ORM or in-memory). Every capability is exposed as an interface; concrete `*Impl`, `Exposed*`, `InMemory*` classes are wired through Koin.
+- **In-memory game state** — Active sessions live in `InMemoryGameSessionRepository` for low-latency turn handling; only durable user data hits the database.
+- **Sealed messaging protocol** — All client/server traffic uses sealed `GameMessage` hierarchies (`LobbyIntent/Event`, `GameplayIntent/Event`), giving compile-time exhaustiveness on both server and KMP clients.
+- **Shared domain core** — `Board`, `GamePlayer`, `GameConfig` and all DTOs live in the shared module, so server and clients agree on rules, geometry, and wire format by construction.
+- **Two session shapes, one contract** — `MatchmakingGameSession` (auto-queue) and `CustomLobbySession` (host-driven) both implement `BaseGameSession` and `GameMessageSender`, letting the `GameEngine` stay session-agnostic.
