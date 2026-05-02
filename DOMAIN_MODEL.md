@@ -32,24 +32,35 @@ classDiagram
 
     class AuthRoutes {
         <<REST>>
-        /auth/register · /login
-        /refresh · /logout
+        POST /auth/register
+        POST /auth/login
+        POST /auth/refresh
+        POST /auth/logout
     }
     class UsersRoutes {
         <<REST>>
-        /users/me · /{id}
-        /email/* · /password/*
-        /me/delete/*
+        POST /users/email/confirm
+        POST /users/email/resend
+        POST /users/password/change
+        POST /users/password/forgot
+        POST /users/password/reset
+        POST /users/me/delete/initiate
+        DELETE /users/me
+        GET /users/me
+        GET /users/:id
     }
     class SocialRoutes {
         <<REST>>
-        /friends · /requests
-        /add · /respond
+        GET /friends
+        GET /friends/requests
+        POST /friends/add
+        POST /friends/respond
     }
     class MatchmakingRoutes {
         <<REST + WS>>
-        POST /game · /lobby
-        WS   /game/{sessionId}
+        POST /game
+        POST /lobby
+        WS /game/:sessionId
     }
 
     Application --> AppModule : loads
