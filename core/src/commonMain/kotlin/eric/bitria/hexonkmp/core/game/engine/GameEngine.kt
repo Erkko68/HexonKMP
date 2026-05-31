@@ -2,9 +2,13 @@ package eric.bitria.hexonkmp.core.game.engine
 
 import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.GameAction
+import eric.bitria.hexonkmp.core.game.board.BoardGenerator
+import eric.bitria.hexonkmp.core.game.config.ClassicCatan
+import eric.bitria.hexonkmp.core.game.config.ScenarioConfig
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
 import eric.bitria.hexonkmp.core.game.model.GameState
 import eric.bitria.hexonkmp.core.game.model.PlayerId
+import kotlin.random.Random
 
 // The pure game engine. Every rule lives behind reduce(); it has no concept of
 // sockets, coroutines, or connected players. Same code runs on the server (as
@@ -17,10 +21,20 @@ interface GameEngine {
     fun reduce(state: GameState, actor: PlayerId, action: GameAction): GameResult
 }
 
-class CatanGameEngine : GameEngine {
+// Generic Catan engine driven by a ScenarioConfig — swap the config to get a
+// different game mode without touching this class. `boardSeed` makes board
+// generation deterministic (override in tests for a fixed layout).
+class CatanGameEngine(
+    private val config: ScenarioConfig = ClassicCatan,
+    private val boardSeed: Long = Random.nextLong(),
+) : GameEngine {
 
     override fun initialState(players: List<PlayerId>): GameState =
-        GameState(players = players)
+        GameState(
+            players = players,
+            config = config,
+            board = BoardGenerator.generate(config, boardSeed),
+        )
 
     override fun reduce(state: GameState, actor: PlayerId, action: GameAction): GameResult =
         when (action) {

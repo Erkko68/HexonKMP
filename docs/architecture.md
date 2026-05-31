@@ -196,6 +196,57 @@ end the game for the others.
 - **`GameScreen`** — renders the state; the "End Turn" button is enabled only on
   `isMyTurn`.
 
+## Data-driven game modes — `core/game/config/` + `core/game/model/board/`
+
+Nothing about *Classic Catan* is hardcoded in the engine. The board shape, the
+tile/token distribution, and the numeric rules are all **pure data** in a
+`ScenarioConfig`. A new game mode (variant, expansion, custom map) is a new
+`ScenarioConfig` value — the engine code never changes.
+
+```mermaid
+flowchart TD
+    SC[ScenarioConfig - DATA] --> HL[hexLayout]
+    SC --> TB[terrainBag]
+    SC --> NT[numberTokens]
+    SC --> RC[RuleConfig]
+    RC --> VP[victoryPointsToWin]
+    RC --> BC[buildCosts]
+    RC --> PL[pieceLimits]
+
+    SC --> Gen[BoardGenerator.generate config, seed]
+    Gen --> Board[Board - tiles + robber]
+    Board --> GS[GameState]
+    RC --> Eng[CatanGameEngine reads rules from state.config]
+    GS --> Eng
+```
+
+**Layers:**
+
+| Layer | Files | Knows about |
+|-------|-------|-------------|
+| Topology (pure geometry) | `model/board/Axial`, `Topology` (Vertex/Edge) | hex math only — not Catan |
+| Domain pieces | `model/board/Resource`, `Terrain`, `Tile`, `Board` | Catan tiles/resources |
+| Config (the game mode) | `config/ScenarioConfig`, `RuleConfig`, `Buildable` | data, no behavior |
+| A concrete mode | `config/ClassicCatan` | one `ScenarioConfig` value |
+| Generation | `board/BoardGenerator` | `(config, seed) → Board`, deterministic |
+
+**Key decisions:**
+
+- **Vertices/edges are derived, not stored.** A `Vertex` is canonicalized by the
+  set of hexes meeting at a corner, an `Edge` by the two hexes it borders. So the
+  same corner shared by neighboring tiles is always the same `Vertex` — no ID
+  bookkeeping, and `Board.vertices()` / `edges()` are pure functions of the tiles.
+- **`GameState` carries its `ScenarioConfig`.** The engine reads costs, limits,
+  and win conditions from `state.config` — never from constants. This is what
+  makes modes swappable.
+- **Generation is seeded and deterministic.** `BoardGenerator.generate(config,
+  seed)` always yields the same board for the same seed — reproducible and
+  testable (see `core/src/commonTest/.../BoardGeneratorTest`).
+
+To add a mode: author a new `ScenarioConfig` (different `hexLayout`,
+`terrainBag`, `numberTokens`, and/or `RuleConfig`) and pass it to
+`CatanGameEngine(config = ...)`. Done — no engine edits.
+
 ## Adding a new Catan action (the workflow)
 
 This is the loop you'll repeat as the game grows:
