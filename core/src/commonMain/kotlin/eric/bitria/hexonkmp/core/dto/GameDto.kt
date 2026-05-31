@@ -3,6 +3,9 @@ package eric.bitria.hexonkmp.core.dto
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class JoinGameRequest(val playerId: String)
+
+@Serializable
 data class JoinGameResponse(
     val playerId: String,
     val gameId: String,

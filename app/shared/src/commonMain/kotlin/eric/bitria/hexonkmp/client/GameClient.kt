@@ -1,6 +1,7 @@
 package eric.bitria.hexonkmp.client
 
 import eric.bitria.hexonkmp.core.AppJson
+import eric.bitria.hexonkmp.core.dto.JoinGameRequest
 import eric.bitria.hexonkmp.core.dto.JoinGameResponse
 import eric.bitria.hexonkmp.core.ws.ServerEvent
 import io.ktor.client.*
@@ -14,7 +15,8 @@ import kotlinx.coroutines.withContext
 
 class GameClient(private val http: HttpClient) {
 
-    suspend fun joinGame(): JoinGameResponse = http.post("/game").body()
+    suspend fun joinGame(playerId: String): JoinGameResponse =
+        http.post("/game") { setBody(JoinGameRequest(playerId)) }.body()
 
     suspend fun connectToGame(
         playerId: String,

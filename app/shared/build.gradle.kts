@@ -51,6 +51,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.datastore.preferences.core)
         }
         commonMain.dependencies {
             api(projects.core)
@@ -78,11 +79,12 @@ kotlin {
 
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.datastore.preferences.core)
         }
-
 
         jvmMain.dependencies {
             implementation(libs.ktor.client.java)
+            implementation(libs.datastore.preferences.core)
         }
 
         jsMain.dependencies {

@@ -10,6 +10,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 class GameRepositoryImpl(private val client: GameClient) : GameRepository {
@@ -20,7 +21,7 @@ class GameRepositoryImpl(private val client: GameClient) : GameRepository {
 
     private var connectionJob: Job? = null
 
-    override suspend fun joinGame(): JoinGameResponse = client.joinGame()
+    override suspend fun joinGame(playerId: String): JoinGameResponse = client.joinGame(playerId)
 
     override fun connect(playerId: String, gameId: String) {
         connectionJob?.cancel()

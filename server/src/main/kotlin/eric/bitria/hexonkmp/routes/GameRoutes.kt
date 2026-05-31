@@ -1,26 +1,26 @@
 package eric.bitria.hexonkmp.routes
 
-import eric.bitria.hexonkmp.core.dto.ErrorResponse
+import eric.bitria.hexonkmp.core.dto.JoinGameRequest
 import eric.bitria.hexonkmp.core.dto.JoinGameResponse
 import eric.bitria.hexonkmp.repository.GameSessionRepository
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import org.koin.ktor.ext.inject
-import java.util.UUID
 
 fun Application.gameRoutes() {
     val sessions by inject<GameSessionRepository>()
 
     routing {
-        // POST /game — request to join a game; returns playerId + gameId
+        // POST /game — client sends its stable playerId; server finds or creates a game slot.
         post("/game") {
-            val playerId = UUID.randomUUID().toString()
-            val session = sessions.findOrJoin(playerId)
-            call.respond(JoinGameResponse(playerId = playerId, gameId = session.gameId))
+            val request = call.receive<JoinGameRequest>()
+            val session = sessions.findOrJoin(request.playerId)
+            call.respond(JoinGameResponse(playerId = request.playerId, gameId = session.gameId))
         }
 
         // WS /game/{gameId} — connect to an active session
@@ -28,7 +28,7 @@ fun Application.gameRoutes() {
             val gameId = call.parameters["gameId"]
                 ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing gameId"))
             val playerId = call.request.headers["X-Player-Id"]
-                ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing X-Player-Id header"))
+                ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing X-Player-Id"))
 
             val session = sessions.get(gameId)
                 ?: return@webSocket close(CloseReason(CloseReason.Codes.NORMAL, "Game not found"))
@@ -38,9 +38,7 @@ fun Application.gameRoutes() {
             }
 
             try {
-                for (frame in incoming) {
-                    // Intentionally empty — game logic handled in future iterations
-                }
+                for (frame in incoming) { /* game logic in future iterations */ }
             } finally {
                 session.disconnect(playerId)
             }
