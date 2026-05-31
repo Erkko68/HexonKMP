@@ -97,8 +97,15 @@ private fun WaitingContent(state: GameUiState.Waiting) {
 
 @Composable
 private fun InGameContent(state: GameUiState.InGame) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Text("Game board goes here (id: ${state.gameId})", style = MaterialTheme.typography.titleMedium)
+        state.notice?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

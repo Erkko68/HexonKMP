@@ -68,7 +68,12 @@ class GameViewModel(
                 val gameId = (_state.value as? GameUiState.Waiting)?.gameId ?: return
                 _state.value = GameUiState.InGame(gameId)
             }
-            PlayerDisconnected -> leaveGame()
+            is PlayerDisconnected -> _state.update { s ->
+                // Catan-style: a player leaving doesn't end the game for the
+                // others — just note who left and keep playing.
+                if (s is GameUiState.InGame) s.copy(notice = "Player ${event.playerId} left")
+                else s
+            }
             is ConnectionFailed -> {
                 repository.disconnect()
                 _state.value = GameUiState.Error(event.reason)

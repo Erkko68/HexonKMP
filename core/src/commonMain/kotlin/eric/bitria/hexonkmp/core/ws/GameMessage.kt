@@ -24,7 +24,7 @@ data object GameStarted : ServerEvent()
 
 @Serializable
 @SerialName("PlayerDisconnected")
-data object PlayerDisconnected : ServerEvent()
+data class PlayerDisconnected(val playerId: String) : ServerEvent()
 
 // Emitted locally by the client (never sent over the wire) when the
 // WebSocket connection fails or drops, so the UI can leave its loading state.

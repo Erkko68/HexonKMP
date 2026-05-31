@@ -27,8 +27,8 @@ fun Application.gameRoutes() {
         webSocket("/game/{gameId}") {
             val gameId = call.parameters["gameId"]
                 ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing gameId"))
-            val playerId = call.request.headers["X-Player-Id"]
-                ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing X-Player-Id"))
+            val playerId = call.request.queryParameters["playerId"]
+                ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing playerId"))
 
             val session = sessions.get(gameId)
                 ?: return@webSocket close(CloseReason(CloseReason.Codes.NORMAL, "Game not found"))

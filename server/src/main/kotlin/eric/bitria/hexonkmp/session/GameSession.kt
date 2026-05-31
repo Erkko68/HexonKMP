@@ -48,7 +48,7 @@ class GameSession(
             connections.values.toList() to (connections.isEmpty() && reservations.isEmpty())
         }
         // I/O outside the lock — avoids holding the mutex during sends.
-        if (targets.isNotEmpty()) broadcast(PlayerDisconnected, targets)
+        if (targets.isNotEmpty()) broadcast(PlayerDisconnected(playerId), targets)
         if (isEmpty) onEmpty(gameId)
     }
 

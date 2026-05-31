@@ -25,7 +25,6 @@ fun Application.module() {
     install(CORS) {
         anyHost()                           // TODO restrict to your domain in production
         allowHeader(HttpHeaders.ContentType)
-        allowHeader("X-Player-Id")
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Get)
     }

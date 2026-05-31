@@ -23,7 +23,9 @@ class GameClient(private val http: HttpClient) {
         gameId: String,
         onEvent: suspend (ServerEvent) -> Unit,
     ) {
-        http.webSocket(path = "/game/$gameId", request = { header("X-Player-Id", playerId) }) {
+        // playerId goes in the query string, not a header: browsers can't set
+        // custom headers on WebSocket connections.
+        http.webSocket(path = "/game/$gameId", request = { parameter("playerId", playerId) }) {
             try {
                 for (frame in incoming) {
                     if (frame is Frame.Text) {
