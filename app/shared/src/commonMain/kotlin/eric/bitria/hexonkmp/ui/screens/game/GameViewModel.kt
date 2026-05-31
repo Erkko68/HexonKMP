@@ -3,8 +3,10 @@ package eric.bitria.hexonkmp.ui.screens.game
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexonkmp.core.ws.ConnectionFailed
-import eric.bitria.hexonkmp.core.ws.PlayerConnected
-import eric.bitria.hexonkmp.core.ws.PlayerDisconnected
+import eric.bitria.hexonkmp.core.ws.GameStarted
+import eric.bitria.hexonkmp.core.ws.PlayerJoined
+import eric.bitria.hexonkmp.core.ws.PlayerLeft
+import eric.bitria.hexonkmp.core.ws.WaitingForPlayers
 import eric.bitria.hexonkmp.data.repository.GameRepository
 import eric.bitria.hexonkmp.data.storage.DevicePreferences
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,25 +61,24 @@ class GameViewModel(
 
     private fun handleServerEvent(event: eric.bitria.hexonkmp.core.ws.ServerEvent) {
         when (event) {
-            is PlayerConnected -> _state.update { s ->
-                when (s) {
-                    // In the lobby: full room → game starts; otherwise update "X/Y".
-                    is GameUiState.Waiting ->
-                        if (event.connected >= event.needed) GameUiState.InGame(s.gameId)
-                        else s.copy(connected = event.connected, needed = event.needed)
-                    // Already playing: Catan-style, just note the (re)join.
-                    is GameUiState.InGame -> s.copy(notice = "Player ${event.playerId} joined")
-                    else -> s
-                }
+            // --- Lobby phase ---
+            is WaitingForPlayers -> _state.update { s ->
+                if (s is GameUiState.Waiting) s.copy(connected = event.connected, needed = event.needed)
+                else s
             }
-            is PlayerDisconnected -> _state.update { s ->
-                when (s) {
-                    is GameUiState.Waiting -> s.copy(connected = event.connected, needed = event.needed)
-                    // A player leaving doesn't end the game for the others.
-                    is GameUiState.InGame -> s.copy(notice = "Player ${event.playerId} left")
-                    else -> s
-                }
+            GameStarted -> _state.update { s ->
+                // Fired when the room fills, or on reconnect into a running game.
+                if (s is GameUiState.Waiting) GameUiState.InGame(s.gameId) else s
             }
+            // --- In-game phase: Catan-style, players coming and going don't end
+            // the game for the others — just surface a notice. ---
+            is PlayerJoined -> _state.update { s ->
+                if (s is GameUiState.InGame) s.copy(notice = "Player ${event.playerId} joined") else s
+            }
+            is PlayerLeft -> _state.update { s ->
+                if (s is GameUiState.InGame) s.copy(notice = "Player ${event.playerId} left") else s
+            }
+            // --- Client-local ---
             is ConnectionFailed -> {
                 repository.disconnect()
                 _state.value = GameUiState.Error(event.reason)
