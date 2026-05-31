@@ -45,4 +45,39 @@ class CatanGameEngineTest {
         assertEquals(state, result.state)
         assertEquals(emptyList(), result.events)
     }
+
+    @Test
+    fun currentPlayerLeavingPassesTurnToNextPresentPlayer() {
+        // Alice is current; when she leaves, the turn must move to Bob so the
+        // remaining players aren't stuck.
+        val result = engine.playerLeft(state, alice)
+        assertEquals(bob, result.state.currentPlayer)
+        assertEquals(setOf(bob), result.state.present)
+        assertEquals(listOf(TurnChanged(bob, 1)), result.events)
+    }
+
+    @Test
+    fun nonCurrentPlayerLeavingKeepsTurnButUpdatesPresence() {
+        val result = engine.playerLeft(state, bob)
+        assertEquals(alice, result.state.currentPlayer)
+        assertEquals(setOf(alice), result.state.present)
+        assertEquals(emptyList(), result.events)
+    }
+
+    @Test
+    fun endTurnSkipsAbsentPlayers() {
+        val carol = PlayerId("carol")
+        val three = engine.initialState(listOf(alice, bob, carol))
+        // Bob leaves (not current), then Alice ends turn -> should skip Bob to Carol.
+        val afterBobLeft = engine.playerLeft(three, bob).state
+        val afterEnd = engine.reduce(afterBobLeft, alice, EndTurn)
+        assertEquals(carol, afterEnd.state.currentPlayer)
+    }
+
+    @Test
+    fun rejoiningRestoresPresence() {
+        val afterLeft = engine.playerLeft(state, bob).state
+        val afterRejoin = engine.playerJoined(afterLeft, bob)
+        assertEquals(setOf(alice, bob), afterRejoin.state.present)
+    }
 }

@@ -10,7 +10,8 @@ import kotlinx.serialization.Serializable
 // hardcoded constants. Catan domain (hands, buildings, dev cards, …) grows here.
 @Serializable
 data class GameState(
-    val players: List<PlayerId>,
+    val players: List<PlayerId>,        // seating order, fixed for the game
+    val present: Set<PlayerId>,         // players currently connected
     val config: ScenarioConfig,
     val board: Board,
     val currentPlayerIndex: Int = 0,

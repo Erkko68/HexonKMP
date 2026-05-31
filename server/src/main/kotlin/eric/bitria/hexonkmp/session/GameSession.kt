@@ -49,8 +49,12 @@ class GameSession(
             val others = connections.values.toList()
             connections[playerId] = ws
             val justStarted = state == null && connections.size == maxPlayers
+            val current = state
             if (justStarted) {
                 state = engine.initialState(reservations.map { PlayerId(it) })
+            } else if (current != null) {
+                // Reconnect into a running game: mark the player present again.
+                state = engine.playerJoined(current, PlayerId(playerId)).state
             }
             ConnectPlan(self = ws, others = others, state = state, justStarted = justStarted)
         }
@@ -72,14 +76,28 @@ class GameSession(
     }
 
     suspend fun disconnect(playerId: String) {
-        val (targets, isEmpty) = mutex.withLock {
+        val plan = mutex.withLock {
             connections.remove(playerId)
             reservations.remove(playerId)
-            connections.values.toList() to (connections.isEmpty() && reservations.isEmpty())
+            val isEmpty = connections.isEmpty() && reservations.isEmpty()
+            // Tell the engine the player left so the turn can move on if it was
+            // theirs; capture any resulting game events to broadcast.
+            val current = state
+            val gameEvents = if (current != null) {
+                val result = engine.playerLeft(current, PlayerId(playerId))
+                state = result.state
+                result.events
+            } else {
+                emptyList()
+            }
+            DisconnectPlan(connections.values.toList(), gameEvents, isEmpty)
         }
         // I/O outside the lock — avoids holding the mutex during sends.
-        if (targets.isNotEmpty()) broadcast(PlayerLeft(playerId), targets)
-        if (isEmpty) onEmpty(gameId)
+        if (plan.targets.isNotEmpty()) {
+            broadcast(PlayerLeft(playerId), plan.targets)
+            plan.events.forEach { broadcast(GameUpdate(it), plan.targets) }
+        }
+        if (plan.isEmpty) onEmpty(gameId)
     }
 
     // Runs one player action through the engine and broadcasts the outcome.
@@ -108,6 +126,12 @@ class GameSession(
         val others: List<DefaultWebSocketSession>,
         val state: GameState?,
         val justStarted: Boolean,
+    )
+
+    private class DisconnectPlan(
+        val targets: List<DefaultWebSocketSession>,
+        val events: List<eric.bitria.hexonkmp.core.game.event.GameEvent>,
+        val isEmpty: Boolean,
     )
 
     private sealed interface ActionPlan {

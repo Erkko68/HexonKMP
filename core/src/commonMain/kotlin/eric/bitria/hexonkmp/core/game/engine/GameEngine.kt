@@ -19,6 +19,12 @@ interface GameEngine {
     // (state, who acted, what they did) -> result. Must be a pure function:
     // no I/O, no shared mutable state, deterministic.
     fun reduce(state: GameState, actor: PlayerId, action: GameAction): GameResult
+
+    // Presence changes. A player leaving while it is their turn must hand the
+    // turn to the next present player, otherwise the game stalls. A player
+    // rejoining is simply marked present again — the turn order is unchanged.
+    fun playerLeft(state: GameState, playerId: PlayerId): GameResult
+    fun playerJoined(state: GameState, playerId: PlayerId): GameResult
 }
 
 // Generic Catan engine driven by a ScenarioConfig — swap the config to get a
@@ -32,6 +38,7 @@ class CatanGameEngine(
     override fun initialState(players: List<PlayerId>): GameState =
         GameState(
             players = players,
+            present = players.toSet(),
             config = config,
             board = BoardGenerator.generate(config, boardSeed),
         )
@@ -41,13 +48,41 @@ class CatanGameEngine(
             EndTurn -> endTurn(state, actor)
         }
 
+    override fun playerLeft(state: GameState, playerId: PlayerId): GameResult {
+        if (playerId !in state.present) return GameResult(state)
+        val base = state.copy(present = state.present - playerId)
+        // If the player whose turn it is leaves, pass the turn along so the
+        // remaining players can keep going.
+        return if (state.currentPlayer == playerId) advanceTurn(base) else GameResult(base)
+    }
+
+    override fun playerJoined(state: GameState, playerId: PlayerId): GameResult {
+        if (playerId !in state.players || playerId in state.present) return GameResult(state)
+        return GameResult(state.copy(present = state.present + playerId))
+    }
+
     private fun endTurn(state: GameState, actor: PlayerId): GameResult {
         if (actor != state.currentPlayer) {
             return GameResult(state, rejection = "It is not your turn")
         }
-        val nextIndex = (state.currentPlayerIndex + 1) % state.players.size
-        val nextTurn = if (nextIndex == 0) state.turn + 1 else state.turn
-        val next = state.copy(currentPlayerIndex = nextIndex, turn = nextTurn)
-        return GameResult(next, events = listOf(TurnChanged(next.currentPlayer, next.turn)))
+        return advanceTurn(state)
+    }
+
+    // Moves the turn to the next *present* player after the current index,
+    // skipping anyone who has left. Increments the turn counter when the seating
+    // wraps past the end. No-op if nobody else is present.
+    private fun advanceTurn(state: GameState): GameResult {
+        val size = state.players.size
+        for (step in 1..size) {
+            val candidate = (state.currentPlayerIndex + step) % size
+            if (state.players[candidate] in state.present) {
+                val wrapped = state.currentPlayerIndex + step >= size
+                val nextTurn = if (wrapped) state.turn + 1 else state.turn
+                val next = state.copy(currentPlayerIndex = candidate, turn = nextTurn)
+                return GameResult(next, events = listOf(TurnChanged(next.currentPlayer, next.turn)))
+            }
+        }
+        // Only the current player (or nobody) is present — nothing to advance to.
+        return GameResult(state)
     }
 }
