@@ -36,7 +36,7 @@ fun GameScreen(viewModel: GameViewModel = koinViewModel()) {
             is GameUiState.Idle -> IdleContent(onFindGame = viewModel::joinGame)
             is GameUiState.Connecting -> ConnectingContent()
             is GameUiState.Waiting -> WaitingContent(s)
-            is GameUiState.InGame -> InGameContent(s)
+            is GameUiState.InGame -> InGameContent(s, onEndTurn = viewModel::endTurn)
             is GameUiState.Error -> ErrorContent(s.message, onRetry = viewModel::retryJoinGame)
         }
 
@@ -96,13 +96,21 @@ private fun WaitingContent(state: GameUiState.Waiting) {
 }
 
 @Composable
-private fun InGameContent(state: GameUiState.InGame) {
+private fun InGameContent(state: GameUiState.InGame, onEndTurn: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text("Game board goes here (id: ${state.gameId})", style = MaterialTheme.typography.titleMedium)
+        Text("Turn ${state.state.turn}", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            if (state.isMyTurn) "Your turn" else "Waiting for ${state.state.currentPlayer.value}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (state.isMyTurn) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Button(onClick = onEndTurn, enabled = state.isMyTurn) { Text("End Turn") }
         state.notice?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

@@ -1,4 +1,4 @@
-package eric.bitria.hexonkmp.core.dto
+package eric.bitria.hexonkmp.core.protocol
 
 import kotlinx.serialization.Serializable
 

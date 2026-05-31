@@ -1,9 +1,9 @@
 package eric.bitria.hexonkmp.routes
 
-import eric.bitria.hexonkmp.core.dto.JoinGameRequest
-import eric.bitria.hexonkmp.core.dto.JoinGameResponse
+import eric.bitria.hexonkmp.core.protocol.JoinGameRequest
+import eric.bitria.hexonkmp.core.protocol.JoinGameResponse
+import eric.bitria.hexonkmp.core.protocol.Wire
 import eric.bitria.hexonkmp.repository.GameSessionRepository
-import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -38,7 +38,14 @@ fun Application.gameRoutes() {
             }
 
             try {
-                for (frame in incoming) { /* game logic in future iterations */ }
+                // Decode client actions and hand them to the session; all game
+                // logic lives behind the engine, this loop is pure transport.
+                for (frame in incoming) {
+                    if (frame is Frame.Text) {
+                        runCatching { Wire.decodeAction(frame.readText()) }
+                            .onSuccess { session.handleAction(playerId, it) }
+                    }
+                }
             } finally {
                 session.disconnect(playerId)
             }

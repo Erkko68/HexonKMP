@@ -2,11 +2,17 @@ package eric.bitria.hexonkmp.ui.screens.game
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexonkmp.core.ws.ConnectionFailed
-import eric.bitria.hexonkmp.core.ws.GameStarted
-import eric.bitria.hexonkmp.core.ws.PlayerJoined
-import eric.bitria.hexonkmp.core.ws.PlayerLeft
-import eric.bitria.hexonkmp.core.ws.WaitingForPlayers
+import eric.bitria.hexonkmp.core.game.action.EndTurn
+import eric.bitria.hexonkmp.core.game.event.TurnChanged
+import eric.bitria.hexonkmp.core.game.model.PlayerId
+import eric.bitria.hexonkmp.core.protocol.ActionRejected
+import eric.bitria.hexonkmp.core.protocol.ConnectionFailed
+import eric.bitria.hexonkmp.core.protocol.GameStarted
+import eric.bitria.hexonkmp.core.protocol.GameUpdate
+import eric.bitria.hexonkmp.core.protocol.PlayerJoined
+import eric.bitria.hexonkmp.core.protocol.PlayerLeft
+import eric.bitria.hexonkmp.core.protocol.ServerEvent
+import eric.bitria.hexonkmp.core.protocol.WaitingForPlayers
 import eric.bitria.hexonkmp.data.repository.GameRepository
 import eric.bitria.hexonkmp.data.storage.DevicePreferences
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +27,8 @@ class GameViewModel(
 ) : ViewModel() {
     private val _state = MutableStateFlow<GameUiState>(GameUiState.Idle)
     val state: StateFlow<GameUiState> = _state.asStateFlow()
+
+    private var myPlayerId: PlayerId? = null
 
     init {
         viewModelScope.launch {
@@ -37,11 +45,17 @@ class GameViewModel(
                 playerId to repository.joinGame(playerId)
             }
                 .onSuccess { (playerId, response) ->
+                    myPlayerId = PlayerId(playerId)
                     _state.value = GameUiState.Waiting(response.gameId)
                     repository.connect(playerId, response.gameId)
                 }
                 .onFailure { _state.value = GameUiState.Error(it.message ?: "Connection failed") }
         }
+    }
+
+    fun endTurn() {
+        val s = _state.value
+        if (s is GameUiState.InGame && s.isMyTurn) repository.sendAction(EndTurn)
     }
 
     fun retryJoinGame() {
@@ -59,24 +73,35 @@ class GameViewModel(
         repository.disconnect()
     }
 
-    private fun handleServerEvent(event: eric.bitria.hexonkmp.core.ws.ServerEvent) {
+    private fun handleServerEvent(event: ServerEvent) {
         when (event) {
             // --- Lobby phase ---
             is WaitingForPlayers -> _state.update { s ->
                 if (s is GameUiState.Waiting) s.copy(connected = event.connected, needed = event.needed)
                 else s
             }
-            GameStarted -> _state.update { s ->
+            is GameStarted -> _state.update { s ->
                 // Fired when the room fills, or on reconnect into a running game.
-                if (s is GameUiState.Waiting) GameUiState.InGame(s.gameId) else s
+                val me = myPlayerId
+                if (s is GameUiState.Waiting && me != null) {
+                    GameUiState.InGame(gameId = s.gameId, state = event.state, myPlayerId = me)
+                } else s
             }
-            // --- In-game phase: Catan-style, players coming and going don't end
-            // the game for the others — just surface a notice. ---
+            // --- Presence: Catan-style, players coming and going don't end the
+            // game for the others — just surface a notice. ---
             is PlayerJoined -> _state.update { s ->
                 if (s is GameUiState.InGame) s.copy(notice = "Player ${event.playerId} joined") else s
             }
             is PlayerLeft -> _state.update { s ->
                 if (s is GameUiState.InGame) s.copy(notice = "Player ${event.playerId} left") else s
+            }
+            // --- Game updates: apply the domain event to the local state copy. ---
+            is GameUpdate -> _state.update { s ->
+                if (s is GameUiState.InGame) s.copy(state = applyEvent(s, event)) else s
+            }
+            // --- Action feedback (only the acting player receives this) ---
+            is ActionRejected -> _state.update { s ->
+                if (s is GameUiState.InGame) s.copy(notice = event.reason) else s
             }
             // --- Client-local ---
             is ConnectionFailed -> {
@@ -85,4 +110,12 @@ class GameViewModel(
             }
         }
     }
+
+    private fun applyEvent(s: GameUiState.InGame, update: GameUpdate) =
+        when (val e = update.event) {
+            is TurnChanged -> s.state.copy(
+                currentPlayerIndex = s.state.players.indexOf(e.currentPlayer),
+                turn = e.turn,
+            )
+        }
 }
