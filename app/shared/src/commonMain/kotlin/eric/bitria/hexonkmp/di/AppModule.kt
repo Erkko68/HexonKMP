@@ -8,11 +8,9 @@ import eric.bitria.hexonkmp.ui.screens.game.GameViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-private const val BASE_URL = "http://localhost:8080"
-
 fun appModule() = module {
     single { createHttpClient() }
-    single { GameClient(get(), BASE_URL) }
+    single { GameClient(get()) }
     single<GameRepository> { GameRepositoryImpl(get()) }
     viewModelOf(::GameViewModel)
 }
