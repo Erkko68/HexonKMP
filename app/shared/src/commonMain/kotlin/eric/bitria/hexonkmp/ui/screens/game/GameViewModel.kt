@@ -3,9 +3,8 @@ package eric.bitria.hexonkmp.ui.screens.game
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexonkmp.core.ws.ConnectionFailed
-import eric.bitria.hexonkmp.core.ws.GameStarted
+import eric.bitria.hexonkmp.core.ws.PlayerConnected
 import eric.bitria.hexonkmp.core.ws.PlayerDisconnected
-import eric.bitria.hexonkmp.core.ws.WaitingForPlayers
 import eric.bitria.hexonkmp.data.repository.GameRepository
 import eric.bitria.hexonkmp.data.storage.DevicePreferences
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,19 +59,24 @@ class GameViewModel(
 
     private fun handleServerEvent(event: eric.bitria.hexonkmp.core.ws.ServerEvent) {
         when (event) {
-            is WaitingForPlayers -> _state.update { s ->
-                if (s is GameUiState.Waiting) s.copy(connected = event.connected, needed = event.needed)
-                else s
-            }
-            GameStarted -> {
-                val gameId = (_state.value as? GameUiState.Waiting)?.gameId ?: return
-                _state.value = GameUiState.InGame(gameId)
+            is PlayerConnected -> _state.update { s ->
+                when (s) {
+                    // In the lobby: full room → game starts; otherwise update "X/Y".
+                    is GameUiState.Waiting ->
+                        if (event.connected >= event.needed) GameUiState.InGame(s.gameId)
+                        else s.copy(connected = event.connected, needed = event.needed)
+                    // Already playing: Catan-style, just note the (re)join.
+                    is GameUiState.InGame -> s.copy(notice = "Player ${event.playerId} joined")
+                    else -> s
+                }
             }
             is PlayerDisconnected -> _state.update { s ->
-                // Catan-style: a player leaving doesn't end the game for the
-                // others — just note who left and keep playing.
-                if (s is GameUiState.InGame) s.copy(notice = "Player ${event.playerId} left")
-                else s
+                when (s) {
+                    is GameUiState.Waiting -> s.copy(connected = event.connected, needed = event.needed)
+                    // A player leaving doesn't end the game for the others.
+                    is GameUiState.InGame -> s.copy(notice = "Player ${event.playerId} left")
+                    else -> s
+                }
             }
             is ConnectionFailed -> {
                 repository.disconnect()

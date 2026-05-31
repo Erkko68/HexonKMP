@@ -1,10 +1,9 @@
 package eric.bitria.hexonkmp.session
 
 import eric.bitria.hexonkmp.core.AppJson
-import eric.bitria.hexonkmp.core.ws.GameStarted
+import eric.bitria.hexonkmp.core.ws.PlayerConnected
 import eric.bitria.hexonkmp.core.ws.PlayerDisconnected
 import eric.bitria.hexonkmp.core.ws.ServerEvent
-import eric.bitria.hexonkmp.core.ws.WaitingForPlayers
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.sync.Mutex
@@ -32,10 +31,8 @@ class GameSession(
         val (event, targets) = mutex.withLock {
             if (playerId !in reservations) return false
             connections[playerId] = ws
-            val event: ServerEvent =
-                if (connections.size == maxPlayers) GameStarted
-                else WaitingForPlayers(connected = connections.size, needed = maxPlayers)
-            event to connections.values.toList()
+            PlayerConnected(playerId, connected = connections.size, needed = maxPlayers) to
+                connections.values.toList()
         }
         broadcast(event, targets)
         return true
@@ -48,7 +45,10 @@ class GameSession(
             connections.values.toList() to (connections.isEmpty() && reservations.isEmpty())
         }
         // I/O outside the lock — avoids holding the mutex during sends.
-        if (targets.isNotEmpty()) broadcast(PlayerDisconnected(playerId), targets)
+        // targets.size is the post-removal connected count.
+        if (targets.isNotEmpty()) {
+            broadcast(PlayerDisconnected(playerId, connected = targets.size, needed = maxPlayers), targets)
+        }
         if (isEmpty) onEmpty(gameId)
     }
 

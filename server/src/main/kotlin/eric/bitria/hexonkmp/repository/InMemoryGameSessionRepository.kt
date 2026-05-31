@@ -13,9 +13,13 @@ class InMemoryGameSessionRepository : GameSessionRepository {
     private var openSession: GameSession? = null
 
     override suspend fun findOrJoin(playerId: String): GameSession = mutex.withLock {
-        // Reconnect: player already has a live session
+        // Reconnect: player already mapped to a session that still exists — put
+        // them back into it, re-reserving the slot freed when they disconnected.
         playerIndex[playerId]?.let { gameId -> sessions[gameId] }
-            ?.also { return@withLock it }
+            ?.also {
+                it.reserveSlot(playerId)
+                return@withLock it
+            }
 
         // New slot: find the open session or create one
         val session = openSession?.takeIf { it.hasAvailableSlot() }
