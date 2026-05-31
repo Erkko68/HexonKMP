@@ -1,6 +1,8 @@
 package eric.bitria.hexonkmp.core.config
 
+import kotlinx.browser.window
+
 actual object EnvConfig {
-    actual val SERVER_HOST: String = "localhost"
-    actual val SERVER_PORT: Int = 8080
+    actual val SERVER_HOST: String = window.location.hostname
+    actual val SERVER_PORT: Int = 8081
 }

@@ -16,8 +16,23 @@ plugins {
 // generateEnvConfig
 // Reads .env (base) and .env.<platform> (override) files and generates
 // actual object EnvConfig in each platform source set of :core.
-// Run manually or hook into compilation: ./gradlew generateEnvConfig
+//
+// Key naming convention:
+//   SERVER_HOST / SERVER_PORT      → client-side: what to connect to (compiled into EnvConfig)
+//   SERVER_BIND_HOST / _BIND_PORT  → server-side: what Ktor binds on  (read by application.conf at runtime)
+//   WEB_PORT                       → the webpack dev server port       (tooling only, not compiled)
+//
+// Only CLIENT_ENV_KEYS are written into EnvConfig. The rest are documented
+// here for reference and used via OS environment variables or run scripts.
+//
+// Run: ./gradlew generateEnvConfig
 // ---------------------------------------------------------------------------
+
+val clientEnvKeys = setOf("SERVER_HOST", "SERVER_PORT")
+
+// Web targets resolve the host dynamically at runtime instead of baking it in,
+// so a compiled bundle works regardless of which machine serves the page.
+val webPlatforms = setOf("jsMain", "wasmJsMain")
 
 val envPlatforms = mapOf(
     "jvmMain"     to "jvm",
@@ -37,21 +52,26 @@ fun readEnv(file: File): Map<String, String> {
         }.toMap()
 }
 
-fun renderActual(pkg: String, values: Map<String, String>): String = buildString {
+fun renderActual(pkg: String, values: Map<String, String>, isWeb: Boolean = false): String = buildString {
     appendLine("package $pkg")
     appendLine()
+    if (isWeb) appendLine("import kotlinx.browser.window")
+    appendLine()
     appendLine("actual object EnvConfig {")
-    values.forEach { (k, v) ->
-        val isInt = v.toIntOrNull() != null
-        if (isInt) appendLine("    actual val $k: Int = $v")
-        else       appendLine("    actual val $k: String = \"$v\"")
+    values.filter { it.key in clientEnvKeys }.forEach { (k, v) ->
+        when {
+            // Web: resolve host at runtime so the bundle works from any machine.
+            k == "SERVER_HOST" && isWeb -> appendLine("    actual val $k: String = window.location.hostname")
+            v.toIntOrNull() != null     -> appendLine("    actual val $k: Int = $v")
+            else                        -> appendLine("    actual val $k: String = \"$v\"")
+        }
     }
     appendLine("}")
 }
 
 tasks.register("generateEnvConfig") {
     group = "config"
-    description = "Generates EnvConfig.kt actuals in :core from .env files"
+    description = "Generates EnvConfig.kt actuals in :core from .env files (client keys only)"
 
     val baseEnv = readEnv(rootProject.file(".env"))
     val pkg = "eric.bitria.hexonkmp.core.config"
@@ -62,7 +82,7 @@ tasks.register("generateEnvConfig") {
             val merged = baseEnv + readEnv(rootProject.file(".env.$suffix"))
             val outFile = outBase.resolve("$sourceSet/kotlin/${pkg.replace('.', '/')}/EnvConfig.kt")
             outFile.parentFile.mkdirs()
-            outFile.writeText(renderActual(pkg, merged))
+            outFile.writeText(renderActual(pkg, merged, isWeb = sourceSet in webPlatforms))
             logger.lifecycle("  wrote $outFile")
         }
         logger.lifecycle("generateEnvConfig done.")

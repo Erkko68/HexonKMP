@@ -26,31 +26,34 @@ class GameSession(
         reservations.add(playerId)
     }
 
-    // Returns the event to broadcast, computed inside the lock, sent outside.
+    // Returns the event to broadcast plus a snapshot of recipients, both taken
+    // inside the lock; the actual sends happen outside it.
     suspend fun connect(playerId: String, ws: DefaultWebSocketSession): Boolean {
-        val event = mutex.withLock {
+        val (event, targets) = mutex.withLock {
             if (playerId !in reservations) return false
             connections[playerId] = ws
-            if (connections.size == maxPlayers) GameStarted
-            else WaitingForPlayers(connected = connections.size, needed = maxPlayers)
+            val event: ServerEvent =
+                if (connections.size == maxPlayers) GameStarted
+                else WaitingForPlayers(connected = connections.size, needed = maxPlayers)
+            event to connections.values.toList()
         }
-        broadcast(event)
+        broadcast(event, targets)
         return true
     }
 
     suspend fun disconnect(playerId: String) {
-        val (shouldBroadcast, isEmpty) = mutex.withLock {
+        val (targets, isEmpty) = mutex.withLock {
             connections.remove(playerId)
             reservations.remove(playerId)
-            Pair(connections.isNotEmpty(), connections.isEmpty() && reservations.isEmpty())
+            connections.values.toList() to (connections.isEmpty() && reservations.isEmpty())
         }
         // I/O outside the lock — avoids holding the mutex during sends.
-        if (shouldBroadcast) broadcast(PlayerDisconnected)
+        if (targets.isNotEmpty()) broadcast(PlayerDisconnected, targets)
         if (isEmpty) onEmpty(gameId)
     }
 
-    private suspend fun broadcast(event: ServerEvent) {
+    private suspend fun broadcast(event: ServerEvent, targets: List<DefaultWebSocketSession>) {
         val text = AppJson.encodeToString(event)
-        connections.values.forEach { it.send(Frame.Text(text)) }
+        targets.forEach { it.send(Frame.Text(text)) }
     }
 }

@@ -37,7 +37,7 @@ fun GameScreen(viewModel: GameViewModel = koinViewModel()) {
             is GameUiState.Connecting -> ConnectingContent()
             is GameUiState.Waiting -> WaitingContent(s)
             is GameUiState.InGame -> InGameContent(s)
-            is GameUiState.Error -> ErrorContent(s.message, onRetry = viewModel::joinGame)
+            is GameUiState.Error -> ErrorContent(s.message, onRetry = viewModel::retryJoinGame)
         }
 
         if (state is GameUiState.Waiting || state is GameUiState.InGame) {

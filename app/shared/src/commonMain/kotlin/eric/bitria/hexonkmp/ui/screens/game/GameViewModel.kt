@@ -2,6 +2,7 @@ package eric.bitria.hexonkmp.ui.screens.game
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import eric.bitria.hexonkmp.core.ws.ConnectionFailed
 import eric.bitria.hexonkmp.core.ws.GameStarted
 import eric.bitria.hexonkmp.core.ws.PlayerDisconnected
 import eric.bitria.hexonkmp.core.ws.WaitingForPlayers
@@ -42,6 +43,11 @@ class GameViewModel(
         }
     }
 
+    fun retryJoinGame() {
+        _state.value = GameUiState.Idle
+        joinGame()
+    }
+
     fun leaveGame() {
         repository.disconnect()
         _state.value = GameUiState.Idle
@@ -63,6 +69,10 @@ class GameViewModel(
                 _state.value = GameUiState.InGame(gameId)
             }
             PlayerDisconnected -> leaveGame()
+            is ConnectionFailed -> {
+                repository.disconnect()
+                _state.value = GameUiState.Error(event.reason)
+            }
         }
     }
 }
