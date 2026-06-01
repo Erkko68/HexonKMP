@@ -6,14 +6,22 @@ plugins {
 
 kotlin {
     js {
-        browser()
-        binaries.executable()
+        browser {
+            binaries.executable()
+            // Stable output name so index.html can <script src="webApp.js">.
+            commonWebpackConfig {
+                outputFileName = "webApp.js"
+            }
+        }
     }
 
     sourceSets {
         jsMain.dependencies {
             implementation(projects.app.shared)
             implementation(libs.compose.ui)
+            // Filament core is needed on JS to call Filament.init() in main().
+            implementation(libs.filament.core)
+            implementation(libs.kotlinx.coroutines.core)
         }
     }
 }
