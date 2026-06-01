@@ -51,7 +51,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.ktor.client.okhttp)
-            implementation(libs.datastore.preferences.core)
+            implementation(libs.datastore.preferences)
         }
         commonMain.dependencies {
             api(projects.core)

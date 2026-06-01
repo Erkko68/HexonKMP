@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import okio.Path.Companion.toPath
@@ -16,6 +17,7 @@ import kotlin.random.Random
 actual fun createDevicePreferences(): DevicePreferences =
     DataStoreDevicePreferences(createIosDataStore())
 
+@OptIn(ExperimentalForeignApi::class)
 private fun createIosDataStore(): DataStore<Preferences> =
     PreferenceDataStoreFactory.createWithPath(
         produceFile = {

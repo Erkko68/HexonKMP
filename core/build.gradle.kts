@@ -46,5 +46,14 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+
+        jsMain.dependencies {
+            implementation(libs.kotlinx.browser)
+        }
+        val wasmJsMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.browser)
+            }
+        }
     }
 }
