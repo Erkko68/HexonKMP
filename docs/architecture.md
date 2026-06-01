@@ -97,6 +97,9 @@ The transport envelope. Split by phase:
 | Game updates | `GameUpdate(event)` wrapping a `GameEvent`, `ActionRejected(reason)` |
 | Client-local | `ConnectionFailed(reason)` (never sent over the wire)|
 
+`GameAction` variants so far: `EndTurn`, `PlaceSettlement(vertex)`,
+`PlaceRoad(edge)`.
+
 ### `GameEvent` (engine output) — `core/game/event/`
 Pure domain deltas the engine emits. They describe *what changed* and have no
 transport knowledge — the server wraps each one in a `GameUpdate` before sending.
@@ -179,6 +182,39 @@ sequenceDiagram
     Srv-->>B: ActionRejected("It is not your turn")
     Note over A: A receives nothing
 ```
+
+### Game phases & the setup draft — `core/game/model/GamePhase`
+
+The game runs through phases, held in `GameState.phase` and authoritative on the
+server:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Setup
+    Setup --> Setup: PlaceSettlement -> PlaceRoad (snake draft)
+    Setup --> Play: draft complete (PhaseChanged + first auto-roll)
+    Play --> Play: EndTurn -> auto-roll
+```
+
+- **`Setup`** is the classic snake draft: each player places a settlement then a
+  road, in order then reverse (e.g. 3 players: `0,1,2,2,1,0`). The phase carries
+  the precomputed `order`, the current `index`, which piece is `awaiting`, and
+  the `lastSettlement` the next road must touch. There is **no dice roll during
+  setup**. A settlement placed in the *second* round grants its adjacent tiles'
+  resources as a starting hand.
+- **`Play`** begins automatically when the draft finishes (`PhaseChanged(Play)`),
+  and the first player's turn opens with the usual auto-roll.
+
+**Full placement validation lives in the engine:**
+- Settlement: the vertex must be empty *and* the distance rule holds (no
+  building on any adjacent vertex).
+- Road (setup): the edge must be empty *and* touch the settlement just placed.
+
+**Legal-move queries.** The engine also exposes pure
+`legalSettlements(state, player)` / `legalRoads(state, player)`. The server uses
+them implicitly (validation), and the **client reuses the very same engine** to
+offer only valid placements — the canonical example of the shared-engine payoff.
+These are also what a rendered board will use to highlight tappable spots.
 
 ## Server responsibilities — `server/`
 

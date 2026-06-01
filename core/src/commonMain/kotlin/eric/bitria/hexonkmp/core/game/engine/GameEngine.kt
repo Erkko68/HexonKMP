@@ -2,16 +2,28 @@ package eric.bitria.hexonkmp.core.game.engine
 
 import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.GameAction
+import eric.bitria.hexonkmp.core.game.action.PlaceRoad
+import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
 import eric.bitria.hexonkmp.core.game.board.BoardGenerator
 import eric.bitria.hexonkmp.core.game.config.ClassicCatan
 import eric.bitria.hexonkmp.core.game.config.ScenarioConfig
+import eric.bitria.hexonkmp.core.game.event.BuildingPlaced
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
-import eric.bitria.hexonkmp.core.game.event.GameEvent
+import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
+import eric.bitria.hexonkmp.core.game.event.RoadPlaced
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
+import eric.bitria.hexonkmp.core.game.model.Building
+import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.GameState
+import eric.bitria.hexonkmp.core.game.model.Placement
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
+import eric.bitria.hexonkmp.core.game.model.Road
+import eric.bitria.hexonkmp.core.game.model.board.Edge
+import eric.bitria.hexonkmp.core.game.model.board.Vertex
+import eric.bitria.hexonkmp.core.game.model.board.adjacentVertices
+import eric.bitria.hexonkmp.core.game.model.board.touches
 import kotlin.random.Random
 
 // The pure game engine. Every rule lives behind reduce(); it has no concept of
@@ -29,6 +41,11 @@ interface GameEngine {
     // rejoining is simply marked present again — the turn order is unchanged.
     fun playerLeft(state: GameState, playerId: PlayerId): GameResult
     fun playerJoined(state: GameState, playerId: PlayerId): GameResult
+
+    // Pure legal-move queries — what `player` may place right now. The UI uses
+    // these to offer valid placements (and could highlight them on a board).
+    fun legalSettlements(state: GameState, player: PlayerId): Set<Vertex>
+    fun legalRoads(state: GameState, player: PlayerId): Set<Edge>
 }
 
 // Generic Catan engine driven by a ScenarioConfig — swap the config to get a
@@ -40,30 +57,126 @@ class CatanGameEngine(
 ) : GameEngine {
 
     override fun initialState(players: List<PlayerId>): GameState {
-        val base = GameState(
+        // Snake draft order: forward then reverse, e.g. 3 players -> 0,1,2,2,1,0.
+        val forward = players.indices.toList()
+        val order = forward + forward.reversed()
+        return GameState(
             players = players,
             present = players.toSet(),
             config = config,
             board = BoardGenerator.generate(config, boardSeed),
+            phase = GamePhase.Setup(order = order, index = 0, awaiting = Placement.SETTLEMENT),
+            currentPlayerIndex = order.first(),
             rngSeed = boardSeed,
         )
-        // The first player's turn begins immediately. Events are dropped here —
-        // the GameStarted snapshot already carries the rolled state (lastRoll,
-        // hands); later turns deliver the roll as events instead.
-        return beginTurn(base).state
+        // No dice in setup — the first roll happens when Play begins.
     }
 
-    override fun reduce(state: GameState, actor: PlayerId, action: GameAction): GameResult =
-        when (action) {
-            EndTurn -> endTurn(state, actor)
+    override fun reduce(state: GameState, actor: PlayerId, action: GameAction): GameResult {
+        if (actor != state.currentPlayer) {
+            return GameResult(state, rejection = "It is not your turn")
         }
+        return when (action) {
+            EndTurn -> endTurn(state)
+            is PlaceSettlement -> placeSettlement(state, actor, action.vertex)
+            is PlaceRoad -> placeRoad(state, actor, action.edge)
+        }
+    }
+
+    // --- Setup: settlement placement ---
+
+    private fun placeSettlement(state: GameState, actor: PlayerId, vertex: Vertex): GameResult {
+        val setup = state.phase as? GamePhase.Setup
+            ?: return GameResult(state, rejection = "Settlements can only be placed during setup")
+        if (setup.awaiting != Placement.SETTLEMENT) {
+            return GameResult(state, rejection = "You must place a road now")
+        }
+        settlementRejection(state, vertex)?.let { return GameResult(state, rejection = it) }
+
+        val building = Building(actor, vertex, Building.Kind.SETTLEMENT)
+        var next = state.copy(
+            buildings = state.buildings + building,
+            phase = setup.copy(awaiting = Placement.ROAD, lastSettlement = vertex),
+        )
+        val events = mutableListOf<eric.bitria.hexonkmp.core.game.event.GameEvent>(BuildingPlaced(building))
+
+        // Second-round settlements grant their adjacent tiles' resources.
+        if (setup.isSecondRound) {
+            val gain = startingResources(state, vertex)
+            if (!gain.isEmpty) {
+                next = next.copy(hands = addGain(next.hands, actor, gain))
+                events += ResourcesProduced(mapOf(actor to gain))
+            }
+        }
+        return GameResult(next, events = events)
+    }
+
+    // --- Setup: road placement (completes a step, then advances the draft) ---
+
+    private fun placeRoad(state: GameState, actor: PlayerId, edge: Edge): GameResult {
+        val setup = state.phase as? GamePhase.Setup
+            ?: return GameResult(state, rejection = "Roads can only be placed during setup")
+        if (setup.awaiting != Placement.ROAD) {
+            return GameResult(state, rejection = "You must place a settlement now")
+        }
+        roadRejection(state, setup, edge)?.let { return GameResult(state, rejection = it) }
+
+        val road = Road(actor, edge)
+        val placed = state.copy(roads = state.roads + road)
+        val advance = advanceSetup(placed, setup)
+        return GameResult(advance.state, events = listOf(RoadPlaced(road)) + advance.events)
+    }
+
+    // Moves the draft to the next present player's placement, or starts Play when
+    // the snake is exhausted.
+    private fun advanceSetup(state: GameState, setup: GamePhase.Setup): GameResult {
+        var i = setup.index + 1
+        while (i < setup.order.size && state.players[setup.order[i]] !in state.present) i++
+        if (i >= setup.order.size) return startPlay(state)
+
+        val moved = state.copy(
+            phase = setup.copy(index = i, awaiting = Placement.SETTLEMENT, lastSettlement = null),
+            currentPlayerIndex = setup.order[i],
+        )
+        return GameResult(moved, events = listOf(TurnChanged(moved.currentPlayer, moved.turn)))
+    }
+
+    // Setup is over: switch to Play and begin the first present player's turn
+    // (which rolls the dice automatically).
+    private fun startPlay(state: GameState): GameResult {
+        val firstPresent = state.players.indexOfFirst { it in state.present }.coerceAtLeast(0)
+        val playState = state.copy(
+            phase = GamePhase.Play,
+            currentPlayerIndex = firstPresent,
+            turn = 1,
+        )
+        val begun = beginTurn(playState)
+        val lead = listOf(
+            PhaseChanged(GamePhase.Play),
+            TurnChanged(begun.state.currentPlayer, begun.state.turn),
+        )
+        return GameResult(begun.state, events = lead + begun.events)
+    }
+
+    // --- Play: end turn ---
+
+    private fun endTurn(state: GameState): GameResult {
+        if (state.phase !is GamePhase.Play) {
+            return GameResult(state, rejection = "Finish placing your starting pieces first")
+        }
+        return advanceTurn(state)
+    }
 
     override fun playerLeft(state: GameState, playerId: PlayerId): GameResult {
         if (playerId !in state.present) return GameResult(state)
         val base = state.copy(present = state.present - playerId)
-        // If the player whose turn it is leaves, pass the turn along so the
-        // remaining players can keep going.
-        return if (state.currentPlayer == playerId) advanceTurn(base) else GameResult(base)
+        if (state.currentPlayer != playerId) return GameResult(base)
+        // The current player left — keep the game moving.
+        return when (val phase = base.phase) {
+            is GamePhase.Play -> advanceTurn(base)
+            // Skip the leaver's remaining setup placement(s).
+            is GamePhase.Setup -> skipSetup(base, phase)
+        }
     }
 
     override fun playerJoined(state: GameState, playerId: PlayerId): GameResult {
@@ -71,12 +184,60 @@ class CatanGameEngine(
         return GameResult(state.copy(present = state.present + playerId))
     }
 
-    private fun endTurn(state: GameState, actor: PlayerId): GameResult {
-        if (actor != state.currentPlayer) {
-            return GameResult(state, rejection = "It is not your turn")
-        }
-        return advanceTurn(state)
+    override fun legalSettlements(state: GameState, player: PlayerId): Set<Vertex> {
+        val setup = state.phase as? GamePhase.Setup ?: return emptySet()
+        if (player != state.currentPlayer || setup.awaiting != Placement.SETTLEMENT) return emptySet()
+        return state.board.vertices().filter { settlementRejection(state, it) == null }.toSet()
     }
+
+    override fun legalRoads(state: GameState, player: PlayerId): Set<Edge> {
+        val setup = state.phase as? GamePhase.Setup ?: return emptySet()
+        if (player != state.currentPlayer || setup.awaiting != Placement.ROAD) return emptySet()
+        return state.board.edges().filter { roadRejection(state, setup, it) == null }.toSet()
+    }
+
+    // --- Validation (shared by reduce() and the legal-move queries) ---
+
+    // Returns null if the settlement is legal, else the reason it isn't.
+    private fun settlementRejection(state: GameState, vertex: Vertex): String? = when {
+        vertex !in state.board.vertices() -> "Not a valid spot"
+        state.buildingAt(vertex) != null -> "Already occupied"
+        // Distance rule: no settlement on an adjacent vertex.
+        vertex.adjacentVertices().any { state.buildingAt(it) != null } ->
+            "Too close to another settlement"
+        else -> null
+    }
+
+    private fun roadRejection(state: GameState, setup: GamePhase.Setup, edge: Edge): String? = when {
+        edge !in state.board.edges() -> "Not a valid spot"
+        state.roadAt(edge) != null -> "Already occupied"
+        // In setup the road must connect to the settlement just placed.
+        setup.lastSettlement?.let { edge.touches(it) } != true ->
+            "Road must connect to your new settlement"
+        else -> null
+    }
+
+    private fun startingResources(state: GameState, vertex: Vertex): ResourceCount {
+        var total = ResourceCount()
+        for (tile in state.board.tiles) {
+            if (tile.hex !in vertex.hexes) continue
+            tile.terrain.resource?.let { total += ResourceCount.of(it to 1) }
+        }
+        return total
+    }
+
+    private fun skipSetup(state: GameState, setup: GamePhase.Setup): GameResult {
+        var i = setup.index
+        while (i < setup.order.size && state.players[setup.order[i]] !in state.present) i++
+        if (i >= setup.order.size) return startPlay(state)
+        val moved = state.copy(
+            phase = setup.copy(index = i, awaiting = Placement.SETTLEMENT, lastSettlement = null),
+            currentPlayerIndex = setup.order[i],
+        )
+        return GameResult(moved, events = listOf(TurnChanged(moved.currentPlayer, moved.turn)))
+    }
+
+    // --- Play: turn rotation + automatic roll ---
 
     // Moves the turn to the next *present* player after the current index,
     // skipping anyone who has left. Increments the turn counter when the seating
@@ -150,6 +311,16 @@ class CatanGameEngine(
         for ((player, gain) in gains) {
             merged[player] = (merged[player] ?: ResourceCount()) + gain
         }
+        return merged
+    }
+
+    private fun addGain(
+        hands: Map<PlayerId, ResourceCount>,
+        player: PlayerId,
+        gain: ResourceCount,
+    ): Map<PlayerId, ResourceCount> {
+        val merged = hands.toMutableMap()
+        merged[player] = (merged[player] ?: ResourceCount()) + gain
         return merged
     }
 }

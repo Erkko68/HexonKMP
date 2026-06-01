@@ -12,23 +12,26 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
+// Dice + production behavior. Dice only roll in the Play phase, so each test
+// first drives setup to completion via completeSetup().
 class DiceAndProductionTest {
 
     private val alice = PlayerId("alice")
     private val bob = PlayerId("bob")
 
     @Test
-    fun gameStartsWithAnAutomaticRollForTheFirstPlayer() {
-        val state = CatanGameEngine(boardSeed = 1).initialState(listOf(alice, bob))
-        assertNotNull(state.lastRoll)
-        assertTrue(state.lastRoll!! in 2..12)
+    fun playBeginsWithAnAutomaticRollForTheFirstPlayer() {
+        val engine = CatanGameEngine(boardSeed = 1)
+        val play = engine.completeSetup(engine.initialState(listOf(alice, bob)))
+        assertNotNull(play.lastRoll)
+        assertTrue(play.lastRoll!! in 2..12)
     }
 
     @Test
     fun endTurnRollsAutomaticallyForNextPlayer() {
         val engine = CatanGameEngine(boardSeed = 1)
-        val state = engine.initialState(listOf(alice, bob))
-        val result = engine.reduce(state, alice, EndTurn)
+        val play = engine.completeSetup(engine.initialState(listOf(alice, bob)))
+        val result = engine.reduce(play, alice, EndTurn)
 
         assertEquals(bob, result.state.currentPlayer)
         // The roll happens as part of ending the turn — a DiceRolled event is emitted.
@@ -39,52 +42,53 @@ class DiceAndProductionTest {
 
     @Test
     fun diceAreDeterministicForSameSeed() {
-        fun firstRoll(seed: Long): Int =
-            CatanGameEngine(boardSeed = seed).initialState(listOf(alice, bob)).lastRoll!!
+        fun firstRoll(seed: Long): Int {
+            val engine = CatanGameEngine(boardSeed = seed)
+            return engine.completeSetup(engine.initialState(listOf(alice, bob))).lastRoll!!
+        }
         assertEquals(firstRoll(99), firstRoll(99))
     }
 
     @Test
     fun aSettlementCollectsResourceWhenItsTileTokenIsRolled() {
-        // Drive a full game and place a settlement on a resource tile; over many
-        // turns the tile's token will come up, and when it does Alice must gain
+        // Complete setup, then add an extra settlement on a resource tile; over
+        // many turns the tile's token comes up, and when it does Alice gains
         // exactly that tile's resource (and never on a 7).
         val engine = CatanGameEngine(boardSeed = 5)
-        val base = engine.initialState(listOf(alice, bob))
-        val tile = base.board.tiles.first { it.terrain.resource != null }
+        val play = engine.completeSetup(engine.initialState(listOf(alice, bob)))
+        val tile = play.board.tiles.first { it.terrain.resource != null }
         val resource = tile.terrain.resource!!
 
-        var state = base.copy(
-            buildings = listOf(Building(alice, cornerVertex(tile.hex, 0), Building.Kind.SETTLEMENT)),
+        var state = play.copy(
+            buildings = play.buildings + Building(alice, cornerVertex(tile.hex, 0), Building.Kind.SETTLEMENT),
         )
 
         var sawProduction = false
         repeat(200) {
+            if (state.currentPlayer != alice) {
+                state = engine.reduce(state, state.currentPlayer, EndTurn).state
+                return@repeat
+            }
             val before = state.handOf(alice)[resource]
-            val result = engine.reduce(state, state.currentPlayer, EndTurn)
-            val produced = result.events.filterIsInstance<ResourcesProduced>().firstOrNull()
+            val result = engine.reduce(state, alice, EndTurn)
             if (result.state.lastRoll == tile.token) {
-                // Token matched -> Alice gained the tile's resource this roll.
-                assertEquals(before + 1, result.state.handOf(alice)[resource])
-                assertNotNull(produced)
+                // Alice's building on this tile gained the resource on this roll.
+                assertTrue(result.state.handOf(alice)[resource] >= before + 1)
+                assertNotNull(result.events.filterIsInstance<ResourcesProduced>().firstOrNull())
                 sawProduction = true
             }
             state = result.state
         }
-        assertTrue(sawProduction, "expected the tile's token to come up at least once in 200 rolls")
+        assertTrue(sawProduction, "expected the tile's token to come up at least once in 200 turns")
     }
 
     @Test
     fun rollOfSevenProducesNothing() {
         val engine = CatanGameEngine(boardSeed = 1)
-        var state = engine.initialState(listOf(alice, bob))
-        val tile = state.board.tiles.first { it.terrain.resource != null }
-        state = state.copy(
-            buildings = listOf(Building(alice, cornerVertex(tile.hex, 0), Building.Kind.SETTLEMENT)),
-        )
+        var state = engine.completeSetup(engine.initialState(listOf(alice, bob)))
         // Whenever a 7 comes up, no ResourcesProduced event is emitted.
         var sawSeven = false
-        repeat(200) {
+        repeat(300) {
             val result = engine.reduce(state, state.currentPlayer, EndTurn)
             if (result.state.lastRoll == 7) {
                 sawSeven = true
@@ -92,6 +96,6 @@ class DiceAndProductionTest {
             }
             state = result.state
         }
-        assertTrue(sawSeven, "expected at least one 7 in 200 rolls")
+        assertTrue(sawSeven, "expected at least one 7 in 300 rolls")
     }
 }

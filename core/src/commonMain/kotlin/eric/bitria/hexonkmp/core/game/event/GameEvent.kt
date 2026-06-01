@@ -1,7 +1,10 @@
 package eric.bitria.hexonkmp.core.game.event
 
+import eric.bitria.hexonkmp.core.game.model.Building
+import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
+import eric.bitria.hexonkmp.core.game.model.Road
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -26,3 +29,19 @@ data class DiceRolled(val die1: Int, val die2: Int, val total: Int) : GameEvent
 @Serializable
 @SerialName("ResourcesProduced")
 data class ResourcesProduced(val gains: Map<PlayerId, ResourceCount>) : GameEvent
+
+// The game moved to a new phase (e.g. Setup -> Play). Carries the new phase so
+// clients can update which actions/affordances they offer.
+@Serializable
+@SerialName("PhaseChanged")
+data class PhaseChanged(val phase: GamePhase) : GameEvent
+
+// A settlement (or city, later) was placed.
+@Serializable
+@SerialName("BuildingPlaced")
+data class BuildingPlaced(val building: Building) : GameEvent
+
+// A road was placed.
+@Serializable
+@SerialName("RoadPlaced")
+data class RoadPlaced(val road: Road) : GameEvent

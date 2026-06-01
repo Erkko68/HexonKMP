@@ -3,11 +3,20 @@ package eric.bitria.hexonkmp.ui.screens.game
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexonkmp.core.game.action.EndTurn
+import eric.bitria.hexonkmp.core.game.action.PlaceRoad
+import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
+import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
+import eric.bitria.hexonkmp.core.game.engine.GameEngine
+import eric.bitria.hexonkmp.core.game.event.BuildingPlaced
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
+import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
+import eric.bitria.hexonkmp.core.game.event.RoadPlaced
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
+import eric.bitria.hexonkmp.core.game.model.board.Edge
+import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.core.protocol.ActionRejected
 import eric.bitria.hexonkmp.core.protocol.ConnectionFailed
 import eric.bitria.hexonkmp.core.protocol.GameStarted
@@ -32,6 +41,11 @@ class GameViewModel(
     val state: StateFlow<GameUiState> = _state.asStateFlow()
 
     private var myPlayerId: PlayerId? = null
+
+    // The same pure engine the server runs — used here only to query *legal*
+    // placements so the UI can offer them (board config travels in GameState, so
+    // a default-config instance is fine for read-only queries).
+    private val engine: GameEngine = CatanGameEngine()
 
     init {
         viewModelScope.launch {
@@ -60,6 +74,23 @@ class GameViewModel(
         val s = _state.value
         if (s is GameUiState.InGame && s.isMyTurn) repository.sendAction(EndTurn)
     }
+
+    fun placeSettlement(vertex: Vertex) {
+        val s = _state.value
+        if (s is GameUiState.InGame && s.isMyTurn) repository.sendAction(PlaceSettlement(vertex))
+    }
+
+    fun placeRoad(edge: Edge) {
+        val s = _state.value
+        if (s is GameUiState.InGame && s.isMyTurn) repository.sendAction(PlaceRoad(edge))
+    }
+
+    // Legal placements for me right now (empty unless it's my setup turn).
+    fun legalSettlements(s: GameUiState.InGame): List<Vertex> =
+        engine.legalSettlements(s.state, s.myPlayerId).toList()
+
+    fun legalRoads(s: GameUiState.InGame): List<Edge> =
+        engine.legalRoads(s.state, s.myPlayerId).toList()
 
     fun retryJoinGame() {
         _state.value = GameUiState.Idle
@@ -121,9 +152,10 @@ class GameViewModel(
                 turn = e.turn,
             )
             is DiceRolled -> s.state.copy(lastRoll = e.total)
-            is ResourcesProduced -> s.state.copy(
-                hands = s.state.hands.merge(e.gains),
-            )
+            is ResourcesProduced -> s.state.copy(hands = s.state.hands.merge(e.gains))
+            is PhaseChanged -> s.state.copy(phase = e.phase)
+            is BuildingPlaced -> s.state.copy(buildings = s.state.buildings + e.building)
+            is RoadPlaced -> s.state.copy(roads = s.state.roads + e.road)
         }
 
     // Adds each player's gains onto their current hand.

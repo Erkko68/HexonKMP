@@ -5,9 +5,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
@@ -22,8 +26,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import eric.bitria.hexonkmp.core.game.model.GamePhase
+import eric.bitria.hexonkmp.core.game.model.Placement
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
+import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
+import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.ui.screens.game.GameUiState
 import eric.bitria.hexonkmp.ui.screens.game.GameViewModel
 import eric.bitria.hexonkmp.ui.theme.Spacing
@@ -38,7 +46,14 @@ fun GameScreen(viewModel: GameViewModel = koinViewModel()) {
             is GameUiState.Idle -> IdleContent(onFindGame = viewModel::joinGame)
             is GameUiState.Connecting -> ConnectingContent()
             is GameUiState.Waiting -> WaitingContent(s)
-            is GameUiState.InGame -> InGameContent(s, onEndTurn = viewModel::endTurn)
+            is GameUiState.InGame -> InGameContent(
+                state = s,
+                legalSettlements = viewModel.legalSettlements(s),
+                legalRoads = viewModel.legalRoads(s),
+                onPlaceSettlement = viewModel::placeSettlement,
+                onPlaceRoad = viewModel::placeRoad,
+                onEndTurn = viewModel::endTurn,
+            )
             is GameUiState.Error -> ErrorContent(s.message, onRetry = viewModel::retryJoinGame)
         }
 
@@ -98,14 +113,25 @@ private fun WaitingContent(state: GameUiState.Waiting) {
 }
 
 @Composable
-private fun InGameContent(state: GameUiState.InGame, onEndTurn: () -> Unit) {
+private fun InGameContent(
+    state: GameUiState.InGame,
+    legalSettlements: List<Vertex>,
+    legalRoads: List<Edge>,
+    onPlaceSettlement: (Vertex) -> Unit,
+    onPlaceRoad: (Edge) -> Unit,
+    onEndTurn: () -> Unit,
+) {
+    val setup = state.state.phase as? GamePhase.Setup
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("Game board goes here (id: ${state.gameId})", style = MaterialTheme.typography.titleMedium)
-        Text("Turn ${state.state.turn}", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            if (setup != null) "Setup — place your starting pieces" else "Game board goes here",
+            style = MaterialTheme.typography.titleMedium,
+        )
+        if (setup == null) Text("Turn ${state.state.turn}", style = MaterialTheme.typography.bodyMedium)
         state.state.lastRoll?.let { roll ->
             Text("🎲 Last roll: $roll", style = MaterialTheme.typography.bodyMedium)
         }
@@ -116,9 +142,41 @@ private fun InGameContent(state: GameUiState.InGame, onEndTurn: () -> Unit) {
             else MaterialTheme.colorScheme.onSurfaceVariant,
         )
         ResourceHand(state.state.handOf(state.myPlayerId))
-        Button(onClick = onEndTurn, enabled = state.isMyTurn) { Text("End Turn") }
+
+        when {
+            // Setup: offer the legal placements as a picker (no board yet).
+            setup != null && state.isMyTurn && setup.awaiting == Placement.SETTLEMENT ->
+                PlacementPicker("Choose a settlement spot", legalSettlements.size) { i ->
+                    onPlaceSettlement(legalSettlements[i])
+                }
+            setup != null && state.isMyTurn && setup.awaiting == Placement.ROAD ->
+                PlacementPicker("Choose a road", legalRoads.size) { i ->
+                    onPlaceRoad(legalRoads[i])
+                }
+            // Play: normal end-of-turn.
+            setup == null ->
+                Button(onClick = onEndTurn, enabled = state.isMyTurn) { Text("End Turn") }
+        }
+
         state.notice?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+// A temporary, board-free way to place pieces during setup: a scrollable list of
+// the legal options as numbered buttons. Replaced by tapping the board later.
+@Composable
+private fun PlacementPicker(label: String, count: Int, onPick: (Int) -> Unit) {
+    Text(label, style = MaterialTheme.typography.bodyMedium)
+    Text("$count legal options", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        items(count) { i ->
+            Button(onClick = { onPick(i) }) { Text("Option ${i + 1}") }
         }
     }
 }
