@@ -3,8 +3,11 @@ package eric.bitria.hexonkmp.ui.screens.game
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexonkmp.core.game.action.EndTurn
+import eric.bitria.hexonkmp.core.game.event.DiceRolled
+import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
 import eric.bitria.hexonkmp.core.game.model.PlayerId
+import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.protocol.ActionRejected
 import eric.bitria.hexonkmp.core.protocol.ConnectionFailed
 import eric.bitria.hexonkmp.core.protocol.GameStarted
@@ -117,5 +120,20 @@ class GameViewModel(
                 currentPlayerIndex = s.state.players.indexOf(e.currentPlayer),
                 turn = e.turn,
             )
+            is DiceRolled -> s.state.copy(lastRoll = e.total)
+            is ResourcesProduced -> s.state.copy(
+                hands = s.state.hands.merge(e.gains),
+            )
         }
+
+    // Adds each player's gains onto their current hand.
+    private fun Map<PlayerId, ResourceCount>.merge(
+        gains: Map<PlayerId, ResourceCount>,
+    ): Map<PlayerId, ResourceCount> {
+        val result = toMutableMap()
+        for ((player, gain) in gains) {
+            result[player] = (result[player] ?: ResourceCount()) + gain
+        }
+        return result
+    }
 }

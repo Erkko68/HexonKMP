@@ -22,6 +22,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import eric.bitria.hexonkmp.core.game.model.ResourceCount
+import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.ui.screens.game.GameUiState
 import eric.bitria.hexonkmp.ui.screens.game.GameViewModel
 import eric.bitria.hexonkmp.ui.theme.Spacing
@@ -104,18 +106,44 @@ private fun InGameContent(state: GameUiState.InGame, onEndTurn: () -> Unit) {
     ) {
         Text("Game board goes here (id: ${state.gameId})", style = MaterialTheme.typography.titleMedium)
         Text("Turn ${state.state.turn}", style = MaterialTheme.typography.bodyMedium)
+        state.state.lastRoll?.let { roll ->
+            Text("🎲 Last roll: $roll", style = MaterialTheme.typography.bodyMedium)
+        }
         Text(
             if (state.isMyTurn) "Your turn" else "Waiting for ${state.state.currentPlayer.value}",
             style = MaterialTheme.typography.bodyLarge,
             color = if (state.isMyTurn) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        ResourceHand(state.state.handOf(state.myPlayerId))
         Button(onClick = onEndTurn, enabled = state.isMyTurn) { Text("End Turn") }
         state.notice?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
+
+@Composable
+private fun ResourceHand(hand: ResourceCount) {
+    if (hand.isEmpty) {
+        Text("No resources yet", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
+    }
+    val text = Resource.entries
+        .filter { hand[it] > 0 }
+        .joinToString("   ") { "${it.label} ${hand[it]}" }
+    Text(text, style = MaterialTheme.typography.bodyMedium)
+}
+
+// Short display label per resource for the simple text-based hand.
+private val Resource.label: String
+    get() = when (this) {
+        Resource.BRICK -> "🧱"
+        Resource.LUMBER -> "🌲"
+        Resource.WOOL -> "🐑"
+        Resource.GRAIN -> "🌾"
+        Resource.ORE -> "⛰️"
+    }
 
 @Composable
 private fun ErrorContent(message: String, onRetry: () -> Unit) {

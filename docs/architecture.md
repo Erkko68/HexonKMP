@@ -104,6 +104,8 @@ transport knowledge — the server wraps each one in a `GameUpdate` before sendi
 ```kotlin
 sealed interface GameEvent
 data class TurnChanged(val currentPlayer: PlayerId, val turn: Int) : GameEvent
+data class DiceRolled(val die1: Int, val die2: Int, val total: Int) : GameEvent
+data class ResourcesProduced(val gains: Map<PlayerId, ResourceCount>) : GameEvent
 ```
 
 > **Why three types instead of one?** `GameAction` is what players request,
@@ -129,6 +131,33 @@ data class GameResult(
 `reduce` is a **pure function**: no I/O, no shared mutable state, deterministic.
 That makes the entire rulebook unit-testable without a server or a socket.
 
+### Automatic actions: the dice roll
+
+Some things happen *to* the game rather than being requested by a player. The
+dice roll is the first: this is a digital game optimized for speed, so there is
+**no manual "roll" step** — ending your turn atomically hands the turn to the
+next player, rolls for them, and distributes resources.
+
+This is modeled as an **engine-internal turn-begin step, not a `GameAction`**:
+
+- A client can never roll its own dice (it would be trivially cheatable), so the
+  roll is **server-authoritative** — `GameAction` stays just `EndTurn`.
+- `beginTurn` runs at game start (for player 0) and after every turn handoff. It
+  emits `DiceRolled` + `ResourcesProduced`, which ride along on the same
+  `GameResult` as `TurnChanged`.
+- **Randomness stays pure** via `GameState.rngSeed`: each roll seeds a `Random`
+  from it and stores the advanced seed back, so `reduce` is still deterministic
+  given a state (testable) while dice are effectively random across turns.
+
+Resource production: each `Building` on a vertex touching a tile whose `token`
+matches the roll collects that tile's resource (settlement ×1, city ×2). A roll
+of 7 produces nothing. All of this reads from `state` + `state.config` — no
+hardcoded numbers.
+
+> The same pattern fits future automatic effects (e.g. a turn timer auto-ending
+> a turn): drive them through the engine as state transitions that emit events,
+> never as trusted client actions.
+
 ```mermaid
 sequenceDiagram
     participant A as Player A (current)
@@ -138,10 +167,11 @@ sequenceDiagram
 
     A->>Srv: GameAction (EndTurn)
     Srv->>Eng: reduce(state, A, EndTurn)
-    Eng-->>Srv: GameResult(newState, [TurnChanged])
+    Note over Eng: advance turn -> beginTurn(B):<br/>auto-roll + produce
+    Eng-->>Srv: GameResult(newState, [TurnChanged, DiceRolled, ResourcesProduced])
     Note over Srv: store newState (authoritative)
-    Srv-->>A: GameUpdate(TurnChanged)
-    Srv-->>B: GameUpdate(TurnChanged)
+    Srv-->>A: GameUpdate × events
+    Srv-->>B: GameUpdate × events
 
     B->>Srv: GameAction (EndTurn)  // not B's turn
     Srv->>Eng: reduce(state, B, EndTurn)

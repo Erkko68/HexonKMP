@@ -14,8 +14,16 @@ data class GameState(
     val present: Set<PlayerId>,         // players currently connected
     val config: ScenarioConfig,
     val board: Board,
+    val hands: Map<PlayerId, ResourceCount> = emptyMap(),
+    val buildings: List<Building> = emptyList(),
     val currentPlayerIndex: Int = 0,
     val turn: Int = 1,
+    val lastRoll: Int? = null,          // most recent dice total (null before first roll)
+    // Advances on each random draw so reduce() stays a pure function while dice
+    // are effectively random. Seeded from the board seed at creation.
+    val rngSeed: Long = 0L,
 ) {
     val currentPlayer: PlayerId get() = players[currentPlayerIndex]
+
+    fun handOf(player: PlayerId): ResourceCount = hands[player] ?: ResourceCount()
 }

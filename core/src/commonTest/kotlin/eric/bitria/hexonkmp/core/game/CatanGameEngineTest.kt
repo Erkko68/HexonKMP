@@ -27,7 +27,8 @@ class CatanGameEngineTest {
         val result = engine.reduce(state, alice, EndTurn)
         assertNull(result.rejection)
         assertEquals(bob, result.state.currentPlayer)
-        assertEquals(listOf(TurnChanged(bob, 1)), result.events)
+        // The first event is the turn change; an automatic DiceRolled follows.
+        assertEquals(TurnChanged(bob, 1), result.events.first())
     }
 
     @Test
@@ -53,7 +54,7 @@ class CatanGameEngineTest {
         val result = engine.playerLeft(state, alice)
         assertEquals(bob, result.state.currentPlayer)
         assertEquals(setOf(bob), result.state.present)
-        assertEquals(listOf(TurnChanged(bob, 1)), result.events)
+        assertEquals(TurnChanged(bob, 1), result.events.first())
     }
 
     @Test
