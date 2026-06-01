@@ -142,11 +142,17 @@ class CatanGameEngine(
         settlementRejection(state, vertex)?.let { return GameResult(state, rejection = it) }
 
         val building = Building(actor, vertex, Building.Kind.SETTLEMENT)
+        val nextPhase = setup.copy(awaiting = Placement.ROAD, lastSettlement = vertex)
         var next = state.copy(
             buildings = state.buildings + building,
-            phase = setup.copy(awaiting = Placement.ROAD, lastSettlement = vertex),
+            phase = nextPhase,
         )
-        val events = mutableListOf<eric.bitria.hexonkmp.core.game.event.GameEvent>(BuildingPlaced(building))
+        // PhaseChanged carries the new setup sub-phase (now awaiting a ROAD) so
+        // the client updates which build card is enabled.
+        val events = mutableListOf<eric.bitria.hexonkmp.core.game.event.GameEvent>(
+            BuildingPlaced(building),
+            PhaseChanged(nextPhase),
+        )
 
         // Second-round settlements grant their adjacent tiles' resources.
         if (setup.isSecondRound) {
@@ -182,11 +188,15 @@ class CatanGameEngine(
         while (i < setup.order.size && state.players[setup.order[i]] !in state.present) i++
         if (i >= setup.order.size) return startPlay(state)
 
+        val nextPhase = setup.copy(index = i, awaiting = Placement.SETTLEMENT, lastSettlement = null)
         val moved = state.copy(
-            phase = setup.copy(index = i, awaiting = Placement.SETTLEMENT, lastSettlement = null),
+            phase = nextPhase,
             currentPlayerIndex = setup.order[i],
         )
-        return GameResult(moved, events = listOf(TurnChanged(moved.currentPlayer, moved.turn)))
+        return GameResult(
+            moved,
+            events = listOf(PhaseChanged(nextPhase), TurnChanged(moved.currentPlayer, moved.turn)),
+        )
     }
 
     // Setup is over: switch to Play and begin the first present player's turn
@@ -281,11 +291,15 @@ class CatanGameEngine(
         var i = setup.index
         while (i < setup.order.size && state.players[setup.order[i]] !in state.present) i++
         if (i >= setup.order.size) return startPlay(state)
+        val nextPhase = setup.copy(index = i, awaiting = Placement.SETTLEMENT, lastSettlement = null)
         val moved = state.copy(
-            phase = setup.copy(index = i, awaiting = Placement.SETTLEMENT, lastSettlement = null),
+            phase = nextPhase,
             currentPlayerIndex = setup.order[i],
         )
-        return GameResult(moved, events = listOf(TurnChanged(moved.currentPlayer, moved.turn)))
+        return GameResult(
+            moved,
+            events = listOf(PhaseChanged(nextPhase), TurnChanged(moved.currentPlayer, moved.turn)),
+        )
     }
 
     // --- Play: turn rotation + automatic roll ---

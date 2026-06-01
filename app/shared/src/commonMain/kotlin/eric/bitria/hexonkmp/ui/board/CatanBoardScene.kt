@@ -1,8 +1,12 @@
 package eric.bitria.hexonkmp.ui.board
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import eric.bitria.hexonkmp.core.game.model.GameState
 import hexonkmp.app.shared.generated.resources.Res
 import io.github.erkko68.filament.Engine
@@ -28,28 +32,30 @@ private const val BUILDING_Y = 0.15f
 private const val ROAD_Y = 0.06f
 
 // Renders the authoritative GameState as a 3D Catan board: a colored hexagon per
-// tile, cubes for settlements/cities, thin cubes for roads. Fixed top-down
-// orthographic camera framed to the board's extent. Pure view of GameState —
-// no game logic here.
+// tile, cubes for settlements/cities, thin cubes for roads. Angled orthographic
+// camera, framed to the board's extent and aspect-corrected so the image never
+// stretches. Pure view of GameState — no game logic here.
 @OptIn(ExperimentalResourceApi::class)
 @Composable
 fun CatanBoardScene(state: GameState, engine: Engine, modifier: Modifier = Modifier) {
     // Half-extent of the board in world units, plus a margin, so the orthographic
-    // frustum frames every tile regardless of board radius.
+    // frustum frames every tile. The extra factor accounts for the camera tilt
+    // foreshortening the board's depth axis.
     val halfExtent = remember(state.board.tiles, HEX_SIZE) {
         val maxR = state.board.tiles.maxOfOrNull { tile ->
             val c = HexMath.center(tile.hex, HEX_SIZE)
             maxOf(kotlin.math.abs(c.x), kotlin.math.abs(c.z))
         } ?: 4f
-        (maxR + HEX_SIZE * 1.5f).toDouble()
+        (maxR + HEX_SIZE * 2.0f).toDouble()
     }
 
-    // Static top-down camera: eye above the board centre looking straight down.
-    // up = -Z so "north" of the board is up on screen.
+    // Angled orthographic camera: eye above and in front of the board so cubes
+    // (buildings/roads) show some height, with parallel projection (no perspective
+    // distortion). up = +Y for a normal upright tilt.
     val cameraState = rememberCameraState(
-        eye = Position(0f, 20f, 0.001f), // tiny Z offset avoids a degenerate look-at
+        eye = Position(0f, 16f, 13f),
         target = Position(0f, 0f, 0f),
-        up = Direction(0f, 0f, -1f),
+        up = Direction(0f, 1f, 0f),
         projection = Projection.Orthographic(
             left = -halfExtent, right = halfExtent,
             bottom = -halfExtent, top = halfExtent,
@@ -58,13 +64,30 @@ fun CatanBoardScene(state: GameState, engine: Engine, modifier: Modifier = Modif
     )
     val skybox = rememberSkyboxState(source = SkyboxSource.Color(Color(0.10f, 0.14f, 0.20f)))
 
+    // Keep the orthographic frustum matched to the viewport aspect ratio so the
+    // board is never stretched: widen (or heighten) the half-extents by aspect.
+    var aspect by remember { mutableStateOf(1f) }
+    cameraState.projection = if (aspect >= 1f) {
+        Projection.Orthographic(
+            left = -halfExtent * aspect, right = halfExtent * aspect,
+            bottom = -halfExtent, top = halfExtent, near = 0.1, far = 100.0,
+        )
+    } else {
+        Projection.Orthographic(
+            left = -halfExtent, right = halfExtent,
+            bottom = -halfExtent / aspect, top = halfExtent / aspect, near = 0.1, far = 100.0,
+        )
+    }
+
     // The single LIT color material, instanced per color below.
     val material: Material? = rememberMaterial(engine) {
         Res.readBytes("files/materials/board_color.filamat")
     }
 
     FilamentSceneView(
-        modifier = modifier,
+        modifier = modifier.onSizeChanged {
+            if (it.height > 0) aspect = it.width.toFloat() / it.height.toFloat()
+        },
         engine = engine,
         cameraState = cameraState,
         skyboxState = skybox,

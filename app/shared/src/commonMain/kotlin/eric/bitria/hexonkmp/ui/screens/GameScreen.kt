@@ -149,9 +149,9 @@ private fun InGameContent(
             }
         }
 
-        // --- Build cards, top area below the HUD ---
+        // --- Build cards, bottom-center ---
         Row(
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = 96.dp),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.md),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             BuildCard("🏠", "Settlement", enabled = canBuildSettlement, onClick = onBuildSettlement)
