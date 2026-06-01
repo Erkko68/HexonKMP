@@ -32,13 +32,15 @@ import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
+import eric.bitria.hexonkmp.ui.board.CatanBoardScene
 import eric.bitria.hexonkmp.ui.screens.game.GameUiState
+import io.github.erkko68.filament.Engine
 import eric.bitria.hexonkmp.ui.screens.game.GameViewModel
 import eric.bitria.hexonkmp.ui.theme.Spacing
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun GameScreen(viewModel: GameViewModel = koinViewModel()) {
+fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Box(Modifier.fillMaxSize()) {
@@ -48,6 +50,7 @@ fun GameScreen(viewModel: GameViewModel = koinViewModel()) {
             is GameUiState.Waiting -> WaitingContent(s)
             is GameUiState.InGame -> InGameContent(
                 state = s,
+                engine = engine,
                 legalSettlements = viewModel.legalSettlements(s),
                 legalRoads = viewModel.legalRoads(s),
                 onPlaceSettlement = viewModel::placeSettlement,
@@ -115,6 +118,7 @@ private fun WaitingContent(state: GameUiState.Waiting) {
 @Composable
 private fun InGameContent(
     state: GameUiState.InGame,
+    engine: Engine,
     legalSettlements: List<Vertex>,
     legalRoads: List<Edge>,
     onPlaceSettlement: (Vertex) -> Unit,
@@ -122,44 +126,55 @@ private fun InGameContent(
     onEndTurn: () -> Unit,
 ) {
     val setup = state.state.phase as? GamePhase.Setup
-    Column(
-        modifier = Modifier.fillMaxSize().padding(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            if (setup != null) "Setup — place your starting pieces" else "Game board goes here",
-            style = MaterialTheme.typography.titleMedium,
-        )
-        if (setup == null) Text("Turn ${state.state.turn}", style = MaterialTheme.typography.bodyMedium)
-        state.state.lastRoll?.let { roll ->
-            Text("🎲 Last roll: $roll", style = MaterialTheme.typography.bodyMedium)
-        }
-        Text(
-            if (state.isMyTurn) "Your turn" else "Waiting for ${state.state.currentPlayer.value}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (state.isMyTurn) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        ResourceHand(state.state.handOf(state.myPlayerId))
+    Box(Modifier.fillMaxSize()) {
+        // The 3D board fills the screen; HUD + controls overlay on top.
+        CatanBoardScene(state.state, engine = engine, modifier = Modifier.fillMaxSize())
 
-        when {
-            // Setup: offer the legal placements as a picker (no board yet).
-            setup != null && state.isMyTurn && setup.awaiting == Placement.SETTLEMENT ->
-                PlacementPicker("Choose a settlement spot", legalSettlements.size) { i ->
-                    onPlaceSettlement(legalSettlements[i])
-                }
-            setup != null && state.isMyTurn && setup.awaiting == Placement.ROAD ->
-                PlacementPicker("Choose a road", legalRoads.size) { i ->
-                    onPlaceRoad(legalRoads[i])
-                }
-            // Play: normal end-of-turn.
-            setup == null ->
-                Button(onClick = onEndTurn, enabled = state.isMyTurn) { Text("End Turn") }
+        // Status HUD, top-center.
+        Column(
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = Spacing.xl, start = Spacing.md, end = Spacing.md),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            Text(
+                if (setup != null) "Setup — place your starting pieces" else "Turn ${state.state.turn}",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            state.state.lastRoll?.let { roll ->
+                Text("🎲 Last roll: $roll", style = MaterialTheme.typography.bodyMedium)
+            }
+            Text(
+                if (state.isMyTurn) "Your turn" else "Waiting for ${state.state.currentPlayer.value}",
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (state.isMyTurn) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            state.notice?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
         }
 
-        state.notice?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        // Controls, bottom-center: hand + placement picker / end turn.
+        Column(
+            modifier = Modifier.align(Alignment.BottomCenter).padding(Spacing.md),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            ResourceHand(state.state.handOf(state.myPlayerId))
+            when {
+                // Setup: offer the legal placements as a picker (tap-on-board comes later).
+                setup != null && state.isMyTurn && setup.awaiting == Placement.SETTLEMENT ->
+                    PlacementPicker("Choose a settlement spot", legalSettlements.size) { i ->
+                        onPlaceSettlement(legalSettlements[i])
+                    }
+                setup != null && state.isMyTurn && setup.awaiting == Placement.ROAD ->
+                    PlacementPicker("Choose a road", legalRoads.size) { i ->
+                        onPlaceRoad(legalRoads[i])
+                    }
+                // Play: normal end-of-turn.
+                setup == null ->
+                    Button(onClick = onEndTurn, enabled = state.isMyTurn) { Text("End Turn") }
+            }
         }
     }
 }

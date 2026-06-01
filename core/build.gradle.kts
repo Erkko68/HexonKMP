@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -14,11 +13,6 @@ kotlin {
     jvm()
 
     js {
-        browser()
-    }
-
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
         browser()
     }
 
@@ -49,11 +43,6 @@ kotlin {
 
         jsMain.dependencies {
             implementation(libs.kotlinx.browser)
-        }
-        val wasmJsMain by getting {
-            dependencies {
-                implementation(libs.kotlinx.browser)
-            }
         }
     }
 }

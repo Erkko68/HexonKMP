@@ -1,0 +1,29 @@
+// Board surface material: a single LIT colour driven per-instance, used for hex
+// tiles, settlements/cities and roads (each gets its own MaterialInstance with a
+// different baseColor). Compile ahead of time with matc:
+//
+//   matc -p all -a all -o board_color.filamat board_color.mat
+//
+// Drop the resulting board_color.filamat next to this file. Only the compiled
+// blob is loaded at runtime; the .mat source itself does not ship.
+//
+// matc ships in Filament's prebuilt release archives (bin/). Use the release
+// matching the library's bundled Filament version (1.71.5 for filament-kmp
+// 0.1.2-beta03).
+
+material {
+    name : BoardColor,
+    shadingModel : lit,
+    parameters : [
+        { type : float3, name : baseColor }
+    ]
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor.rgb = materialParams.baseColor;
+        material.roughness = 0.6;
+        material.metallic  = 0.0;
+    }
+}

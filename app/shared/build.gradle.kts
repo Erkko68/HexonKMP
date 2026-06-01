@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -23,11 +22,6 @@ kotlin {
     jvm()
 
     js {
-        browser()
-    }
-
-    @OptIn(ExperimentalWasmDsl::class)
-    wasmJs {
         browser()
     }
 
@@ -72,6 +66,7 @@ kotlin {
             implementation(libs.ktor.client.contentNegotiation)
             implementation(libs.ktor.client.websockets)
             implementation(libs.ktor.client.serialization.json)
+            implementation(libs.filament.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -90,11 +85,6 @@ kotlin {
         jsMain.dependencies {
             implementation(libs.wrappers.browser)
             implementation(libs.ktor.client.js)
-        }
-        val wasmJsMain by getting {
-            dependencies {
-                implementation(libs.ktor.client.js)
-            }
         }
     }
 }
