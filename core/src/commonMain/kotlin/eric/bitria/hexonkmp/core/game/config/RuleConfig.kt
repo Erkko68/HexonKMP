@@ -1,5 +1,6 @@
 package eric.bitria.hexonkmp.core.game.config
 
+import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import kotlinx.serialization.Serializable
 
@@ -16,4 +17,8 @@ data class RuleConfig(
     val victoryPointsToWin: Int = 10,
     val buildCosts: Map<Buildable, Map<Resource, Int>>,
     val pieceLimits: Map<Buildable, Int>,
-)
+) {
+    // The cost of a buildable as a ResourceCount (empty if free/undefined).
+    fun cost(buildable: Buildable): ResourceCount =
+        ResourceCount(buildCosts[buildable] ?: emptyMap())
+}

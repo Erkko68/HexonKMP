@@ -3,18 +3,17 @@ package eric.bitria.hexonkmp.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -26,17 +25,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.model.GamePhase
-import eric.bitria.hexonkmp.core.game.model.Placement
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
-import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
-import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.ui.board.CatanBoardScene
 import eric.bitria.hexonkmp.ui.screens.game.GameUiState
-import io.github.erkko68.filament.Engine
 import eric.bitria.hexonkmp.ui.screens.game.GameViewModel
 import eric.bitria.hexonkmp.ui.theme.Spacing
+import io.github.erkko68.filament.Engine
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -51,10 +48,10 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
             is GameUiState.InGame -> InGameContent(
                 state = s,
                 engine = engine,
-                legalSettlements = viewModel.legalSettlements(s),
-                legalRoads = viewModel.legalRoads(s),
-                onPlaceSettlement = viewModel::placeSettlement,
-                onPlaceRoad = viewModel::placeRoad,
+                canBuildSettlement = viewModel.canBuild(s, Buildable.SETTLEMENT),
+                canBuildRoad = viewModel.canBuild(s, Buildable.ROAD),
+                onBuildSettlement = viewModel::buildSettlement,
+                onBuildRoad = viewModel::buildRoad,
                 onEndTurn = viewModel::endTurn,
             )
             is GameUiState.Error -> ErrorContent(s.message, onRetry = viewModel::retryJoinGame)
@@ -119,33 +116,31 @@ private fun WaitingContent(state: GameUiState.Waiting) {
 private fun InGameContent(
     state: GameUiState.InGame,
     engine: Engine,
-    legalSettlements: List<Vertex>,
-    legalRoads: List<Edge>,
-    onPlaceSettlement: (Vertex) -> Unit,
-    onPlaceRoad: (Edge) -> Unit,
+    canBuildSettlement: Boolean,
+    canBuildRoad: Boolean,
+    onBuildSettlement: () -> Unit,
+    onBuildRoad: () -> Unit,
     onEndTurn: () -> Unit,
 ) {
     val setup = state.state.phase as? GamePhase.Setup
     Box(Modifier.fillMaxSize()) {
-        // The 3D board fills the screen; HUD + controls overlay on top.
+        // The 3D board fills the screen; HUD + cards overlay on top.
         CatanBoardScene(state.state, engine = engine, modifier = Modifier.fillMaxSize())
 
-        // Status HUD, top-center.
+        // --- Status HUD, top-center ---
         Column(
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = Spacing.xl, start = Spacing.md, end = Spacing.md),
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = Spacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             Text(
-                if (setup != null) "Setup — place your starting pieces" else "Turn ${state.state.turn}",
-                style = MaterialTheme.typography.titleMedium,
+                if (setup != null) "Setup" else "Turn ${state.state.turn}",
+                style = MaterialTheme.typography.titleSmall,
             )
-            state.state.lastRoll?.let { roll ->
-                Text("🎲 Last roll: $roll", style = MaterialTheme.typography.bodyMedium)
-            }
+            state.state.lastRoll?.let { roll -> Text("🎲 $roll", style = MaterialTheme.typography.bodyMedium) }
             Text(
                 if (state.isMyTurn) "Your turn" else "Waiting for ${state.state.currentPlayer.value}",
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 color = if (state.isMyTurn) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -154,61 +149,85 @@ private fun InGameContent(
             }
         }
 
-        // Controls, bottom-center: hand + placement picker / end turn.
-        Column(
-            modifier = Modifier.align(Alignment.BottomCenter).padding(Spacing.md),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        // --- Build cards, top area below the HUD ---
+        Row(
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 96.dp),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            ResourceHand(state.state.handOf(state.myPlayerId))
-            when {
-                // Setup: offer the legal placements as a picker (tap-on-board comes later).
-                setup != null && state.isMyTurn && setup.awaiting == Placement.SETTLEMENT ->
-                    PlacementPicker("Choose a settlement spot", legalSettlements.size) { i ->
-                        onPlaceSettlement(legalSettlements[i])
+            BuildCard("🏠", "Settlement", enabled = canBuildSettlement, onClick = onBuildSettlement)
+            BuildCard("🛣️", "Road", enabled = canBuildRoad, onClick = onBuildRoad)
+        }
+
+        // --- Resource cards, bottom-left ---
+        ResourceCards(
+            hand = state.state.handOf(state.myPlayerId),
+            modifier = Modifier.align(Alignment.BottomStart).padding(Spacing.md),
+        )
+
+        // --- End Turn, bottom-right (Play phase only) ---
+        if (setup == null) {
+            Button(
+                onClick = onEndTurn,
+                enabled = state.isMyTurn,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.md),
+            ) { Text("End Turn") }
+        }
+    }
+}
+
+// A small build action presented as a card; dimmed and non-clickable when the
+// player can't currently build it (not their turn / not enough resources).
+@Composable
+private fun BuildCard(icon: String, label: String, enabled: Boolean, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        enabled = enabled,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(icon, style = MaterialTheme.typography.titleLarge)
+            Text(label, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+// The player's resource hand as a row of small cards (one per resource type that
+// they hold), bottom-left.
+@Composable
+private fun ResourceCards(hand: ResourceCount, modifier: Modifier = Modifier) {
+    val held = Resource.entries.filter { hand[it] > 0 }
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        if (held.isEmpty()) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Text(
+                    "No resources",
+                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            held.forEach { res ->
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(res.label, style = MaterialTheme.typography.titleMedium)
+                        Text("${hand[res]}", style = MaterialTheme.typography.labelMedium)
                     }
-                setup != null && state.isMyTurn && setup.awaiting == Placement.ROAD ->
-                    PlacementPicker("Choose a road", legalRoads.size) { i ->
-                        onPlaceRoad(legalRoads[i])
-                    }
-                // Play: normal end-of-turn.
-                setup == null ->
-                    Button(onClick = onEndTurn, enabled = state.isMyTurn) { Text("End Turn") }
+                }
             }
         }
     }
 }
 
-// A temporary, board-free way to place pieces during setup: a scrollable list of
-// the legal options as numbered buttons. Replaced by tapping the board later.
-@Composable
-private fun PlacementPicker(label: String, count: Int, onPick: (Int) -> Unit) {
-    Text(label, style = MaterialTheme.typography.bodyMedium)
-    Text("$count legal options", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        items(count) { i ->
-            Button(onClick = { onPick(i) }) { Text("Option ${i + 1}") }
-        }
-    }
-}
-
-@Composable
-private fun ResourceHand(hand: ResourceCount) {
-    if (hand.isEmpty) {
-        Text("No resources yet", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        return
-    }
-    val text = Resource.entries
-        .filter { hand[it] > 0 }
-        .joinToString("   ") { "${it.label} ${hand[it]}" }
-    Text(text, style = MaterialTheme.typography.bodyMedium)
-}
-
-// Short display label per resource for the simple text-based hand.
+// Short display label per resource for the resource cards.
 private val Resource.label: String
     get() = when (this) {
         Resource.BRICK -> "🧱"

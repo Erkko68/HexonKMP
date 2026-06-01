@@ -3,15 +3,12 @@ package eric.bitria.hexonkmp.ui.board
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onSizeChanged
 import eric.bitria.hexonkmp.core.game.model.GameState
 import hexonkmp.app.shared.generated.resources.Res
 import io.github.erkko68.filament.Engine
 import io.github.erkko68.filament.LightManager
 import io.github.erkko68.filament.Material
 import io.github.erkko68.filament.compose.FilamentSceneView
-import io.github.erkko68.filament.compose.mapGestures
-import io.github.erkko68.filament.compose.rememberMapCameraState
 import io.github.erkko68.filament.compose.scene.Color
 import io.github.erkko68.filament.compose.scene.Direction
 import io.github.erkko68.filament.compose.scene.Light
@@ -31,23 +28,34 @@ private const val BUILDING_Y = 0.15f
 private const val ROAD_Y = 0.06f
 
 // Renders the authoritative GameState as a 3D Catan board: a colored hexagon per
-// tile, cubes for settlements/cities, thin cubes for roads. Top-down MAP camera
-// (pan + zoom, no rotation) — the natural fit for a board game. Pure view of
-// GameState — no game logic here.
+// tile, cubes for settlements/cities, thin cubes for roads. Fixed top-down
+// orthographic camera framed to the board's extent. Pure view of GameState —
+// no game logic here.
 @OptIn(ExperimentalResourceApi::class)
 @Composable
 fun CatanBoardScene(state: GameState, engine: Engine, modifier: Modifier = Modifier) {
-    // Look straight down the Y axis at the board. MAP mode pairs with an
-    // orthographic projection so tiles keep a constant on-screen size.
+    // Half-extent of the board in world units, plus a margin, so the orthographic
+    // frustum frames every tile regardless of board radius.
+    val halfExtent = remember(state.board.tiles, HEX_SIZE) {
+        val maxR = state.board.tiles.maxOfOrNull { tile ->
+            val c = HexMath.center(tile.hex, HEX_SIZE)
+            maxOf(kotlin.math.abs(c.x), kotlin.math.abs(c.z))
+        } ?: 4f
+        (maxR + HEX_SIZE * 1.5f).toDouble()
+    }
+
+    // Static top-down camera: eye above the board centre looking straight down.
+    // up = -Z so "north" of the board is up on screen.
     val cameraState = rememberCameraState(
-        eye = Position(0f, 12f, 0f),
+        eye = Position(0f, 20f, 0.001f), // tiny Z offset avoids a degenerate look-at
         target = Position(0f, 0f, 0f),
-        up = Direction(0f, 0f, -1f), // with a top-down eye, "up" on screen is -Z
+        up = Direction(0f, 0f, -1f),
         projection = Projection.Orthographic(
-            left = -6.0, right = 6.0, bottom = -6.0, top = 6.0, near = 0.1, far = 100.0,
+            left = -halfExtent, right = halfExtent,
+            bottom = -halfExtent, top = halfExtent,
+            near = 0.1, far = 100.0,
         ),
     )
-    val map = rememberMapCameraState(cameraState)
     val skybox = rememberSkyboxState(source = SkyboxSource.Color(Color(0.10f, 0.14f, 0.20f)))
 
     // The single LIT color material, instanced per color below.
@@ -56,9 +64,7 @@ fun CatanBoardScene(state: GameState, engine: Engine, modifier: Modifier = Modif
     }
 
     FilamentSceneView(
-        modifier = modifier
-            .onSizeChanged { map.setViewport(it.width, it.height) }
-            .mapGestures(map),
+        modifier = modifier,
         engine = engine,
         cameraState = cameraState,
         skyboxState = skybox,

@@ -5,6 +5,7 @@ import eric.bitria.hexonkmp.core.game.action.GameAction
 import eric.bitria.hexonkmp.core.game.action.PlaceRoad
 import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
 import eric.bitria.hexonkmp.core.game.board.BoardGenerator
+import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.config.ClassicCatan
 import eric.bitria.hexonkmp.core.game.config.ScenarioConfig
 import eric.bitria.hexonkmp.core.game.event.BuildingPlaced
@@ -46,6 +47,10 @@ interface GameEngine {
     // these to offer valid placements (and could highlight them on a board).
     fun legalSettlements(state: GameState, player: PlayerId): Set<Vertex>
     fun legalRoads(state: GameState, player: PlayerId): Set<Edge>
+
+    // Whether `player` can afford a buildable from their current hand. The UI
+    // uses this to enable/disable build buttons during the Play phase.
+    fun canAfford(state: GameState, player: PlayerId, buildable: Buildable): Boolean
 }
 
 // Generic Catan engine driven by a ScenarioConfig — swap the config to get a
@@ -78,9 +83,52 @@ class CatanGameEngine(
         }
         return when (action) {
             EndTurn -> endTurn(state)
-            is PlaceSettlement -> placeSettlement(state, actor, action.vertex)
-            is PlaceRoad -> placeRoad(state, actor, action.edge)
+            is PlaceSettlement ->
+                if (state.phase is GamePhase.Setup) placeSettlement(state, actor, action.vertex)
+                else buildSettlement(state, actor, action.vertex)
+            is PlaceRoad ->
+                if (state.phase is GamePhase.Setup) placeRoad(state, actor, action.edge)
+                else buildRoad(state, actor, action.edge)
         }
+    }
+
+    // --- Play: building (costs resources, unlike free setup placement) ---
+
+    private fun buildSettlement(state: GameState, actor: PlayerId, vertex: Vertex): GameResult {
+        if (state.phase !is GamePhase.Play) {
+            return GameResult(state, rejection = "Cannot build right now")
+        }
+        settlementRejection(state, vertex)?.let { return GameResult(state, rejection = it) }
+        val cost = state.config.rules.cost(Buildable.SETTLEMENT)
+        if (!state.handOf(actor).covers(cost)) {
+            return GameResult(state, rejection = "Not enough resources")
+        }
+        val building = Building(actor, vertex, Building.Kind.SETTLEMENT)
+        val next = state.copy(
+            buildings = state.buildings + building,
+            hands = spend(state.hands, actor, cost),
+        )
+        return GameResult(next, events = listOf(BuildingPlaced(building)))
+    }
+
+    private fun buildRoad(state: GameState, actor: PlayerId, edge: Edge): GameResult {
+        if (state.phase !is GamePhase.Play) {
+            return GameResult(state, rejection = "Cannot build right now")
+        }
+        when {
+            edge !in state.board.edges() -> return GameResult(state, rejection = "Not a valid spot")
+            state.roadAt(edge) != null -> return GameResult(state, rejection = "Already occupied")
+        }
+        val cost = state.config.rules.cost(Buildable.ROAD)
+        if (!state.handOf(actor).covers(cost)) {
+            return GameResult(state, rejection = "Not enough resources")
+        }
+        val road = Road(actor, edge)
+        val next = state.copy(
+            roads = state.roads + road,
+            hands = spend(state.hands, actor, cost),
+        )
+        return GameResult(next, events = listOf(RoadPlaced(road)))
     }
 
     // --- Setup: settlement placement ---
@@ -195,6 +243,9 @@ class CatanGameEngine(
         if (player != state.currentPlayer || setup.awaiting != Placement.ROAD) return emptySet()
         return state.board.edges().filter { roadRejection(state, setup, it) == null }.toSet()
     }
+
+    override fun canAfford(state: GameState, player: PlayerId, buildable: Buildable): Boolean =
+        state.handOf(player).covers(state.config.rules.cost(buildable))
 
     // --- Validation (shared by reduce() and the legal-move queries) ---
 
@@ -321,6 +372,16 @@ class CatanGameEngine(
     ): Map<PlayerId, ResourceCount> {
         val merged = hands.toMutableMap()
         merged[player] = (merged[player] ?: ResourceCount()) + gain
+        return merged
+    }
+
+    private fun spend(
+        hands: Map<PlayerId, ResourceCount>,
+        player: PlayerId,
+        cost: ResourceCount,
+    ): Map<PlayerId, ResourceCount> {
+        val merged = hands.toMutableMap()
+        merged[player] = (merged[player] ?: ResourceCount()) - cost
         return merged
     }
 }

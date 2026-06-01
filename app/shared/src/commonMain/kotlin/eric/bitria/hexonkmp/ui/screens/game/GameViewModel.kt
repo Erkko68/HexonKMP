@@ -13,6 +13,8 @@ import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.event.RoadPlaced
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
+import eric.bitria.hexonkmp.core.game.config.Buildable
+import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Edge
@@ -75,22 +77,50 @@ class GameViewModel(
         if (s is GameUiState.InGame && s.isMyTurn) repository.sendAction(EndTurn)
     }
 
-    fun placeSettlement(vertex: Vertex) {
-        val s = _state.value
-        if (s is GameUiState.InGame && s.isMyTurn) repository.sendAction(PlaceSettlement(vertex))
+    // Build actions place at a RANDOM valid spot for now (board tap-to-place
+    // comes later). During setup the engine offers the legal-move set directly;
+    // during play any empty/valid spot works and the engine checks cost.
+    fun buildSettlement() {
+        val s = _state.value as? GameUiState.InGame ?: return
+        if (!s.isMyTurn) return
+        val target = when (s.state.phase) {
+            is GamePhase.Setup -> engine.legalSettlements(s.state, s.myPlayerId).randomOrNull()
+            GamePhase.Play -> randomEmptyVertex(s)
+        } ?: return
+        repository.sendAction(PlaceSettlement(target))
     }
 
-    fun placeRoad(edge: Edge) {
-        val s = _state.value
-        if (s is GameUiState.InGame && s.isMyTurn) repository.sendAction(PlaceRoad(edge))
+    fun buildRoad() {
+        val s = _state.value as? GameUiState.InGame ?: return
+        if (!s.isMyTurn) return
+        val target = when (s.state.phase) {
+            is GamePhase.Setup -> engine.legalRoads(s.state, s.myPlayerId).randomOrNull()
+            GamePhase.Play -> randomEmptyEdge(s)
+        } ?: return
+        repository.sendAction(PlaceRoad(target))
     }
 
-    // Legal placements for me right now (empty unless it's my setup turn).
-    fun legalSettlements(s: GameUiState.InGame): List<Vertex> =
-        engine.legalSettlements(s.state, s.myPlayerId).toList()
+    // Whether the given buildable's button should be enabled for me right now.
+    fun canBuild(s: GameUiState.InGame, buildable: Buildable): Boolean {
+        if (!s.isMyTurn) return false
+        return when (s.state.phase) {
+            // Setup: a placement is available iff the engine offers legal spots
+            // for the piece currently awaited.
+            is GamePhase.Setup -> when (buildable) {
+                Buildable.SETTLEMENT -> engine.legalSettlements(s.state, s.myPlayerId).isNotEmpty()
+                Buildable.ROAD -> engine.legalRoads(s.state, s.myPlayerId).isNotEmpty()
+                else -> false
+            }
+            // Play: gated purely by affordability (random placement always finds a spot).
+            GamePhase.Play -> engine.canAfford(s.state, s.myPlayerId, buildable)
+        }
+    }
 
-    fun legalRoads(s: GameUiState.InGame): List<Edge> =
-        engine.legalRoads(s.state, s.myPlayerId).toList()
+    private fun randomEmptyVertex(s: GameUiState.InGame): Vertex? =
+        s.state.board.vertices().filter { s.state.buildingAt(it) == null }.randomOrNull()
+
+    private fun randomEmptyEdge(s: GameUiState.InGame): Edge? =
+        s.state.board.edges().filter { s.state.roadAt(it) == null }.randomOrNull()
 
     fun retryJoinGame() {
         _state.value = GameUiState.Idle
