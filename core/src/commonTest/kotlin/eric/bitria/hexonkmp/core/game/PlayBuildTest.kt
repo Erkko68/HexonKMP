@@ -4,14 +4,19 @@ import eric.bitria.hexonkmp.core.game.action.PlaceRoad
 import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
 import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
+import eric.bitria.hexonkmp.core.game.model.Building
+import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.GameState
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
+import eric.bitria.hexonkmp.core.game.model.Road
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.core.game.model.board.adjacentVertices
+import eric.bitria.hexonkmp.core.game.model.board.incidentEdges
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -104,6 +109,40 @@ class PlayBuildTest {
         assertEquals(false, engine.canAfford(broke, current, Buildable.ROAD))
         val funded = play.copy(hands = play.hands + (current to roadCost))
         assertEquals(true, engine.canAfford(funded, current, Buildable.ROAD))
+    }
+
+    // An opponent's building on a vertex severs road connectivity through it: a
+    // road that would only link to the player's network *through* another player's
+    // settlement is illegal — you can't build past it.
+    @Test
+    fun opponentBuildingBlocksRoadConnectionThroughThatVertex() {
+        val base = engine.initialState(listOf(alice, bob))
+        val board = base.board
+        // An interior vertex whose three incident edges all exist on the board.
+        val vertex = board.vertices().first { v -> v.incidentEdges().all { it in board.edges() } }
+        val incident = vertex.incidentEdges()
+        val aliceRoad = incident[0]   // Alice already has a road reaching the vertex
+        val target = incident[1]      // the edge she now tries to extend past it
+
+        val withOpponent = base.copy(
+            phase = GamePhase.Play,
+            buildings = listOf(Building(bob, vertex, Building.Kind.SETTLEMENT)),
+            roads = listOf(Road(alice, aliceRoad)),
+            hands = mapOf(alice to roadCost),
+            currentPlayerIndex = base.players.indexOf(alice),
+        )
+
+        // Bob's settlement on the shared vertex blocks the extension.
+        val rejected = engine.reduce(withOpponent, alice, PlaceRoad(target))
+        assertNotNull(rejected.rejection)
+        assertEquals(withOpponent, rejected.state)
+        assertFalse(target in engine.legalRoads(withOpponent, alice))
+
+        // Same layout without the blocking building: the extension is legal,
+        // proving the building — not some other rule — is what rejects it.
+        val unblocked = withOpponent.copy(buildings = emptyList())
+        assertNull(engine.reduce(unblocked, alice, PlaceRoad(target)).rejection)
+        assertTrue(target in engine.legalRoads(unblocked, alice))
     }
 
     private fun Vertex.isDistanceLegal(s: GameState): Boolean =

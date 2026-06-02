@@ -30,7 +30,6 @@ import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.core.game.model.board.adjacentVertices
 import eric.bitria.hexonkmp.core.game.model.board.endpoints
 import eric.bitria.hexonkmp.core.game.model.board.incidentEdges
-import eric.bitria.hexonkmp.core.game.model.board.isConnectedTo
 import eric.bitria.hexonkmp.core.game.model.board.touches
 import kotlin.random.Random
 
@@ -340,11 +339,18 @@ class CatanGameEngine(
             edge !in state.board.edges() -> return "Not a valid spot"
             state.roadAt(edge) != null -> return "Already occupied"
         }
-        // Must connect to your own road or building at either endpoint.
-        val ends = edge.endpoints()
-        val touchesOwnBuilding = ends.any { state.buildingAt(it)?.owner == actor }
-        val touchesOwnRoad = state.roads.any { it.owner == actor && it.edge.isConnectedTo(edge) }
-        return if (touchesOwnBuilding || touchesOwnRoad) null else "Must connect to your network"
+        // A road extends your network from one of its endpoint vertices. But an
+        // opponent's building sitting on that vertex blocks the connection — you
+        // cannot run a road through another player's settlement/city, even if your
+        // own road reaches the far side of it.
+        val connects = edge.endpoints().any { v ->
+            val occupant = state.buildingAt(v)?.owner
+            if (occupant != null && occupant != actor) return@any false // opponent blocks this corner
+            val ownBuilding = occupant == actor
+            val ownRoadAtVertex = state.roads.any { it.owner == actor && it.edge.touches(v) }
+            ownBuilding || ownRoadAtVertex
+        }
+        return if (connects) null else "Must connect to your network"
     }
 
     private fun startingResources(state: GameState, vertex: Vertex): ResourceCount {
