@@ -15,6 +15,10 @@ import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.event.RoadPlaced
 import eric.bitria.hexonkmp.core.game.event.BankTraded
+import eric.bitria.hexonkmp.core.game.event.TradeFinalized
+import eric.bitria.hexonkmp.core.game.event.TradeOffersCleared
+import eric.bitria.hexonkmp.core.game.event.TradeProposed
+import eric.bitria.hexonkmp.core.game.event.TradeResponded
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
 import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.model.Building
@@ -221,6 +225,21 @@ class GameViewModel(
                 hands = s.state.hands.merge(mapOf(e.player to e.received))
                     .merge(mapOf(e.player to (ResourceCount() - e.given))),
             )
+            // --- Player-to-player trades (mirror the server's pending-offer state) ---
+            is TradeProposed -> s.state.copy(pendingTrades = s.state.pendingTrades + e.offer)
+            is TradeResponded -> s.state.copy(
+                pendingTrades = s.state.pendingTrades.map {
+                    if (it.id == e.offerId) it.copy(responses = it.responses + (e.player to e.accepted)) else it
+                },
+            )
+            is TradeFinalized -> s.state.copy(
+                // Proposer -give +receive; partner the reverse. Finalizing clears all offers.
+                hands = s.state.hands
+                    .merge(mapOf(e.proposer to e.receive)).merge(mapOf(e.proposer to (ResourceCount() - e.give)))
+                    .merge(mapOf(e.partner to e.give)).merge(mapOf(e.partner to (ResourceCount() - e.receive))),
+                pendingTrades = emptyList(),
+            )
+            is TradeOffersCleared -> s.state.copy(pendingTrades = emptyList())
         }
 
     // Deducts a buildable's cost from the owner's hand (the Play-phase build price).

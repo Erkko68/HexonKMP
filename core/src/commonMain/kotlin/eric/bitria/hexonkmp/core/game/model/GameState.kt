@@ -20,6 +20,11 @@ data class GameState(
     val hands: Map<PlayerId, ResourceCount> = emptyMap(),
     val buildings: List<Building> = emptyList(),
     val roads: List<Road> = emptyList(),
+    // Player-to-player trade offers live only during the proposer's turn; any
+    // turn change clears them. `tradeCounter` is a monotonic id source (never
+    // reset) so ids stay unique even after offers are cleared.
+    val pendingTrades: List<TradeOffer> = emptyList(),
+    val tradeCounter: Int = 0,
     val currentPlayerIndex: Int = 0,
     val turn: Int = 1,
     val lastRoll: Int? = null,          // most recent dice total (null before first roll)

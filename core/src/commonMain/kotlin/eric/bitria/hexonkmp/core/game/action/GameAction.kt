@@ -1,5 +1,7 @@
 package eric.bitria.hexonkmp.core.game.action
 
+import eric.bitria.hexonkmp.core.game.model.PlayerId
+import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
@@ -38,3 +40,23 @@ data class BankSwap(val give: Resource, val get: Resource)
 @Serializable
 @SerialName("BankTrade")
 data class BankTrade(val swaps: List<BankSwap>) : GameAction
+
+// --- Player-to-player trades ---
+
+// Propose a trade to all opponents: give [give], want [receive] back. Current
+// player only, Play phase. Broadcast — any opponent may respond.
+@Serializable
+@SerialName("ProposeTrade")
+data class ProposeTrade(val give: ResourceCount, val receive: ResourceCount) : GameAction
+
+// An opponent's response to a pending offer. This is the one action a
+// non-current player may take during someone else's turn.
+@Serializable
+@SerialName("RespondTrade")
+data class RespondTrade(val offerId: Int, val accept: Boolean) : GameAction
+
+// The proposer finalizes a pending offer with one player who accepted it. The
+// engine re-validates both hands before swapping, then clears all offers.
+@Serializable
+@SerialName("FinalizeTrade")
+data class FinalizeTrade(val offerId: Int, val partner: PlayerId) : GameAction

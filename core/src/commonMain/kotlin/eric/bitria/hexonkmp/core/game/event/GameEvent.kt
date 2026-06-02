@@ -5,6 +5,7 @@ import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.Road
+import eric.bitria.hexonkmp.core.game.model.TradeOffer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -54,3 +55,33 @@ data class BankTraded(
     val given: ResourceCount,
     val received: ResourceCount,
 ) : GameEvent
+
+// --- Player-to-player trades ---
+
+// The current player proposed a trade offer (broadcast to all opponents).
+@Serializable
+@SerialName("TradeProposed")
+data class TradeProposed(val offer: TradeOffer) : GameEvent
+
+// An opponent accepted or declined a pending offer.
+@Serializable
+@SerialName("TradeResponded")
+data class TradeResponded(val offerId: Int, val player: PlayerId, val accepted: Boolean) : GameEvent
+
+// A trade was finalized between [proposer] and [partner]: the proposer lost
+// [give] and gained [receive], the partner the reverse. Finalizing clears every
+// pending offer, so clients drop all offers on this event.
+@Serializable
+@SerialName("TradeFinalized")
+data class TradeFinalized(
+    val offerId: Int,
+    val proposer: PlayerId,
+    val partner: PlayerId,
+    val give: ResourceCount,
+    val receive: ResourceCount,
+) : GameEvent
+
+// Pending offers were discarded (the proposer's turn ended). Clients clear them.
+@Serializable
+@SerialName("TradeOffersCleared")
+data object TradeOffersCleared : GameEvent

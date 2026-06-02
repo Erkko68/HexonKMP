@@ -3,9 +3,12 @@ package eric.bitria.hexonkmp.core.game.engine
 import eric.bitria.hexonkmp.core.game.action.BankSwap
 import eric.bitria.hexonkmp.core.game.action.BankTrade
 import eric.bitria.hexonkmp.core.game.action.EndTurn
+import eric.bitria.hexonkmp.core.game.action.FinalizeTrade
 import eric.bitria.hexonkmp.core.game.action.GameAction
 import eric.bitria.hexonkmp.core.game.action.PlaceRoad
 import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
+import eric.bitria.hexonkmp.core.game.action.ProposeTrade
+import eric.bitria.hexonkmp.core.game.action.RespondTrade
 import eric.bitria.hexonkmp.core.game.board.BoardGenerator
 import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.config.ClassicCatan
@@ -16,6 +19,10 @@ import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.event.RoadPlaced
+import eric.bitria.hexonkmp.core.game.event.TradeFinalized
+import eric.bitria.hexonkmp.core.game.event.TradeOffersCleared
+import eric.bitria.hexonkmp.core.game.event.TradeProposed
+import eric.bitria.hexonkmp.core.game.event.TradeResponded
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
 import eric.bitria.hexonkmp.core.game.model.Building
 import eric.bitria.hexonkmp.core.game.model.GamePhase
@@ -24,6 +31,7 @@ import eric.bitria.hexonkmp.core.game.model.Placement
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.Road
+import eric.bitria.hexonkmp.core.game.model.TradeOffer
 import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
@@ -84,6 +92,9 @@ class CatanGameEngine(
     }
 
     override fun reduce(state: GameState, actor: PlayerId, action: GameAction): GameResult {
+        // Responding to a trade offer is the one action an opponent (a
+        // non-current player) may take during someone else's turn.
+        if (action is RespondTrade) return respondTrade(state, actor, action)
         if (actor != state.currentPlayer) {
             return GameResult(state, rejection = "It is not your turn")
         }
@@ -96,6 +107,9 @@ class CatanGameEngine(
                 if (state.phase is GamePhase.Setup) placeRoad(state, actor, action.edge)
                 else buildRoad(state, actor, action.edge)
             is BankTrade -> bankTrade(state, actor, action.swaps)
+            is ProposeTrade -> proposeTrade(state, actor, action.give, action.receive)
+            is FinalizeTrade -> finalizeTrade(state, actor, action.offerId, action.partner)
+            is RespondTrade -> respondTrade(state, actor, action) // unreachable; handled above
         }
     }
 
@@ -128,6 +142,99 @@ class CatanGameEngine(
             hands = addGain(spend(state.hands, actor, given), actor, received),
         )
         return GameResult(next, events = listOf(BankTraded(actor, given, received)))
+    }
+
+    // --- Play: player-to-player trades (propose -> respond -> finalize) ---
+
+    // The current player offers [give] for [receive], broadcast to all opponents.
+    private fun proposeTrade(
+        state: GameState,
+        actor: PlayerId,
+        give: ResourceCount,
+        receive: ResourceCount,
+    ): GameResult {
+        if (state.phase !is GamePhase.Play) {
+            return GameResult(state, rejection = "You can only trade during your turn")
+        }
+        if (give.isEmpty || receive.isEmpty) {
+            return GameResult(state, rejection = "A trade must offer and request something")
+        }
+        if (give.amounts.keys.any { it in receive.amounts.keys }) {
+            return GameResult(state, rejection = "Trade must be for different resources")
+        }
+        if (!state.handOf(actor).covers(give)) {
+            return GameResult(state, rejection = "You don't have those resources")
+        }
+        val offer = TradeOffer(id = state.tradeCounter, proposer = actor, give = give, receive = receive)
+        val next = state.copy(
+            pendingTrades = state.pendingTrades + offer,
+            tradeCounter = state.tradeCounter + 1,
+        )
+        return GameResult(next, events = listOf(TradeProposed(offer)))
+    }
+
+    // An opponent accepts/declines a pending offer. Allowed off-turn (the only
+    // such action); accepting re-validates that the responder can cover [receive].
+    private fun respondTrade(state: GameState, actor: PlayerId, action: RespondTrade): GameResult {
+        if (state.phase !is GamePhase.Play) {
+            return GameResult(state, rejection = "No trade to respond to")
+        }
+        val offer = state.pendingTrades.firstOrNull { it.id == action.offerId }
+            ?: return GameResult(state, rejection = "That offer is no longer available")
+        if (actor == offer.proposer) {
+            return GameResult(state, rejection = "You can't respond to your own offer")
+        }
+        if (actor !in state.players || actor !in state.present) {
+            return GameResult(state, rejection = "Not a participant")
+        }
+        if (action.accept && !state.handOf(actor).covers(offer.receive)) {
+            return GameResult(state, rejection = "You don't have the resources to accept")
+        }
+        val updated = offer.copy(responses = offer.responses + (actor to action.accept))
+        val next = state.copy(
+            pendingTrades = state.pendingTrades.map { if (it.id == offer.id) updated else it },
+        )
+        return GameResult(next, events = listOf(TradeResponded(offer.id, actor, action.accept)))
+    }
+
+    // The proposer finalizes an offer with one accepter. Both hands are
+    // re-validated (they may have changed since the response), then swapped, and
+    // ALL pending offers are cleared.
+    private fun finalizeTrade(
+        state: GameState,
+        actor: PlayerId,
+        offerId: Int,
+        partner: PlayerId,
+    ): GameResult {
+        if (state.phase !is GamePhase.Play) {
+            return GameResult(state, rejection = "You can only trade during your turn")
+        }
+        val offer = state.pendingTrades.firstOrNull { it.id == offerId }
+            ?: return GameResult(state, rejection = "That offer is no longer available")
+        if (actor != offer.proposer) {
+            return GameResult(state, rejection = "Only the proposer can finalize this trade")
+        }
+        if (partner == actor || offer.responses[partner] != true) {
+            return GameResult(state, rejection = "That player hasn't accepted")
+        }
+        if (partner !in state.present) {
+            return GameResult(state, rejection = "That player is no longer in the game")
+        }
+        // Re-validate both sides at finalize time (anti-cheat: hands can change).
+        if (!state.handOf(actor).covers(offer.give)) {
+            return GameResult(state, rejection = "You no longer have those resources")
+        }
+        if (!state.handOf(partner).covers(offer.receive)) {
+            return GameResult(state, rejection = "That player no longer has the resources")
+        }
+        var hands = state.hands
+        hands = addGain(spend(hands, actor, offer.give), actor, offer.receive)
+        hands = addGain(spend(hands, partner, offer.receive), partner, offer.give)
+        val next = state.copy(hands = hands, pendingTrades = emptyList())
+        return GameResult(
+            next,
+            events = listOf(TradeFinalized(offer.id, actor, partner, offer.give, offer.receive)),
+        )
     }
 
     // --- Play: building (costs resources, unlike free setup placement) ---
@@ -390,10 +497,18 @@ class CatanGameEngine(
             if (state.players[candidate] in state.present) {
                 val wrapped = state.currentPlayerIndex + step >= size
                 val nextTurn = if (wrapped) state.turn + 1 else state.turn
-                val moved = state.copy(currentPlayerIndex = candidate, turn = nextTurn)
+                // Pending trade offers live only for the proposer's turn — drop
+                // them as the turn moves on.
+                val hadOffers = state.pendingTrades.isNotEmpty()
+                val moved = state.copy(
+                    currentPlayerIndex = candidate,
+                    turn = nextTurn,
+                    pendingTrades = emptyList(),
+                )
                 val begun = beginTurn(moved)
                 val turnChanged = TurnChanged(begun.state.currentPlayer, begun.state.turn)
-                return GameResult(begun.state, events = listOf(turnChanged) + begun.events)
+                val lead = if (hadOffers) listOf(TradeOffersCleared, turnChanged) else listOf(turnChanged)
+                return GameResult(begun.state, events = lead + begun.events)
             }
         }
         // Only the current player (or nobody) is present — nothing to advance to.
