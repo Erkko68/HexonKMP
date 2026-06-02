@@ -19,6 +19,7 @@ import eric.bitria.hexonkmp.core.game.engine.GameEngine
 import eric.bitria.hexonkmp.core.game.event.BuildingPlaced
 import eric.bitria.hexonkmp.core.game.event.CityUpgraded
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
+import eric.bitria.hexonkmp.core.game.event.GameEnded
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.event.RoadPlaced
@@ -394,6 +395,7 @@ class GameViewModel(
             is ResourcesDiscarded -> s.state.copy(
                 hands = s.state.hands.merge(mapOf(e.player to (ResourceCount() - e.cards))),
             )
+            is GameEnded -> s.state.copy(phase = GamePhase.Finished(e.winner))
             is RobberMoved -> s.state.copy(board = s.state.board.copy(robber = e.hex))
             is ResourceStolen -> s.state.copy(
                 hands = s.state.hands

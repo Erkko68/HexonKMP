@@ -71,6 +71,12 @@ data class ResourceStolen(val from: PlayerId, val by: PlayerId, val resource: Re
 @SerialName("ResourcesDiscarded")
 data class ResourcesDiscarded(val player: PlayerId, val cards: ResourceCount) : GameEvent
 
+// The game is over: [winner] reached the victory-point goal. Clients move to the
+// Finished phase and show the win screen.
+@Serializable
+@SerialName("GameEnded")
+data class GameEnded(val winner: PlayerId) : GameEvent
+
 // A player traded with the bank: their hand lost [given] and gained [received].
 @Serializable
 @SerialName("BankTraded")

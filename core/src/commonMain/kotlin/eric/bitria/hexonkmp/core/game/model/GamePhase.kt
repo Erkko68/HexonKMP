@@ -49,4 +49,10 @@ sealed interface GamePhase {
     @Serializable
     @SerialName("Robber")
     data object Robber : GamePhase
+
+    // The game is over — [winner] reached the victory-point goal. Terminal: no
+    // further actions are accepted.
+    @Serializable
+    @SerialName("Finished")
+    data class Finished(val winner: PlayerId) : GamePhase
 }

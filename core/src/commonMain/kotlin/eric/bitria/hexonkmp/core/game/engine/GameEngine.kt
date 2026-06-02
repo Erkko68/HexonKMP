@@ -21,6 +21,8 @@ import eric.bitria.hexonkmp.core.game.event.BankTraded
 import eric.bitria.hexonkmp.core.game.event.BuildingPlaced
 import eric.bitria.hexonkmp.core.game.event.CityUpgraded
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
+import eric.bitria.hexonkmp.core.game.event.GameEnded
+import eric.bitria.hexonkmp.core.game.event.GameEvent
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourceStolen
 import eric.bitria.hexonkmp.core.game.event.ResourcesDiscarded
@@ -282,7 +284,7 @@ class CatanGameEngine(
             buildings = state.buildings + building,
             hands = spend(state.hands, actor, cost),
         )
-        return GameResult(next, events = listOf(BuildingPlaced(building)))
+        return endIfWon(GameResult(next, events = listOf(BuildingPlaced(building))), actor)
     }
 
     private fun buildRoad(state: GameState, actor: PlayerId, edge: Edge): GameResult {
@@ -316,7 +318,21 @@ class CatanGameEngine(
             buildings = state.buildings.map { if (it.vertex == vertex) city else it },
             hands = spend(state.hands, actor, cost),
         )
-        return GameResult(next, events = listOf(CityUpgraded(city)))
+        return endIfWon(GameResult(next, events = listOf(CityUpgraded(city)), ), actor)
+    }
+
+    private fun victoryPoints(state: GameState, player: PlayerId): Int =
+        state.buildings.filter { it.owner == player }
+            .sumOf { if (it.kind == Building.Kind.CITY) 2 else 1 }
+
+    // If [actor] just reached the victory goal, end the game: switch to Finished
+    // and append a GameEnded event. Otherwise return the result unchanged.
+    private fun endIfWon(result: GameResult, actor: PlayerId): GameResult {
+        if (victoryPoints(result.state, actor) < result.state.config.rules.victoryPointsToWin) return result
+        return result.copy(
+            state = result.state.copy(phase = GamePhase.Finished(actor)),
+            events = result.events + GameEnded(actor),
+        )
     }
 
     // --- Play: the robber (rolled a 7) ---
@@ -537,6 +553,8 @@ class CatanGameEngine(
             is GamePhase.Robber -> advanceTurn(base.copy(phase = GamePhase.Play))
             // Handled above, but the when must stay exhaustive.
             is GamePhase.Discard -> GameResult(base)
+            // Game's over; nothing to advance.
+            is GamePhase.Finished -> GameResult(base)
         }
     }
 
@@ -554,7 +572,7 @@ class CatanGameEngine(
             GamePhase.Play ->
                 if (!canAfford(state, player, Buildable.SETTLEMENT)) emptySet()
                 else state.board.vertices().filter { playSettlementRejection(state, player, it) == null }.toSet()
-            GamePhase.Robber, is GamePhase.Discard -> emptySet()
+            GamePhase.Robber, is GamePhase.Discard, is GamePhase.Finished -> emptySet()
         }
     }
 
@@ -567,7 +585,7 @@ class CatanGameEngine(
             GamePhase.Play ->
                 if (!canAfford(state, player, Buildable.ROAD)) emptySet()
                 else state.board.edges().filter { playRoadRejection(state, player, it) == null }.toSet()
-            GamePhase.Robber, is GamePhase.Discard -> emptySet()
+            GamePhase.Robber, is GamePhase.Discard, is GamePhase.Finished -> emptySet()
         }
     }
 

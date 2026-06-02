@@ -42,6 +42,7 @@ import eric.bitria.hexonkmp.ui.components.PlayerCard
 import eric.bitria.hexonkmp.ui.components.ResourceCards
 import eric.bitria.hexonkmp.ui.components.RollBadge
 import eric.bitria.hexonkmp.ui.components.TurnIndicator
+import eric.bitria.hexonkmp.ui.components.WinnerDialog
 import eric.bitria.hexonkmp.ui.screens.game.BuildMode
 import eric.bitria.hexonkmp.ui.screens.game.GameUiState
 import eric.bitria.hexonkmp.ui.screens.game.GameViewModel
@@ -100,6 +101,7 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                     onFinalizeTrade = viewModel::finalizeTrade,
                     onCancelTrade = viewModel::cancelTrade,
                     onEndTurn = viewModel::endTurn,
+                    onReturnToMenu = viewModel::leaveGame,
                 )
             }
             is GameUiState.Error -> ErrorContent(s.message, onRetry = viewModel::retryJoinGame)
@@ -195,6 +197,7 @@ private fun InGameContent(
     onFinalizeTrade: (Int, eric.bitria.hexonkmp.core.game.model.PlayerId) -> Unit,
     onCancelTrade: (Int) -> Unit,
     onEndTurn: () -> Unit,
+    onReturnToMenu: () -> Unit,
 ) {
     val setup = state.state.phase as? GamePhase.Setup
     var showTradeSheet by remember { mutableStateOf(false) }
@@ -364,6 +367,16 @@ private fun InGameContent(
                 enabled = state.isMyTurn,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.md),
             ) { Text("End Turn") }
+        }
+
+        // --- Game over: winner overlay on top of everything. ---
+        (state.state.phase as? GamePhase.Finished)?.let { finished ->
+            WinnerDialog(
+                winner = finished.winner,
+                players = state.state.players,
+                me = state.myPlayerId,
+                onReturnToMenu = onReturnToMenu,
+            )
         }
     }
 }

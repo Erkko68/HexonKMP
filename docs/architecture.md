@@ -89,6 +89,7 @@ data class PlaceRoad(val edge: Edge) : GameAction
 data class UpgradeCity(val vertex: Vertex) : GameAction       // settlement -> city
 data class MoveRobber(val hex: Axial) : GameAction           // after a 7
 data class DiscardResources(val cards: ResourceCount) : GameAction  // 7 discard penalty
+// (no action ends the game — the engine ends it when a build reaches the VP goal)
 data class BankTrade(val swaps: List<BankSwap>) : GameAction  // atomic ratio:1 swaps with the bank
 // Player-to-player trades:
 data class ProposeTrade(val give: ResourceCount, val receive: ResourceCount) : GameAction
@@ -128,6 +129,7 @@ data class CityUpgraded(val building: Building) : GameEvent   // the resulting c
 data class RobberMoved(val hex: Axial) : GameEvent
 data class ResourceStolen(val from: PlayerId, val by: PlayerId, val resource: Resource) : GameEvent
 data class ResourcesDiscarded(val player: PlayerId, val cards: ResourceCount) : GameEvent
+data class GameEnded(val winner: PlayerId) : GameEvent
 data class BankTraded(val player: PlayerId, val given: ResourceCount, val received: ResourceCount) : GameEvent
 // Player-to-player trades:
 data class TradeProposed(val offer: TradeOffer) : GameEvent
@@ -250,6 +252,7 @@ stateDiagram-v2
     Play --> Robber: roll a 7 (nobody over the limit)
     Discard --> Robber: all present owers discarded
     Robber --> Play: MoveRobber (relocate + steal)
+    Play --> Finished: a build reaches the VP goal
 ```
 
 - **`Setup`** is the classic snake draft: each player places a settlement then a
@@ -444,8 +447,8 @@ changes — `GameUpdate` already carries any `GameEvent`.
 
 ## What is intentionally NOT here yet
 
-- Remaining Catan domain: dev cards, victory-point win detection, and
-  longest-road / largest-army.
+- Remaining Catan domain: dev cards, and longest-road / largest-army (which feed
+  victory points — currently VP counts only built settlements/cities).
 - Persistence (state is in-memory; a server restart loses games).
 - Auth (the `playerId` from the query string is trusted as-is).
 - Server-side reconnect of game state validation beyond the slot mapping.
@@ -454,6 +457,8 @@ changes — `GameUpdate` already carries any `GameEvent`.
 auto-roll + production, settlement/road building with costs and connectivity
 (incl. opponent-building road blocking), city upgrades, the robber on a 7
 (discard-half + move + auto-steal, robbed tile blocked), bank trades, and
-player-to-player trades (end to end).
+player-to-player trades (end to end), and the victory-point win condition (the
+engine ends the game on `GameEnded` → `GamePhase.Finished(winner)`; the client
+shows a winner overlay).
 
 These build on top of the seam above without reshaping it.

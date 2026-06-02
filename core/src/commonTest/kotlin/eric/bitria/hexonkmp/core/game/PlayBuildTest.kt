@@ -4,6 +4,8 @@ import eric.bitria.hexonkmp.core.game.action.PlaceRoad
 import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
 import eric.bitria.hexonkmp.core.game.action.UpgradeCity
 import eric.bitria.hexonkmp.core.game.config.Buildable
+import eric.bitria.hexonkmp.core.game.event.GameEnded
+import eric.bitria.hexonkmp.core.game.model.board.cornerVertex
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
 import eric.bitria.hexonkmp.core.game.model.Building
 import eric.bitria.hexonkmp.core.game.model.GamePhase
@@ -196,6 +198,27 @@ class PlayBuildTest {
         assertEquals(expected, engine.legalCities(funded, current))
         val broke = play.copy(hands = play.hands + (current to ResourceCount()))
         assertTrue(engine.legalCities(broke, current).isEmpty())
+    }
+
+    @Test
+    fun reachingTheVictoryGoalEndsTheGame() {
+        val current = play.currentPlayer
+        val goal = play.config.rules.victoryPointsToWin // classic 10
+        // Stand the player at goal-1: enough cities + one upgradeable settlement.
+        val verts = play.board.tiles.map { cornerVertex(it.hex, 0) }.distinct()
+        val cities = verts.take((goal - 1) / 2).map { Building(current, it, Building.Kind.CITY) }
+        val settlementVertex = verts[cities.size]
+        val buildings = cities + Building(current, settlementVertex, Building.Kind.SETTLEMENT)
+        // cities*2 + 1 settlement == goal-1; upgrading the settlement adds the last point.
+        val s = play.copy(
+            buildings = buildings,
+            hands = play.hands + (current to cityCost),
+            currentPlayerIndex = play.players.indexOf(current),
+        )
+        val result = engine.reduce(s, current, UpgradeCity(settlementVertex))
+        assertNull(result.rejection)
+        assertEquals(GamePhase.Finished(current), result.state.phase)
+        assertEquals(GameEnded(current), result.events.last())
     }
 
     private fun Vertex.isDistanceLegal(s: GameState): Boolean =
