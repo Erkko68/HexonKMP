@@ -86,6 +86,7 @@ sealed interface GameAction
 data object EndTurn : GameAction
 data class PlaceSettlement(val vertex: Vertex) : GameAction   // setup placement or play-phase build
 data class PlaceRoad(val edge: Edge) : GameAction
+data class UpgradeCity(val vertex: Vertex) : GameAction       // settlement -> city
 data class BankTrade(val swaps: List<BankSwap>) : GameAction  // atomic ratio:1 swaps with the bank
 // Player-to-player trades:
 data class ProposeTrade(val give: ResourceCount, val receive: ResourceCount) : GameAction
@@ -105,8 +106,9 @@ The transport envelope. Split by phase:
 | Client-local | `ConnectionFailed(reason)` (never sent over the wire)|
 
 `GameAction` variants so far: `EndTurn`, `PlaceSettlement(vertex)`,
-`PlaceRoad(edge)`, `BankTrade(swaps)`, and the player-trade actions
-`ProposeTrade` / `RespondTrade` / `FinalizeTrade` / `CancelTrade`.
+`PlaceRoad(edge)`, `UpgradeCity(vertex)`, `BankTrade(swaps)`, and the
+player-trade actions `ProposeTrade` / `RespondTrade` / `FinalizeTrade` /
+`CancelTrade`.
 
 ### `GameEvent` (engine output) — `core/game/event/`
 Pure domain deltas the engine emits. They describe *what changed* and have no
@@ -120,6 +122,7 @@ data class ResourcesProduced(val gains: Map<PlayerId, ResourceCount>) : GameEven
 data class PhaseChanged(val phase: GamePhase) : GameEvent
 data class BuildingPlaced(val building: Building) : GameEvent
 data class RoadPlaced(val road: Road) : GameEvent
+data class CityUpgraded(val building: Building) : GameEvent   // the resulting city
 data class BankTraded(val player: PlayerId, val given: ResourceCount, val received: ResourceCount) : GameEvent
 // Player-to-player trades:
 data class TradeProposed(val offer: TradeOffer) : GameEvent
@@ -229,6 +232,8 @@ stateDiagram-v2
 - Road (setup): the edge must be empty *and* touch the settlement just placed.
 - Settlement (play): the above, **plus** it must touch one of your own roads, and
   you must afford `RuleConfig.cost(SETTLEMENT)` (deducted on success).
+- City (play): upgrade your own settlement (`UpgradeCity(vertex)`) — must be a
+  settlement you own, costs `cost(CITY)`, replaces it in place (city yields ×2).
 - Road (play): empty edge connected to your network, and you must afford
   `cost(ROAD)`. **Connectivity is per-endpoint**: a road extends your network from
   an endpoint vertex only if that vertex isn't occupied by *another player's*
@@ -404,10 +409,9 @@ changes — `GameUpdate` already carries any `GameEvent`.
 
 ## What is intentionally NOT here yet
 
-- Remaining Catan domain: **cities** (settlement→city upgrade), dev cards, the
-  **robber** (a roll of 7 currently produces nothing but doesn't move a robber or
-  force discards), victory-point tracking / win detection, and longest-road /
-  largest-army.
+- Remaining Catan domain: dev cards, the **robber** (a roll of 7 currently
+  produces nothing but doesn't move a robber or force discards), victory-point
+  tracking / win detection, and longest-road / largest-army.
 - Player-trade **UI**: the engine + events are in place and `GameViewModel`
   mirrors `pendingTrades`, but the `TradeSheet` "Players" tab is still a
   placeholder (the propose/respond/finalize UI is the next step).
@@ -417,6 +421,7 @@ changes — `GameUpdate` already carries any `GameEvent`.
 
 *Built this far:* hex board + generation, resources/hands, setup draft,
 auto-roll + production, settlement/road building with costs and connectivity
-(incl. opponent-building road blocking), bank trades, and the player-trade engine.
+(incl. opponent-building road blocking), city upgrades, bank trades, and
+player-to-player trades (end to end).
 
 These build on top of the seam above without reshaping it.
