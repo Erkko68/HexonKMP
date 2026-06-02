@@ -3,6 +3,7 @@ package eric.bitria.hexonkmp.ui.board
 import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
+import eric.bitria.hexonkmp.core.game.model.board.endpoints
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -51,16 +52,19 @@ object HexMath {
         return WorldPos(centers.map { it.x }.average().toFloat(), centers.map { it.z }.average().toFloat())
     }
 
-    // Rotation (radians, about the Y axis) so a road quad aligns along an edge.
-    // The edge runs perpendicular to the line joining its two hex centres.
+    // Rotation (radians, about the Y axis) so a road's long axis (mesh +X) lies
+    // ALONG the edge. The edge's true direction is the line between its two
+    // endpoint vertices (the two corners shared by both hexes) — not the
+    // hex-centre-to-centre line, which is perpendicular to it.
     fun edgeAngleY(edge: Edge, hexSize: Float): Float {
-        val (a, b) = edge.hexes
-        val ca = center(a, hexSize)
-        val cb = center(b, hexSize)
-        // Direction from a to b; the road sits across it, so rotate by 90°.
-        val dx = cb.x - ca.x
-        val dz = cb.z - ca.z
-        return atan2(dz, dx)
+        val ends = edge.endpoints()
+        if (ends.size < 2) return 0f
+        val p1 = vertexCenter(ends[0], hexSize)
+        val p2 = vertexCenter(ends[1], hexSize)
+        // atan2(dz, dx) gives the angle of the edge in the XZ plane. A rotation
+        // about +Y in Filament is clockwise when viewed from above, so negate to
+        // align mesh +X with this direction.
+        return -atan2(p2.z - p1.z, p2.x - p1.x)
     }
 }
 

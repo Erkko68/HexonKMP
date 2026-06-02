@@ -76,8 +76,10 @@ class BoardCameraState internal constructor(
     }
 
     companion object {
-        // Fixed camera tilt (≈51° above the board). Up stays +Y.
-        val EYE_OFFSET = Direction(0f, 16f, 13f)
+        // Fixed isometric-style tilt: eye is above and offset on BOTH X and Z so
+        // three faces of each cube are visible (top, front, and right) rather
+        // than just top+front. Up stays +Y.
+        val EYE_OFFSET = Direction(11f, 15f, 13f)
         const val MIN_ZOOM = 0.5f
         const val MAX_ZOOM = 3f
     }

@@ -3,6 +3,9 @@ package eric.bitria.hexonkmp.ui.screens.game
 import eric.bitria.hexonkmp.core.game.model.GameState
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 
+// What the player is currently placing (drives the board's ghost markers).
+enum class BuildMode { NONE, SETTLEMENT, ROAD }
+
 sealed class GameUiState {
     data object Idle : GameUiState()
     data object Connecting : GameUiState()
@@ -11,6 +14,7 @@ sealed class GameUiState {
         val gameId: String,
         val state: GameState,
         val myPlayerId: PlayerId,
+        val buildMode: BuildMode = BuildMode.NONE,
         val notice: String? = null,
     ) : GameUiState() {
         val isMyTurn: Boolean get() = state.currentPlayer == myPlayerId

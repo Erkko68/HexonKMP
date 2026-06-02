@@ -15,6 +15,7 @@ import eric.bitria.hexonkmp.core.game.event.RoadPlaced
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
 import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.model.GamePhase
+// BuildMode is in this package (GameUiState.kt)
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Edge
@@ -77,50 +78,50 @@ class GameViewModel(
         if (s is GameUiState.InGame && s.isMyTurn) repository.sendAction(EndTurn)
     }
 
-    // Build actions place at a RANDOM valid spot for now (board tap-to-place
-    // comes later). During setup the engine offers the legal-move set directly;
-    // during play any empty/valid spot works and the engine checks cost.
-    fun buildSettlement() {
-        val s = _state.value as? GameUiState.InGame ?: return
-        if (!s.isMyTurn) return
-        val target = when (s.state.phase) {
-            is GamePhase.Setup -> engine.legalSettlements(s.state, s.myPlayerId).randomOrNull()
-            GamePhase.Play -> randomEmptyVertex(s)
-        } ?: return
-        repository.sendAction(PlaceSettlement(target))
-    }
-
-    fun buildRoad() {
-        val s = _state.value as? GameUiState.InGame ?: return
-        if (!s.isMyTurn) return
-        val target = when (s.state.phase) {
-            is GamePhase.Setup -> engine.legalRoads(s.state, s.myPlayerId).randomOrNull()
-            GamePhase.Play -> randomEmptyEdge(s)
-        } ?: return
-        repository.sendAction(PlaceRoad(target))
-    }
-
-    // Whether the given buildable's button should be enabled for me right now.
-    fun canBuild(s: GameUiState.InGame, buildable: Buildable): Boolean {
-        if (!s.isMyTurn) return false
-        return when (s.state.phase) {
-            // Setup: a placement is available iff the engine offers legal spots
-            // for the piece currently awaited.
-            is GamePhase.Setup -> when (buildable) {
-                Buildable.SETTLEMENT -> engine.legalSettlements(s.state, s.myPlayerId).isNotEmpty()
-                Buildable.ROAD -> engine.legalRoads(s.state, s.myPlayerId).isNotEmpty()
-                else -> false
-            }
-            // Play: gated purely by affordability (random placement always finds a spot).
-            GamePhase.Play -> engine.canAfford(s.state, s.myPlayerId, buildable)
+    // Build cards toggle a "build mode": entering it shows the legal spots as
+    // ghost markers on the board; the player then taps one to place. Tapping the
+    // active card again cancels.
+    fun toggleBuildMode(mode: BuildMode) {
+        _state.update { s ->
+            if (s !is GameUiState.InGame || !s.isMyTurn) s
+            else s.copy(buildMode = if (s.buildMode == mode) BuildMode.NONE else mode)
         }
     }
 
-    private fun randomEmptyVertex(s: GameUiState.InGame): Vertex? =
-        s.state.board.vertices().filter { s.state.buildingAt(it) == null }.randomOrNull()
+    // Tap handlers from the board: place at the picked location, then leave build mode.
+    fun pickVertex(vertex: Vertex) {
+        val s = _state.value as? GameUiState.InGame ?: return
+        if (s.buildMode != BuildMode.SETTLEMENT) return
+        repository.sendAction(PlaceSettlement(vertex))
+        _state.update { (it as? GameUiState.InGame)?.copy(buildMode = BuildMode.NONE) ?: it }
+    }
 
-    private fun randomEmptyEdge(s: GameUiState.InGame): Edge? =
-        s.state.board.edges().filter { s.state.roadAt(it) == null }.randomOrNull()
+    fun pickEdge(edge: Edge) {
+        val s = _state.value as? GameUiState.InGame ?: return
+        if (s.buildMode != BuildMode.ROAD) return
+        repository.sendAction(PlaceRoad(edge))
+        _state.update { (it as? GameUiState.InGame)?.copy(buildMode = BuildMode.NONE) ?: it }
+    }
+
+    // Legal ghost spots to render, only when the matching build mode is active.
+    fun ghostSettlements(s: GameUiState.InGame): List<Vertex> =
+        if (s.buildMode == BuildMode.SETTLEMENT) engine.legalSettlements(s.state, s.myPlayerId).toList()
+        else emptyList()
+
+    fun ghostRoads(s: GameUiState.InGame): List<Edge> =
+        if (s.buildMode == BuildMode.ROAD) engine.legalRoads(s.state, s.myPlayerId).toList()
+        else emptyList()
+
+    // Whether the given buildable's card should be enabled — i.e. at least one
+    // legal placement exists right now (setup awaits it / play affords it).
+    fun canBuild(s: GameUiState.InGame, buildable: Buildable): Boolean {
+        if (!s.isMyTurn) return false
+        return when (buildable) {
+            Buildable.SETTLEMENT -> engine.legalSettlements(s.state, s.myPlayerId).isNotEmpty()
+            Buildable.ROAD -> engine.legalRoads(s.state, s.myPlayerId).isNotEmpty()
+            else -> false
+        }
+    }
 
     fun retryJoinGame() {
         _state.value = GameUiState.Idle

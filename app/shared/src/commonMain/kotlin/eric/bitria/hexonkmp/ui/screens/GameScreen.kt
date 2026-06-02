@@ -30,6 +30,7 @@ import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.ui.board.CatanBoardScene
 import eric.bitria.hexonkmp.ui.components.BuildCard
 import eric.bitria.hexonkmp.ui.components.ResourceCards
+import eric.bitria.hexonkmp.ui.screens.game.BuildMode
 import eric.bitria.hexonkmp.ui.screens.game.GameUiState
 import eric.bitria.hexonkmp.ui.screens.game.GameViewModel
 import eric.bitria.hexonkmp.ui.theme.Spacing
@@ -50,8 +51,12 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                 engine = engine,
                 canBuildSettlement = viewModel.canBuild(s, Buildable.SETTLEMENT),
                 canBuildRoad = viewModel.canBuild(s, Buildable.ROAD),
-                onBuildSettlement = viewModel::buildSettlement,
-                onBuildRoad = viewModel::buildRoad,
+                ghostSettlements = viewModel.ghostSettlements(s),
+                ghostRoads = viewModel.ghostRoads(s),
+                onToggleSettlement = { viewModel.toggleBuildMode(BuildMode.SETTLEMENT) },
+                onToggleRoad = { viewModel.toggleBuildMode(BuildMode.ROAD) },
+                onPickVertex = viewModel::pickVertex,
+                onPickEdge = viewModel::pickEdge,
                 onEndTurn = viewModel::endTurn,
             )
             is GameUiState.Error -> ErrorContent(s.message, onRetry = viewModel::retryJoinGame)
@@ -118,14 +123,26 @@ private fun InGameContent(
     engine: Engine,
     canBuildSettlement: Boolean,
     canBuildRoad: Boolean,
-    onBuildSettlement: () -> Unit,
-    onBuildRoad: () -> Unit,
+    ghostSettlements: List<eric.bitria.hexonkmp.core.game.model.board.Vertex>,
+    ghostRoads: List<eric.bitria.hexonkmp.core.game.model.board.Edge>,
+    onToggleSettlement: () -> Unit,
+    onToggleRoad: () -> Unit,
+    onPickVertex: (eric.bitria.hexonkmp.core.game.model.board.Vertex) -> Unit,
+    onPickEdge: (eric.bitria.hexonkmp.core.game.model.board.Edge) -> Unit,
     onEndTurn: () -> Unit,
 ) {
     val setup = state.state.phase as? GamePhase.Setup
     Box(Modifier.fillMaxSize()) {
         // The 3D board fills the screen; HUD + cards overlay on top.
-        CatanBoardScene(state.state, engine = engine, modifier = Modifier.fillMaxSize())
+        CatanBoardScene(
+            state = state.state,
+            engine = engine,
+            modifier = Modifier.fillMaxSize(),
+            ghostSettlements = ghostSettlements,
+            ghostRoads = ghostRoads,
+            onPickVertex = onPickVertex,
+            onPickEdge = onPickEdge,
+        )
 
         // --- Status HUD, top-center ---
         Column(
@@ -149,13 +166,26 @@ private fun InGameContent(
             }
         }
 
-        // --- Build cards, bottom-center ---
+        // --- Build cards, bottom-center. Tapping arms a build mode (highlighted)
+        // which shows ghost markers on the board; tap a marker to place. ---
         Row(
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.md),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            BuildCard(Icons.Filled.Home, "Settlement", enabled = canBuildSettlement, onClick = onBuildSettlement)
-            BuildCard(Icons.Filled.AddRoad, "Road", enabled = canBuildRoad, onClick = onBuildRoad)
+            BuildCard(
+                icon = Icons.Filled.Home,
+                label = "Settlement",
+                enabled = canBuildSettlement,
+                selected = state.buildMode == BuildMode.SETTLEMENT,
+                onClick = onToggleSettlement,
+            )
+            BuildCard(
+                icon = Icons.Filled.AddRoad,
+                label = "Road",
+                enabled = canBuildRoad,
+                selected = state.buildMode == BuildMode.ROAD,
+                onClick = onToggleRoad,
+            )
         }
 
         // --- Resource cards, bottom-left ---

@@ -17,7 +17,8 @@ import eric.bitria.hexonkmp.ui.theme.Spacing
 
 // A build action shown as a small card with a vector icon + label. Dimmed and
 // non-clickable when the action isn't currently available (not your turn, or you
-// can't afford it). Uses Material vector icons rather than emoji, which the
+// can't afford it). When [selected] (its build mode is armed), it's highlighted
+// with the primary color. Uses Material vector icons rather than emoji, which the
 // Compose canvas font can't render.
 @Composable
 fun BuildCard(
@@ -26,14 +27,17 @@ fun BuildCard(
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    selected: Boolean = false,
 ) {
     Card(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            containerColor = if (selected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = if (selected) MaterialTheme.colorScheme.onPrimary
+            else MaterialTheme.colorScheme.onSurfaceVariant,
         ),
     ) {
         Column(

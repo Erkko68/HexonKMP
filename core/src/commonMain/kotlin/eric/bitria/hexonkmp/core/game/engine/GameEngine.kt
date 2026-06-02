@@ -243,15 +243,27 @@ class CatanGameEngine(
     }
 
     override fun legalSettlements(state: GameState, player: PlayerId): Set<Vertex> {
-        val setup = state.phase as? GamePhase.Setup ?: return emptySet()
-        if (player != state.currentPlayer || setup.awaiting != Placement.SETTLEMENT) return emptySet()
-        return state.board.vertices().filter { settlementRejection(state, it) == null }.toSet()
+        if (player != state.currentPlayer) return emptySet()
+        return when (val phase = state.phase) {
+            is GamePhase.Setup ->
+                if (phase.awaiting != Placement.SETTLEMENT) emptySet()
+                else state.board.vertices().filter { settlementRejection(state, it) == null }.toSet()
+            GamePhase.Play ->
+                if (!canAfford(state, player, Buildable.SETTLEMENT)) emptySet()
+                else state.board.vertices().filter { settlementRejection(state, it) == null }.toSet()
+        }
     }
 
     override fun legalRoads(state: GameState, player: PlayerId): Set<Edge> {
-        val setup = state.phase as? GamePhase.Setup ?: return emptySet()
-        if (player != state.currentPlayer || setup.awaiting != Placement.ROAD) return emptySet()
-        return state.board.edges().filter { roadRejection(state, setup, it) == null }.toSet()
+        if (player != state.currentPlayer) return emptySet()
+        return when (val phase = state.phase) {
+            is GamePhase.Setup ->
+                if (phase.awaiting != Placement.ROAD) emptySet()
+                else state.board.edges().filter { roadRejection(state, phase, it) == null }.toSet()
+            GamePhase.Play ->
+                if (!canAfford(state, player, Buildable.ROAD)) emptySet()
+                else state.board.edges().filter { state.roadAt(it) == null }.toSet()
+        }
     }
 
     override fun canAfford(state: GameState, player: PlayerId, buildable: Buildable): Boolean =
