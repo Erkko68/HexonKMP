@@ -20,6 +20,8 @@ data class RuleConfig(
     // How many identical resources the bank takes for one of any other resource
     // (classic Catan = 4:1; ports lower this, added later).
     val bankTradeRatio: Int = 4,
+    // On a 7, players holding MORE than this many cards discard half (floor).
+    val robberDiscardThreshold: Int = 7,
 ) {
     // The cost of a buildable as a ResourceCount (empty if free/undefined).
     fun cost(buildable: Buildable): ResourceCount =

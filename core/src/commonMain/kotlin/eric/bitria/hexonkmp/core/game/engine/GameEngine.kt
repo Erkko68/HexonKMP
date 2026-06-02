@@ -3,6 +3,7 @@ package eric.bitria.hexonkmp.core.game.engine
 import eric.bitria.hexonkmp.core.game.action.BankSwap
 import eric.bitria.hexonkmp.core.game.action.BankTrade
 import eric.bitria.hexonkmp.core.game.action.CancelTrade
+import eric.bitria.hexonkmp.core.game.action.DiscardResources
 import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.FinalizeTrade
 import eric.bitria.hexonkmp.core.game.action.GameAction
@@ -22,6 +23,7 @@ import eric.bitria.hexonkmp.core.game.event.CityUpgraded
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourceStolen
+import eric.bitria.hexonkmp.core.game.event.ResourcesDiscarded
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.event.RoadPlaced
 import eric.bitria.hexonkmp.core.game.event.RobberMoved
@@ -103,9 +105,10 @@ class CatanGameEngine(
     }
 
     override fun reduce(state: GameState, actor: PlayerId, action: GameAction): GameResult {
-        // Responding to a trade offer is the one action an opponent (a
-        // non-current player) may take during someone else's turn.
+        // A couple of actions are taken by non-current players: responding to a
+        // trade offer, and discarding for a 7. Handle them before the turn guard.
         if (action is RespondTrade) return respondTrade(state, actor, action)
+        if (action is DiscardResources) return discardResources(state, actor, action.cards)
         if (actor != state.currentPlayer) {
             return GameResult(state, rejection = "It is not your turn")
         }
@@ -124,6 +127,7 @@ class CatanGameEngine(
             is FinalizeTrade -> finalizeTrade(state, actor, action.offerId, action.partner)
             is CancelTrade -> cancelTrade(state, actor, action.offerId)
             is RespondTrade -> respondTrade(state, actor, action) // unreachable; handled above
+            is DiscardResources -> discardResources(state, actor, action.cards) // unreachable; handled above
         }
     }
 
@@ -317,6 +321,44 @@ class CatanGameEngine(
 
     // --- Play: the robber (rolled a 7) ---
 
+    // A player satisfies their 7 discard penalty. Allowed for any owing player
+    // (current or not). Once no *present* player still owes, the robber moves
+    // (or, if the roller is gone, the turn advances).
+    private fun discardResources(state: GameState, actor: PlayerId, cards: ResourceCount): GameResult {
+        val phase = state.phase as? GamePhase.Discard
+            ?: return GameResult(state, rejection = "Nothing to discard right now")
+        val owed = phase.pending[actor]
+            ?: return GameResult(state, rejection = "You don't need to discard")
+        if (cards.total != owed) {
+            return GameResult(state, rejection = "Discard exactly $owed card(s)")
+        }
+        if (!state.handOf(actor).covers(cards)) {
+            return GameResult(state, rejection = "You don't have those cards")
+        }
+        val spent = state.copy(hands = spend(state.hands, actor, cards))
+        val remaining = phase.pending - actor
+        val discarded = ResourcesDiscarded(actor, cards)
+        // Still waiting on a present player -> stay in Discard with the new tally.
+        if (remaining.keys.any { it in state.present }) {
+            val next = spent.copy(phase = GamePhase.Discard(remaining))
+            return GameResult(next, events = listOf(discarded, PhaseChanged(next.phase)))
+        }
+        // All present owers done -> proceed to the robber move.
+        val onward = enterRobberOrSkip(spent)
+        return GameResult(onward.state, events = listOf(discarded) + onward.events)
+    }
+
+    // Leave the discard step: the roller moves the robber if present, otherwise we
+    // skip the robber and advance the turn (don't stall on an absent roller).
+    private fun enterRobberOrSkip(state: GameState): GameResult {
+        return if (state.currentPlayer in state.present) {
+            val next = state.copy(phase = GamePhase.Robber)
+            GameResult(next, events = listOf(PhaseChanged(GamePhase.Robber)))
+        } else {
+            advanceTurn(state.copy(phase = GamePhase.Play))
+        }
+    }
+
     private fun moveRobber(state: GameState, actor: PlayerId, hex: Axial): GameResult {
         if (state.phase != GamePhase.Robber) {
             return GameResult(state, rejection = "There's no robber to move")
@@ -462,6 +504,29 @@ class CatanGameEngine(
     override fun playerLeft(state: GameState, playerId: PlayerId): GameResult {
         if (playerId !in state.present) return GameResult(state)
         val base = state.copy(present = state.present - playerId)
+        // Discards never wait on an absent player: a leaver who still owes pays it
+        // immediately (cards picked at random), then the phase proceeds once no
+        // present player still owes.
+        val discardPhase = base.phase
+        if (discardPhase is GamePhase.Discard) {
+            val events = mutableListOf<eric.bitria.hexonkmp.core.game.event.GameEvent>()
+            var s = base
+            var pending = discardPhase.pending
+            pending[playerId]?.let { owed ->
+                val (cards, seed) = randomCards(s.handOf(playerId), owed, s.rngSeed)
+                s = s.copy(hands = spend(s.hands, playerId, cards), rngSeed = seed)
+                pending = pending - playerId
+                events += ResourcesDiscarded(playerId, cards)
+            }
+            return if (pending.keys.any { it in s.present }) {
+                val next = s.copy(phase = GamePhase.Discard(pending))
+                events += PhaseChanged(next.phase)
+                GameResult(next, events)
+            } else {
+                val onward = enterRobberOrSkip(s)
+                GameResult(onward.state, events + onward.events)
+            }
+        }
         if (state.currentPlayer != playerId) return GameResult(base)
         // The current player left — keep the game moving.
         return when (val phase = base.phase) {
@@ -470,6 +535,8 @@ class CatanGameEngine(
             is GamePhase.Setup -> skipSetup(base, phase)
             // Left mid-robber-move: just move on (robber stays put).
             is GamePhase.Robber -> advanceTurn(base.copy(phase = GamePhase.Play))
+            // Handled above, but the when must stay exhaustive.
+            is GamePhase.Discard -> GameResult(base)
         }
     }
 
@@ -487,7 +554,7 @@ class CatanGameEngine(
             GamePhase.Play ->
                 if (!canAfford(state, player, Buildable.SETTLEMENT)) emptySet()
                 else state.board.vertices().filter { playSettlementRejection(state, player, it) == null }.toSet()
-            GamePhase.Robber -> emptySet()
+            GamePhase.Robber, is GamePhase.Discard -> emptySet()
         }
     }
 
@@ -500,7 +567,7 @@ class CatanGameEngine(
             GamePhase.Play ->
                 if (!canAfford(state, player, Buildable.ROAD)) emptySet()
                 else state.board.edges().filter { playRoadRejection(state, player, it) == null }.toSet()
-            GamePhase.Robber -> emptySet()
+            GamePhase.Robber, is GamePhase.Discard -> emptySet()
         }
     }
 
@@ -630,11 +697,16 @@ class CatanGameEngine(
         val total = die1 + die2
         val nextSeed = rng.nextLong() // advance so the next draw differs
 
-        // A 7 produces nothing and hands the current player the robber: they must
-        // move it before they can do anything else (Robber phase).
+        // A 7 produces nothing. Players holding too many cards must first discard
+        // half (Discard phase); then the current player moves the robber.
         if (total == 7) {
-            val rolled = state.copy(lastRoll = 7, rngSeed = nextSeed, phase = GamePhase.Robber)
-            return GameResult(rolled, events = listOf(DiceRolled(die1, die2, 7), PhaseChanged(GamePhase.Robber)))
+            val threshold = state.config.rules.robberDiscardThreshold
+            val owed = state.players.associateWith { state.handOf(it).total }
+                .filterValues { it > threshold }
+                .mapValues { (_, n) -> n / 2 }
+            val nextPhase = if (owed.isEmpty()) GamePhase.Robber else GamePhase.Discard(owed)
+            val rolled = state.copy(lastRoll = 7, rngSeed = nextSeed, phase = nextPhase)
+            return GameResult(rolled, events = listOf(DiceRolled(die1, die2, 7), PhaseChanged(nextPhase)))
         }
 
         val gains = produce(state, total)
@@ -696,5 +768,18 @@ class CatanGameEngine(
         val merged = hands.toMutableMap()
         merged[player] = (merged[player] ?: ResourceCount()) - cost
         return merged
+    }
+
+    // Picks [n] cards at random from [hand] without replacement (capped at the
+    // hand size), returning them and the advanced rng seed. Pure (seeded).
+    private fun randomCards(hand: ResourceCount, n: Int, seed: Long): Pair<ResourceCount, Long> {
+        val pool = hand.amounts.flatMap { (res, c) -> List(c) { res } }.toMutableList()
+        val rng = Random(seed)
+        var picked = ResourceCount()
+        repeat(minOf(n, pool.size)) {
+            val res = pool.removeAt(rng.nextInt(pool.size))
+            picked += ResourceCount.of(res to 1)
+        }
+        return picked to rng.nextLong()
     }
 }

@@ -36,6 +36,14 @@ sealed interface GamePhase {
     @SerialName("Play")
     data object Play : GamePhase
 
+    // After a 7: players holding too many cards must discard half before the
+    // robber moves. [pending] maps each such player to how many they must discard;
+    // the phase ends once no *present* player still owes. Absent players keep their
+    // entry but don't block progress.
+    @Serializable
+    @SerialName("Discard")
+    data class Discard(val pending: Map<PlayerId, Int>) : GamePhase
+
     // The current player rolled a 7 and must move the robber before continuing.
     // Building/trading/ending the turn all gate on Play, so they're blocked here.
     @Serializable

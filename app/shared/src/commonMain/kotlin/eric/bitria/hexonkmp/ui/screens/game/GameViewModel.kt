@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import eric.bitria.hexonkmp.core.game.action.BankSwap
 import eric.bitria.hexonkmp.core.game.action.BankTrade
 import eric.bitria.hexonkmp.core.game.action.CancelTrade
+import eric.bitria.hexonkmp.core.game.action.DiscardResources
 import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.FinalizeTrade
 import eric.bitria.hexonkmp.core.game.action.MoveRobber
@@ -23,6 +24,7 @@ import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.event.RoadPlaced
 import eric.bitria.hexonkmp.core.game.event.RobberMoved
 import eric.bitria.hexonkmp.core.game.event.ResourceStolen
+import eric.bitria.hexonkmp.core.game.event.ResourcesDiscarded
 import eric.bitria.hexonkmp.core.game.event.BankTraded
 import eric.bitria.hexonkmp.core.game.event.TradeCancelled
 import eric.bitria.hexonkmp.core.game.event.TradeFinalized
@@ -173,6 +175,32 @@ class GameViewModel(
     private fun ResourceCount.cycle(resource: Resource, max: Int): ResourceCount {
         val next = if (this[resource] + 1 > max) 0 else this[resource] + 1
         return ResourceCount((amounts + (resource to next)).filterValues { it != 0 })
+    }
+
+    // --- Discard (rolled a 7, over the hand limit) ---
+
+    // How many cards the local player must discard right now (0 if none).
+    fun discardOwed(s: GameUiState.InGame): Int =
+        (s.state.phase as? GamePhase.Discard)?.pending?.get(s.myPlayerId) ?: 0
+
+    // The in-progress discard selection, its own flow like the propose draft.
+    private val _discardDraft = MutableStateFlow(ResourceCount())
+    val discardDraft: StateFlow<ResourceCount> = _discardDraft.asStateFlow()
+
+    fun cycleDiscard(resource: Resource) {
+        val hand = (_state.value as? GameUiState.InGame)?.state?.handOf(myPlayerId ?: return) ?: return
+        _discardDraft.update { it.cycle(resource, hand[resource]) }
+    }
+
+    fun clearDiscardDraft() { _discardDraft.value = ResourceCount() }
+
+    // Submit the discard once it matches the owed count, then reset the draft.
+    fun submitDiscard() {
+        val s = _state.value as? GameUiState.InGame ?: return
+        val draft = _discardDraft.value
+        if (draft.total != discardOwed(s)) return
+        repository.sendAction(DiscardResources(draft))
+        _discardDraft.value = ResourceCount()
     }
 
     // Accept or decline an opponent's pending offer (allowed off-turn).
@@ -362,6 +390,9 @@ class GameViewModel(
             is TradeOffersCleared -> s.state.copy(pendingTrades = emptyList())
             is TradeCancelled -> s.state.copy(
                 pendingTrades = s.state.pendingTrades.filterNot { it.id == e.offerId },
+            )
+            is ResourcesDiscarded -> s.state.copy(
+                hands = s.state.hands.merge(mapOf(e.player to (ResourceCount() - e.cards))),
             )
             is RobberMoved -> s.state.copy(board = s.state.board.copy(robber = e.hex))
             is ResourceStolen -> s.state.copy(

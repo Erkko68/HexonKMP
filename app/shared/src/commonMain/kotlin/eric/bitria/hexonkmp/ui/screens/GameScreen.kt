@@ -37,6 +37,7 @@ import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.ui.board.CatanBoardScene
 import eric.bitria.hexonkmp.ui.components.TradeSheet
 import eric.bitria.hexonkmp.ui.components.BuildCard
+import eric.bitria.hexonkmp.ui.components.DiscardSheet
 import eric.bitria.hexonkmp.ui.components.PlayerCard
 import eric.bitria.hexonkmp.ui.components.ResourceCards
 import eric.bitria.hexonkmp.ui.components.RollBadge
@@ -57,6 +58,7 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
     // The propose-trade draft is VM-owned too (its own flow), so building an offer
     // doesn't disturb the game state or re-run the legal-move scans.
     val proposeDraft by viewModel.proposeDraft.collectAsStateWithLifecycle()
+    val discardDraft by viewModel.discardDraft.collectAsStateWithLifecycle()
 
     Box(Modifier.fillMaxSize()) {
         when (val s = state) {
@@ -76,6 +78,11 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                     robberTargets = opts.robberTargets,
                     bankRatio = viewModel.bankTradeRatio(s),
                     myVictoryPoints = viewModel.victoryPoints(s, s.myPlayerId),
+                    discardRequired = viewModel.discardOwed(s),
+                    discardSelected = discardDraft,
+                    onCycleDiscard = viewModel::cycleDiscard,
+                    onClearDiscard = viewModel::clearDiscardDraft,
+                    onSubmitDiscard = viewModel::submitDiscard,
                     onToggleSettlement = { viewModel.toggleBuildMode(BuildMode.SETTLEMENT) },
                     onToggleRoad = { viewModel.toggleBuildMode(BuildMode.ROAD) },
                     onToggleCity = { viewModel.toggleBuildMode(BuildMode.CITY) },
@@ -166,6 +173,11 @@ private fun InGameContent(
     robberTargets: List<eric.bitria.hexonkmp.core.game.model.board.Axial>,
     bankRatio: Int,
     myVictoryPoints: Int,
+    discardRequired: Int,
+    discardSelected: eric.bitria.hexonkmp.core.game.model.ResourceCount,
+    onCycleDiscard: (eric.bitria.hexonkmp.core.game.model.board.Resource) -> Unit,
+    onClearDiscard: () -> Unit,
+    onSubmitDiscard: () -> Unit,
     onToggleSettlement: () -> Unit,
     onToggleRoad: () -> Unit,
     onToggleCity: () -> Unit,
@@ -322,6 +334,19 @@ private fun InGameContent(
                 onFinalizeTrade = onFinalizeTrade,
                 onCancelTrade = onCancelTrade,
                 onDismiss = { showTradeSheet = false },
+            )
+        }
+
+        // Forced discard sheet (a 7 put you over the hand limit). Shown until you
+        // discard; can't be dismissed.
+        if (discardRequired > 0) {
+            DiscardSheet(
+                required = discardRequired,
+                hand = state.state.handOf(state.myPlayerId),
+                selected = discardSelected,
+                onCycle = onCycleDiscard,
+                onClear = onClearDiscard,
+                onSubmit = onSubmitDiscard,
             )
         }
 

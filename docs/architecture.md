@@ -88,6 +88,7 @@ data class PlaceSettlement(val vertex: Vertex) : GameAction   // setup placement
 data class PlaceRoad(val edge: Edge) : GameAction
 data class UpgradeCity(val vertex: Vertex) : GameAction       // settlement -> city
 data class MoveRobber(val hex: Axial) : GameAction           // after a 7
+data class DiscardResources(val cards: ResourceCount) : GameAction  // 7 discard penalty
 data class BankTrade(val swaps: List<BankSwap>) : GameAction  // atomic ratio:1 swaps with the bank
 // Player-to-player trades:
 data class ProposeTrade(val give: ResourceCount, val receive: ResourceCount) : GameAction
@@ -107,9 +108,9 @@ The transport envelope. Split by phase:
 | Client-local | `ConnectionFailed(reason)` (never sent over the wire)|
 
 `GameAction` variants so far: `EndTurn`, `PlaceSettlement(vertex)`,
-`PlaceRoad(edge)`, `UpgradeCity(vertex)`, `MoveRobber(hex)`, `BankTrade(swaps)`,
-and the player-trade actions `ProposeTrade` / `RespondTrade` / `FinalizeTrade` /
-`CancelTrade`.
+`PlaceRoad(edge)`, `UpgradeCity(vertex)`, `MoveRobber(hex)`,
+`DiscardResources(cards)`, `BankTrade(swaps)`, and the player-trade actions
+`ProposeTrade` / `RespondTrade` / `FinalizeTrade` / `CancelTrade`.
 
 ### `GameEvent` (engine output) — `core/game/event/`
 Pure domain deltas the engine emits. They describe *what changed* and have no
@@ -126,6 +127,7 @@ data class RoadPlaced(val road: Road) : GameEvent
 data class CityUpgraded(val building: Building) : GameEvent   // the resulting city
 data class RobberMoved(val hex: Axial) : GameEvent
 data class ResourceStolen(val from: PlayerId, val by: PlayerId, val resource: Resource) : GameEvent
+data class ResourcesDiscarded(val player: PlayerId, val cards: ResourceCount) : GameEvent
 data class BankTraded(val player: PlayerId, val given: ResourceCount, val received: ResourceCount) : GameEvent
 // Player-to-player trades:
 data class TradeProposed(val offer: TradeOffer) : GameEvent
@@ -184,15 +186,28 @@ reads from `state` + `state.config` — no hardcoded numbers.
 
 ### The robber (a roll of 7)
 
-A 7 doesn't produce; it puts the current player into a **`GamePhase.Robber`**
-sub-phase (building/trading/ending the turn all gate on `Play`, so they're
-blocked until it's resolved). The player picks a new tile (`MoveRobber(hex)`,
-must differ from the current robber tile); the engine relocates the robber and
-**auto-steals** one random card from a random opponent with a building on that
-tile (the robbing player is excluded; nothing happens if none qualify or all are
-empty-handed), then returns to `Play`. Events: `RobberMoved` (+ `ResourceStolen`
-if a card moved). Discarding-half on a 7 is not implemented. The client renders
-the robber as a cylinder and, during the Robber phase, makes the tiles tappable.
+A 7 doesn't produce. It runs in two ordered, global steps before the turn
+continues:
+
+1. **Discard** (`GamePhase.Discard(pending)`) — every player holding more than
+   `RuleConfig.robberDiscardThreshold` (7) cards must discard half (floor), via
+   `DiscardResources(cards)` (allowed off-turn, like trade responses). The phase
+   waits only on **present** players; a player who disconnects mid-discard has
+   their owed cards auto-discarded at random (seeded) so they still pay and the
+   phase never stalls. Skipped entirely if nobody is over the limit.
+2. **Robber** (`GamePhase.Robber`) — the roller picks a new tile
+   (`MoveRobber(hex)`, must differ from the current robber tile); the engine
+   relocates the robber and **auto-steals** one random card from a random
+   opponent with a building on that tile (the roller is excluded; no-op if none
+   qualify or all are empty-handed), then returns to `Play`.
+
+So a player who both owes a discard and is robbed discards first (step 1), then
+may lose one more random card to the robber (step 2, off the post-discard hand).
+Building/trading/ending the turn all gate on `Play`, so they're blocked through
+both steps. Events: `ResourcesDiscarded`, `RobberMoved`, `ResourceStolen`. The
+robbed tile produces for nobody while occupied. The client renders the robber as
+a cylinder, shows a forced discard sheet while you owe, and makes tiles tappable
+during the Robber phase.
 
 > The same pattern fits future automatic effects (e.g. a turn timer auto-ending
 > a turn): drive them through the engine as state transitions that emit events,
@@ -231,7 +246,9 @@ stateDiagram-v2
     Setup --> Setup: PlaceSettlement -> PlaceRoad (snake draft)
     Setup --> Play: draft complete (PhaseChanged + first auto-roll)
     Play --> Play: EndTurn -> auto-roll
-    Play --> Robber: roll a 7
+    Play --> Discard: roll a 7 (someone over the card limit)
+    Play --> Robber: roll a 7 (nobody over the limit)
+    Discard --> Robber: all present owers discarded
     Robber --> Play: MoveRobber (relocate + steal)
 ```
 
@@ -427,8 +444,8 @@ changes — `GameUpdate` already carries any `GameEvent`.
 
 ## What is intentionally NOT here yet
 
-- Remaining Catan domain: dev cards, **discard-half on a 7**, victory-point win
-  detection, and longest-road / largest-army.
+- Remaining Catan domain: dev cards, victory-point win detection, and
+  longest-road / largest-army.
 - Persistence (state is in-memory; a server restart loses games).
 - Auth (the `playerId` from the query string is trusted as-is).
 - Server-side reconnect of game state validation beyond the slot mapping.
@@ -436,7 +453,7 @@ changes — `GameUpdate` already carries any `GameEvent`.
 *Built this far:* hex board + generation, resources/hands, setup draft,
 auto-roll + production, settlement/road building with costs and connectivity
 (incl. opponent-building road blocking), city upgrades, the robber on a 7
-(move + auto-steal, robbed tile blocked), bank trades, and player-to-player
-trades (end to end).
+(discard-half + move + auto-steal, robbed tile blocked), bank trades, and
+player-to-player trades (end to end).
 
 These build on top of the seam above without reshaping it.

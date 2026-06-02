@@ -65,6 +65,12 @@ data class RobberMoved(val hex: Axial) : GameEvent
 @SerialName("ResourceStolen")
 data class ResourceStolen(val from: PlayerId, val by: PlayerId, val resource: Resource) : GameEvent
 
+// A player discarded [cards] for a 7. Clients subtract them from that hand; the
+// accompanying PhaseChanged carries the updated discard/robber phase.
+@Serializable
+@SerialName("ResourcesDiscarded")
+data class ResourcesDiscarded(val player: PlayerId, val cards: ResourceCount) : GameEvent
+
 // A player traded with the bank: their hand lost [given] and gained [received].
 @Serializable
 @SerialName("BankTraded")

@@ -1,18 +1,36 @@
 package eric.bitria.hexonkmp.core.game
 
+import eric.bitria.hexonkmp.core.game.action.DiscardResources
 import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.MoveRobber
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
+import eric.bitria.hexonkmp.core.game.engine.GameEngine
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.model.Building
 import eric.bitria.hexonkmp.core.game.model.GamePhase
+import eric.bitria.hexonkmp.core.game.model.GameState
 import eric.bitria.hexonkmp.core.game.model.PlayerId
+import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.cornerVertex
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+
+// Submit a discard for the first present player who still owes one (drives the
+// 7 discard phase forward in turn-loop tests).
+private fun GameEngine.resolveOneDiscard(state: GameState): GameState {
+    val pending = (state.phase as GamePhase.Discard).pending
+    val (player, count) = pending.entries.first { it.key in state.present }
+    var cards = ResourceCount()
+    var left = count
+    for ((res, held) in state.handOf(player).amounts) {
+        if (left == 0) break
+        val take = minOf(held, left); cards += ResourceCount.of(res to take); left -= take
+    }
+    return reduce(state, player, DiscardResources(cards)).state
+}
 
 // Dice + production behavior. Dice only roll in the Play phase, so each test
 // first drives setup to completion via completeSetup().
@@ -67,6 +85,10 @@ class DiceAndProductionTest {
 
         var sawProduction = false
         repeat(200) {
+            if (state.phase is GamePhase.Discard) {
+                state = engine.resolveOneDiscard(state)
+                return@repeat
+            }
             if (state.phase is GamePhase.Robber) {
                 // A 7 came up — move the robber to a tile other than the watched one
                 // so it keeps producing, then carry on.
@@ -98,6 +120,10 @@ class DiceAndProductionTest {
         // Whenever a 7 comes up, no ResourcesProduced event is emitted.
         var sawSeven = false
         repeat(300) {
+            if (state.phase is GamePhase.Discard) {
+                state = engine.resolveOneDiscard(state)
+                return@repeat
+            }
             if (state.phase is GamePhase.Robber) {
                 // The 7 that triggered this was already checked; clear the robber.
                 val hex = state.board.tiles.first { it.hex != state.board.robber }.hex

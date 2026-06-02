@@ -40,6 +40,12 @@ data class UpgradeCity(val vertex: Vertex) : GameAction
 @SerialName("MoveRobber")
 data class MoveRobber(val hex: Axial) : GameAction
 
+// Discard [cards] to satisfy a 7's discard penalty (Discard phase). Allowed for
+// any player who owes a discard, not just the current player.
+@Serializable
+@SerialName("DiscardResources")
+data class DiscardResources(val cards: ResourceCount) : GameAction
+
 // One bank swap: `ratio` of [give] -> one [get] (ratio from RuleConfig). Each
 // swap is independent — you can't pool different resources toward one swap.
 @Serializable
