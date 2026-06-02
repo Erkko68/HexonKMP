@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexonkmp.core.game.action.BankSwap
 import eric.bitria.hexonkmp.core.game.action.BankTrade
+import eric.bitria.hexonkmp.core.game.action.CancelTrade
 import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.FinalizeTrade
 import eric.bitria.hexonkmp.core.game.action.PlaceRoad
@@ -18,6 +19,7 @@ import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.event.RoadPlaced
 import eric.bitria.hexonkmp.core.game.event.BankTraded
+import eric.bitria.hexonkmp.core.game.event.TradeCancelled
 import eric.bitria.hexonkmp.core.game.event.TradeFinalized
 import eric.bitria.hexonkmp.core.game.event.TradeOffersCleared
 import eric.bitria.hexonkmp.core.game.event.TradeProposed
@@ -132,6 +134,13 @@ class GameViewModel(
         val s = _state.value as? GameUiState.InGame ?: return
         if (!s.isMyTurn) return
         repository.sendAction(FinalizeTrade(offerId, partner))
+    }
+
+    // Withdraw one of your own pending offers (proposer only).
+    fun cancelTrade(offerId: Int) {
+        val s = _state.value as? GameUiState.InGame ?: return
+        if (!s.isMyTurn) return
+        repository.sendAction(CancelTrade(offerId))
     }
 
     // Build cards toggle a "build mode": entering it shows the legal spots as
@@ -266,6 +275,9 @@ class GameViewModel(
                 pendingTrades = emptyList(),
             )
             is TradeOffersCleared -> s.state.copy(pendingTrades = emptyList())
+            is TradeCancelled -> s.state.copy(
+                pendingTrades = s.state.pendingTrades.filterNot { it.id == e.offerId },
+            )
         }
 
     // Deducts a buildable's cost from the owner's hand (the Play-phase build price).

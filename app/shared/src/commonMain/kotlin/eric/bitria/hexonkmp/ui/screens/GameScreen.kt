@@ -69,6 +69,7 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                 onProposeTrade = viewModel::proposeTrade,
                 onRespondTrade = viewModel::respondTrade,
                 onFinalizeTrade = viewModel::finalizeTrade,
+                onCancelTrade = viewModel::cancelTrade,
                 onEndTurn = viewModel::endTurn,
             )
             is GameUiState.Error -> ErrorContent(s.message, onRetry = viewModel::retryJoinGame)
@@ -146,6 +147,7 @@ private fun InGameContent(
     onProposeTrade: (eric.bitria.hexonkmp.core.game.model.ResourceCount, eric.bitria.hexonkmp.core.game.model.ResourceCount) -> Unit,
     onRespondTrade: (Int, Boolean) -> Unit,
     onFinalizeTrade: (Int, eric.bitria.hexonkmp.core.game.model.PlayerId) -> Unit,
+    onCancelTrade: (Int) -> Unit,
     onEndTurn: () -> Unit,
 ) {
     val setup = state.state.phase as? GamePhase.Setup
@@ -208,12 +210,21 @@ private fun InGameContent(
             )
             // Trade is available during your Play turn (not setup) to propose/bank-
             // trade, or whenever another player has an offer waiting for your reply.
-            val hasIncomingOffer = state.state.pendingTrades.any { it.proposer != state.myPlayerId }
+            val me = state.myPlayerId
+            val hasIncomingOffer = state.state.pendingTrades.any { it.proposer != me }
+            // Notification dot: proposer sees it when someone accepts one of their
+            // offers; opponents see it for an offer they haven't responded to yet.
+            val tradeBadge = if (state.isMyTurn) {
+                state.state.pendingTrades.any { it.accepters.isNotEmpty() }
+            } else {
+                state.state.pendingTrades.any { it.proposer != me && me !in it.responses }
+            }
             BuildCard(
                 icon = Icons.Filled.SwapHoriz,
                 label = "Trade",
                 enabled = (state.isMyTurn && setup == null) || hasIncomingOffer,
                 selected = showTradeSheet,
+                badge = tradeBadge,
                 onClick = { showTradeSheet = true },
             )
         }
@@ -233,6 +244,7 @@ private fun InGameContent(
                 onProposeTrade = onProposeTrade,
                 onRespondTrade = onRespondTrade,
                 onFinalizeTrade = onFinalizeTrade,
+                onCancelTrade = onCancelTrade,
                 onDismiss = { showTradeSheet = false },
             )
         }

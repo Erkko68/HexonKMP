@@ -85,3 +85,8 @@ data class TradeFinalized(
 @Serializable
 @SerialName("TradeOffersCleared")
 data object TradeOffersCleared : GameEvent
+
+// The proposer withdrew a single pending offer.
+@Serializable
+@SerialName("TradeCancelled")
+data class TradeCancelled(val offerId: Int) : GameEvent

@@ -55,6 +55,7 @@ fun TradeSheet(
     onProposeTrade: (ResourceCount, ResourceCount) -> Unit,
     onRespondTrade: (Int, Boolean) -> Unit,
     onFinalizeTrade: (Int, PlayerId) -> Unit,
+    onCancelTrade: (Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
     // Opponents open the sheet only to respond, so land them on the Players tab.
@@ -73,7 +74,7 @@ fun TradeSheet(
             Column(modifier = Modifier.padding(horizontal = Spacing.md)) {
                 when (tab) {
                     0 -> BankTab(ratio, hand, onBankTrade)
-                    else -> PlayersTab(me, isMyTurn, players, hand, offers, onProposeTrade, onRespondTrade, onFinalizeTrade)
+                    else -> PlayersTab(me, isMyTurn, players, hand, offers, onProposeTrade, onRespondTrade, onFinalizeTrade, onCancelTrade)
                 }
             }
         }
@@ -176,21 +177,24 @@ private fun PlayersTab(
     onPropose: (ResourceCount, ResourceCount) -> Unit,
     onRespond: (Int, Boolean) -> Unit,
     onFinalize: (Int, PlayerId) -> Unit,
+    onCancel: (Int) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         if (isMyTurn) {
-            ProposeForm(hand, onPropose)
+            // Offers sit on top, newest first, so a freshly-sent offer appears
+            // right above the form that created it.
             if (offers.isNotEmpty()) {
                 Text("Your offers", style = MaterialTheme.typography.labelMedium)
-                offers.forEach { offer -> ProposerOfferCard(offer, players, onFinalize) }
+                offers.asReversed().forEach { offer -> ProposerOfferCard(offer, players, onFinalize, onCancel) }
             }
+            ProposeForm(hand, onPropose)
         } else {
             val incoming = offers.filter { it.proposer != me }
             if (incoming.isEmpty()) {
                 Placeholder("No offers right now")
             } else {
                 Text("Offers for you", style = MaterialTheme.typography.labelMedium)
-                incoming.forEach { offer -> IncomingOfferCard(offer, me, hand, onRespond) }
+                incoming.asReversed().forEach { offer -> IncomingOfferCard(offer, me, hand, onRespond) }
             }
         }
     }
@@ -240,7 +244,6 @@ private fun ProposeForm(hand: ResourceCount, onPropose: (ResourceCount, Resource
                 give = ResourceCount(); receive = ResourceCount()
             },
             enabled = !give.isEmpty && !receive.isEmpty,
-            modifier = Modifier.fillMaxWidth(),
         ) { Text("Send offer") }
     }
 }
@@ -248,10 +251,20 @@ private fun ProposeForm(hand: ResourceCount, onPropose: (ResourceCount, Resource
 // Proposer's view of one of their offers: shows responses, with a Trade button
 // per player who accepted.
 @Composable
-private fun ProposerOfferCard(offer: TradeOffer, players: List<PlayerId>, onFinalize: (Int, PlayerId) -> Unit) {
+private fun ProposerOfferCard(
+    offer: TradeOffer,
+    players: List<PlayerId>,
+    onFinalize: (Int, PlayerId) -> Unit,
+    onCancel: (Int) -> Unit,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            OfferLine(offer.give, offer.receive)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { OfferLine(offer.give, offer.receive) }
+                IconButton(onClick = { onCancel(offer.id) }) {
+                    Icon(Icons.Filled.Close, contentDescription = "cancel offer")
+                }
+            }
             val responders = players.filter { it in offer.responses }
             if (responders.isEmpty()) {
                 Text("Waiting for responses…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -286,12 +299,10 @@ private fun IncomingOfferCard(offer: TradeOffer, me: PlayerId, hand: ResourceCou
                 Button(
                     onClick = { onRespond(offer.id, true) },
                     enabled = canAccept && myResponse != true,
-                    modifier = Modifier.weight(1f),
                 ) { Text("Accept") }
                 OutlinedButton(
                     onClick = { onRespond(offer.id, false) },
                     enabled = myResponse != false,
-                    modifier = Modifier.weight(1f),
                 ) { Text("Decline") }
             }
             when {
@@ -320,7 +331,7 @@ private fun OfferLine(give: ResourceCount, receive: ResourceCount) {
 @Composable
 private fun ResourceBundle(rc: ResourceCount) {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Resource.entries.filter { rc[it] > 0 }.forEach { r -> ResourceToken(r, count = rc[r], size = 40) }
+        Resource.entries.filter { rc[it] > 0 }.forEach { r -> ResourceToken(r, count = rc[r], size = 48) }
     }
 }
 

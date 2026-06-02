@@ -43,20 +43,23 @@ fun ResourceToken(
     )
 
     val content: @Composable () -> Unit = {
-        // Fill the fixed square and center the icon (+ optional count) within it,
-        // so the glyph is centered and the number isn't clipped at the edge.
         Column(
-            modifier = Modifier.fillMaxSize().padding(4.dp),
+            modifier = Modifier.fillMaxSize().padding(3.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
             Icon(
                 Icons.Filled.Hexagon,
                 contentDescription = ResourceVisuals.label(resource),
-                modifier = Modifier.size(22.dp),
+                // Smaller fraction when a count rides below it, larger when alone.
+                modifier = Modifier.fillMaxSize(if (count != null) 0.5f else 0.62f),
             )
             if (count != null) {
-                Text("$count", style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "$count",
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                )
             }
         }
     }

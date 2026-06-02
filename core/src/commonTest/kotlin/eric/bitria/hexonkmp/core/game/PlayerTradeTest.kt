@@ -1,5 +1,6 @@
 package eric.bitria.hexonkmp.core.game
 
+import eric.bitria.hexonkmp.core.game.action.CancelTrade
 import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.FinalizeTrade
 import eric.bitria.hexonkmp.core.game.action.ProposeTrade
@@ -158,6 +159,28 @@ class PlayerTradeTest {
         val result = engine.reduce(s, alice, EndTurn)
         assertTrue(result.state.pendingTrades.isEmpty())
         assertTrue(result.events.any { it is TradeOffersCleared })
+    }
+
+    @Test
+    fun proposerCanCancelOneOfferLeavingOthers() {
+        var s = funded()
+        s = engine.reduce(s, alice, ProposeTrade(give, receive)).state
+        s = engine.reduce(s, alice, ProposeTrade(give, ResourceCount.of(Resource.WOOL to 1))).state
+        val firstId = s.pendingTrades.first().id
+        val result = engine.reduce(s, alice, CancelTrade(firstId))
+        assertNull(result.rejection)
+        assertEquals(1, result.state.pendingTrades.size)
+        assertTrue(result.state.pendingTrades.none { it.id == firstId })
+    }
+
+    @Test
+    fun onlyProposerCanCancel() {
+        var s = funded()
+        s = engine.reduce(s, alice, ProposeTrade(give, receive)).state
+        val offerId = s.pendingTrades.single().id
+        // Bob is not the proposer (and it isn't his turn) -> rejected, offer intact.
+        assertNotNull(engine.reduce(s, bob, CancelTrade(offerId)).rejection)
+        assertEquals(1, s.pendingTrades.size)
     }
 
     @Test

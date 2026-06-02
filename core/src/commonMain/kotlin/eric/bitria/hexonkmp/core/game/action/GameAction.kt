@@ -60,3 +60,8 @@ data class RespondTrade(val offerId: Int, val accept: Boolean) : GameAction
 @Serializable
 @SerialName("FinalizeTrade")
 data class FinalizeTrade(val offerId: Int, val partner: PlayerId) : GameAction
+
+// The proposer withdraws one of their pending offers.
+@Serializable
+@SerialName("CancelTrade")
+data class CancelTrade(val offerId: Int) : GameAction

@@ -2,6 +2,7 @@ package eric.bitria.hexonkmp.core.game.engine
 
 import eric.bitria.hexonkmp.core.game.action.BankSwap
 import eric.bitria.hexonkmp.core.game.action.BankTrade
+import eric.bitria.hexonkmp.core.game.action.CancelTrade
 import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.FinalizeTrade
 import eric.bitria.hexonkmp.core.game.action.GameAction
@@ -19,6 +20,7 @@ import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.event.RoadPlaced
+import eric.bitria.hexonkmp.core.game.event.TradeCancelled
 import eric.bitria.hexonkmp.core.game.event.TradeFinalized
 import eric.bitria.hexonkmp.core.game.event.TradeOffersCleared
 import eric.bitria.hexonkmp.core.game.event.TradeProposed
@@ -109,6 +111,7 @@ class CatanGameEngine(
             is BankTrade -> bankTrade(state, actor, action.swaps)
             is ProposeTrade -> proposeTrade(state, actor, action.give, action.receive)
             is FinalizeTrade -> finalizeTrade(state, actor, action.offerId, action.partner)
+            is CancelTrade -> cancelTrade(state, actor, action.offerId)
             is RespondTrade -> respondTrade(state, actor, action) // unreachable; handled above
         }
     }
@@ -235,6 +238,17 @@ class CatanGameEngine(
             next,
             events = listOf(TradeFinalized(offer.id, actor, partner, offer.give, offer.receive)),
         )
+    }
+
+    // The proposer withdraws one of their pending offers.
+    private fun cancelTrade(state: GameState, actor: PlayerId, offerId: Int): GameResult {
+        val offer = state.pendingTrades.firstOrNull { it.id == offerId }
+            ?: return GameResult(state, rejection = "That offer is no longer available")
+        if (actor != offer.proposer) {
+            return GameResult(state, rejection = "Only the proposer can cancel this offer")
+        }
+        val next = state.copy(pendingTrades = state.pendingTrades.filterNot { it.id == offerId })
+        return GameResult(next, events = listOf(TradeCancelled(offerId)))
     }
 
     // --- Play: building (costs resources, unlike free setup placement) ---
