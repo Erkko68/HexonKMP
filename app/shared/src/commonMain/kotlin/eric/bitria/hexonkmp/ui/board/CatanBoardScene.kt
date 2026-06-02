@@ -23,12 +23,15 @@ import io.github.erkko68.filament.compose.FilamentViewState
 import io.github.erkko68.filament.compose.rememberFilamentViewState
 import io.github.erkko68.filament.compose.scene.Color
 import io.github.erkko68.filament.compose.scene.Direction
+import io.github.erkko68.filament.compose.scene.GltfAsset
+import io.github.erkko68.filament.compose.scene.GltfInstance
 import io.github.erkko68.filament.compose.scene.Light
 import io.github.erkko68.filament.compose.scene.Position
 import io.github.erkko68.filament.compose.scene.Scale
 import io.github.erkko68.filament.compose.scene.SkyboxSource
 import io.github.erkko68.filament.compose.scene.primitives.Cube
 import io.github.erkko68.filament.compose.scene.rememberCameraState
+import io.github.erkko68.filament.compose.scene.rememberGltfAsset
 import io.github.erkko68.filament.compose.scene.rememberMaterial
 import io.github.erkko68.filament.compose.scene.rememberMaterialInstance
 import io.github.erkko68.filament.compose.scene.rememberSkyboxState
@@ -38,6 +41,11 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 private const val HEX_SIZE = 1f
 private const val BUILDING_Y = 0.15f
 private const val ROAD_Y = 0.06f
+
+// Number tokens (glb models, exported flat from Blender) sit just above the tile
+// at its center. Scale/height are eyeballed for a ~1-unit hex — tweak to taste.
+private const val NUMBER_Y = 0.08f
+private const val NUMBER_SCALE = 0.5f
 
 private val RAD_TO_DEG = 180f / kotlin.math.PI.toFloat()
 
@@ -92,6 +100,14 @@ fun CatanBoardScene(
         Res.readBytes("files/materials/board_color.filamat")
     }
 
+    // Number-token models, indexed 0..12 (a tile's token is its index). Loaded
+    // once and shared; each tile places its own instance. The fixed range keeps
+    // these composable call sites stable across recompositions.
+    val numberAssets = ArrayList<GltfAsset?>(13)
+    for (n in 0..12) {
+        numberAssets += rememberGltfAsset(engine, key = n) { Res.readBytes("files/models/numbers/$n.glb") }
+    }
+
     val ghostColor = remember(me, state.players) {
         // Desaturated tint of the player's color; falls back to a neutral grey.
         val base = me?.let { ResourceColors.forPlayer(it, state.players) } ?: Color(0.8f, 0.8f, 0.8f)
@@ -143,6 +159,34 @@ fun CatanBoardScene(
                     setParameter("baseColor", color.x, color.y, color.z)
                 }
                 Hexagon(material = inst, position = Position(c.x, 0f, c.z), radius = HEX_SIZE * 0.95f)
+            }
+
+            // Number tokens: a white glb model centered on each non-desert tile.
+            // One shared white material instance overrides whatever the glb shipped
+            // with. The model's pivot is centered, so it drops straight on the hex
+            // center; it was exported flat, so identity rotation lies it on the board.
+            val whiteNumber = rememberMaterialInstance(solidMat, engine = engine).apply {
+                setParameter("baseColor", 1f, 1f, 1f)
+            }
+            state.board.tiles.forEach { tile ->
+                val token = tile.token ?: return@forEach
+                val asset = numberAssets.getOrNull(token) ?: return@forEach
+                val c = HexMath.center(tile.hex, HEX_SIZE)
+                GltfInstance(
+                    asset = asset,
+                    position = Position(c.x, NUMBER_Y, c.z),
+                    scale = Scale(NUMBER_SCALE),
+                    onCreate = {
+                        val rm = engine.getRenderableManager()
+                        instance.getEntities().forEach { entity ->
+                            if (!rm.hasComponent(entity)) return@forEach
+                            val ri = rm.getInstance(entity)
+                            for (p in 0 until rm.getPrimitiveCount(ri)) {
+                                rm.setMaterialInstanceAt(ri, p, whiteNumber)
+                            }
+                        }
+                    },
+                )
             }
 
             // Settlements / cities.

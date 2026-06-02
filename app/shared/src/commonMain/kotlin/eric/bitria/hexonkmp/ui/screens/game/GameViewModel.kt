@@ -122,7 +122,7 @@ class GameViewModel(
     }
 
     // --- Player-to-player trades ---
-    
+
     data class ProposeDraft(
         val give: ResourceCount = ResourceCount(),
         val receive: ResourceCount = ResourceCount(),
