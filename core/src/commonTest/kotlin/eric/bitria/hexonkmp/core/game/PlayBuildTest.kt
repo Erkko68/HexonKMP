@@ -2,6 +2,7 @@ package eric.bitria.hexonkmp.core.game
 
 import eric.bitria.hexonkmp.core.game.action.PlaceRoad
 import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
+import eric.bitria.hexonkmp.core.game.action.UpgradeCity
 import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
 import eric.bitria.hexonkmp.core.game.model.Building
@@ -143,6 +144,58 @@ class PlayBuildTest {
         val unblocked = withOpponent.copy(buildings = emptyList())
         assertNull(engine.reduce(unblocked, alice, PlaceRoad(target)).rejection)
         assertTrue(target in engine.legalRoads(unblocked, alice))
+    }
+
+    private val cityCost = play.config.rules.cost(Buildable.CITY)
+
+    @Test
+    fun upgradingOwnSettlementToCityReplacesItAndDeductsCost() {
+        val current = play.currentPlayer
+        val vertex = play.buildings.first { it.owner == current && it.kind == Building.Kind.SETTLEMENT }.vertex
+        val s = play.copy(hands = play.hands + (current to cityCost))
+        val result = engine.reduce(s, current, UpgradeCity(vertex))
+        assertNull(result.rejection)
+        assertEquals(Building.Kind.CITY, result.state.buildingAt(vertex)?.kind)
+        assertTrue(result.state.handOf(current).isEmpty)
+        // Replaced in place, not added.
+        assertEquals(s.buildings.size, result.state.buildings.size)
+    }
+
+    @Test
+    fun upgradingWithoutResourcesIsRejected() {
+        val current = play.currentPlayer
+        val vertex = play.buildings.first { it.owner == current }.vertex
+        val s = play.copy(hands = play.hands + (current to ResourceCount()))
+        assertNotNull(engine.reduce(s, current, UpgradeCity(vertex)).rejection)
+    }
+
+    @Test
+    fun upgradingAnotherPlayersSettlementIsRejected() {
+        val current = play.currentPlayer
+        val vertex = play.buildings.first { it.owner != current }.vertex
+        val s = play.copy(hands = play.hands + (current to cityCost))
+        assertNotNull(engine.reduce(s, current, UpgradeCity(vertex)).rejection)
+    }
+
+    @Test
+    fun upgradingACityAgainIsRejected() {
+        val current = play.currentPlayer
+        val vertex = play.buildings.first { it.owner == current }.vertex
+        val s = play.copy(hands = play.hands + (current to cityCost + cityCost))
+        val once = engine.reduce(s, current, UpgradeCity(vertex)).state
+        assertNotNull(engine.reduce(once, current, UpgradeCity(vertex)).rejection)
+    }
+
+    @Test
+    fun legalCitiesListsAffordableOwnSettlements() {
+        val current = play.currentPlayer
+        val expected = play.buildings
+            .filter { it.owner == current && it.kind == Building.Kind.SETTLEMENT }
+            .map { it.vertex }.toSet()
+        val funded = play.copy(hands = play.hands + (current to cityCost))
+        assertEquals(expected, engine.legalCities(funded, current))
+        val broke = play.copy(hands = play.hands + (current to ResourceCount()))
+        assertTrue(engine.legalCities(broke, current).isEmpty())
     }
 
     private fun Vertex.isDistanceLegal(s: GameState): Boolean =

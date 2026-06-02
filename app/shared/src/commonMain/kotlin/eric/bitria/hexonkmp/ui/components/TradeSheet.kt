@@ -53,8 +53,13 @@ fun TradeSheet(
     isMyTurn: Boolean,
     players: List<PlayerId>,
     offers: List<TradeOffer>,
+    proposeGive: ResourceCount,
+    proposeReceive: ResourceCount,
     onBankTrade: (List<BankSwap>) -> Unit,
-    onProposeTrade: (ResourceCount, ResourceCount) -> Unit,
+    onCycleGive: (Resource) -> Unit,
+    onCycleReceive: (Resource) -> Unit,
+    onClearPropose: () -> Unit,
+    onSubmitPropose: () -> Unit,
     onRespondTrade: (Int, Boolean) -> Unit,
     onFinalizeTrade: (Int, PlayerId) -> Unit,
     onCancelTrade: (Int) -> Unit,
@@ -76,7 +81,12 @@ fun TradeSheet(
             Column(modifier = Modifier.padding(horizontal = Spacing.md)) {
                 when (tab) {
                     0 -> BankTab(ratio, hand, onBankTrade)
-                    else -> PlayersTab(me, isMyTurn, players, hand, offers, onProposeTrade, onRespondTrade, onFinalizeTrade, onCancelTrade)
+                    else -> PlayersTab(
+                        me, isMyTurn, players, hand, offers,
+                        proposeGive, proposeReceive,
+                        onCycleGive, onCycleReceive, onClearPropose, onSubmitPropose,
+                        onRespondTrade, onFinalizeTrade, onCancelTrade,
+                    )
                 }
             }
         }
@@ -176,7 +186,12 @@ private fun PlayersTab(
     players: List<PlayerId>,
     hand: ResourceCount,
     offers: List<TradeOffer>,
-    onPropose: (ResourceCount, ResourceCount) -> Unit,
+    proposeGive: ResourceCount,
+    proposeReceive: ResourceCount,
+    onCycleGive: (Resource) -> Unit,
+    onCycleReceive: (Resource) -> Unit,
+    onClearPropose: () -> Unit,
+    onSubmitPropose: () -> Unit,
     onRespond: (Int, Boolean) -> Unit,
     onFinalize: (Int, PlayerId) -> Unit,
     onCancel: (Int) -> Unit,
@@ -189,7 +204,7 @@ private fun PlayersTab(
                 Text("Your offers", style = MaterialTheme.typography.labelMedium)
                 offers.asReversed().forEach { offer -> ProposerOfferCard(offer, players, me, onFinalize, onCancel) }
             }
-            ProposeForm(hand, onPropose)
+            ProposeForm(hand, proposeGive, proposeReceive, onCycleGive, onCycleReceive, onClearPropose, onSubmitPropose)
         } else {
             val incoming = offers.filter { it.proposer != me }
             if (incoming.isEmpty()) {
@@ -202,11 +217,19 @@ private fun PlayersTab(
     }
 }
 
+// Stateless form: the give/receive draft lives in the ViewModel; this just
+// renders it and forwards taps. Keeping the selection in the VM means it isn't
+// lost on recomposition and stays consistent with the rest of the trade flow.
 @Composable
-private fun ProposeForm(hand: ResourceCount, onPropose: (ResourceCount, ResourceCount) -> Unit) {
-    var give by remember { mutableStateOf(ResourceCount()) }
-    var receive by remember { mutableStateOf(ResourceCount()) }
-
+private fun ProposeForm(
+    hand: ResourceCount,
+    give: ResourceCount,
+    receive: ResourceCount,
+    onCycleGive: (Resource) -> Unit,
+    onCycleReceive: (Resource) -> Unit,
+    onClear: () -> Unit,
+    onSubmit: () -> Unit,
+) {
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -222,7 +245,7 @@ private fun ProposeForm(hand: ResourceCount, onPropose: (ResourceCount, Resource
                     selected = give[r] > 0,
                     // Only resources you hold, and not already on the "want" side.
                     enabled = hand[r] > 0 && receive[r] == 0,
-                    onClick = { give = give.cycle(r, max = hand[r]) },
+                    onClick = { onCycleGive(r) },
                 )
             }
         }
@@ -235,18 +258,21 @@ private fun ProposeForm(hand: ResourceCount, onPropose: (ResourceCount, Resource
                     count = receive[r].takeIf { it > 0 },
                     selected = receive[r] > 0,
                     enabled = give[r] == 0, // can't ask for what you're also giving
-                    onClick = { receive = receive.cycle(r, max = 9) },
+                    onClick = { onCycleReceive(r) },
                 )
             }
         }
 
-        Button(
-            onClick = {
-                onPropose(give, receive)
-                give = ResourceCount(); receive = ResourceCount()
-            },
-            enabled = !give.isEmpty && !receive.isEmpty,
-        ) { Text("Send offer") }
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            OutlinedButton(
+                onClick = onClear,
+                enabled = !give.isEmpty || !receive.isEmpty,
+            ) { Text("Clear") }
+            Button(
+                onClick = onSubmit,
+                enabled = !give.isEmpty && !receive.isEmpty,
+            ) { Text("Send offer") }
+        }
     }
 }
 
@@ -395,10 +421,4 @@ private fun TokenRow(content: @Composable () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
     ) { content() }
-}
-
-// Tap-to-cycle a single resource's count: +1 up to [max], wrapping back to 0.
-private fun ResourceCount.cycle(resource: Resource, max: Int): ResourceCount {
-    val next = if (this[resource] + 1 > max) 0 else this[resource] + 1
-    return ResourceCount((amounts + (resource to next)).filterValues { it != 0 })
 }

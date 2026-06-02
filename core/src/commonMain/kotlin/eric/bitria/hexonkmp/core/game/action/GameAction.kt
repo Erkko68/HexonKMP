@@ -29,6 +29,11 @@ data class PlaceSettlement(val vertex: Vertex) : GameAction
 @SerialName("PlaceRoad")
 data class PlaceRoad(val edge: Edge) : GameAction
 
+// Upgrade your own settlement at [vertex] to a city (Play phase, costs resources).
+@Serializable
+@SerialName("UpgradeCity")
+data class UpgradeCity(val vertex: Vertex) : GameAction
+
 // One bank swap: `ratio` of [give] -> one [get] (ratio from RuleConfig). Each
 // swap is independent — you can't pool different resources toward one swap.
 @Serializable

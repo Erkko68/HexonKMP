@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddRoad
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocationCity
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -50,6 +51,9 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
     // Derived placement options come from the ViewModel as their own flow, so the
     // expensive legal-move scans run once per state change, not in composition.
     val opts by viewModel.buildOptions.collectAsStateWithLifecycle()
+    // The propose-trade draft is VM-owned too (its own flow), so building an offer
+    // doesn't disturb the game state or re-run the legal-move scans.
+    val proposeDraft by viewModel.proposeDraft.collectAsStateWithLifecycle()
 
     Box(Modifier.fillMaxSize()) {
         when (val s = state) {
@@ -62,15 +66,23 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                     engine = engine,
                     canBuildSettlement = opts.canSettlement,
                     canBuildRoad = opts.canRoad,
+                    canBuildCity = opts.canCity,
                     ghostSettlements = opts.ghostSettlements,
                     ghostRoads = opts.ghostRoads,
+                    ghostCities = opts.ghostCities,
                     bankRatio = viewModel.bankTradeRatio(s),
                     onToggleSettlement = { viewModel.toggleBuildMode(BuildMode.SETTLEMENT) },
                     onToggleRoad = { viewModel.toggleBuildMode(BuildMode.ROAD) },
+                    onToggleCity = { viewModel.toggleBuildMode(BuildMode.CITY) },
                     onPickVertex = viewModel::pickVertex,
                     onPickEdge = viewModel::pickEdge,
                     onBankTrade = viewModel::bankTrade,
-                    onProposeTrade = viewModel::proposeTrade,
+                    proposeGive = proposeDraft.give,
+                    proposeReceive = proposeDraft.receive,
+                    onCycleGive = viewModel::cycleGive,
+                    onCycleReceive = viewModel::cycleReceive,
+                    onClearPropose = viewModel::clearProposeDraft,
+                    onSubmitPropose = viewModel::submitProposal,
                     onRespondTrade = viewModel::respondTrade,
                     onFinalizeTrade = viewModel::finalizeTrade,
                     onCancelTrade = viewModel::cancelTrade,
@@ -141,15 +153,23 @@ private fun InGameContent(
     engine: Engine,
     canBuildSettlement: Boolean,
     canBuildRoad: Boolean,
+    canBuildCity: Boolean,
     ghostSettlements: List<eric.bitria.hexonkmp.core.game.model.board.Vertex>,
     ghostRoads: List<eric.bitria.hexonkmp.core.game.model.board.Edge>,
+    ghostCities: List<eric.bitria.hexonkmp.core.game.model.board.Vertex>,
     bankRatio: Int,
     onToggleSettlement: () -> Unit,
     onToggleRoad: () -> Unit,
+    onToggleCity: () -> Unit,
     onPickVertex: (eric.bitria.hexonkmp.core.game.model.board.Vertex) -> Unit,
     onPickEdge: (eric.bitria.hexonkmp.core.game.model.board.Edge) -> Unit,
     onBankTrade: (List<eric.bitria.hexonkmp.core.game.action.BankSwap>) -> Unit,
-    onProposeTrade: (eric.bitria.hexonkmp.core.game.model.ResourceCount, eric.bitria.hexonkmp.core.game.model.ResourceCount) -> Unit,
+    proposeGive: eric.bitria.hexonkmp.core.game.model.ResourceCount,
+    proposeReceive: eric.bitria.hexonkmp.core.game.model.ResourceCount,
+    onCycleGive: (eric.bitria.hexonkmp.core.game.model.board.Resource) -> Unit,
+    onCycleReceive: (eric.bitria.hexonkmp.core.game.model.board.Resource) -> Unit,
+    onClearPropose: () -> Unit,
+    onSubmitPropose: () -> Unit,
     onRespondTrade: (Int, Boolean) -> Unit,
     onFinalizeTrade: (Int, eric.bitria.hexonkmp.core.game.model.PlayerId) -> Unit,
     onCancelTrade: (Int) -> Unit,
@@ -166,6 +186,7 @@ private fun InGameContent(
             me = state.myPlayerId,
             ghostSettlements = ghostSettlements,
             ghostRoads = ghostRoads,
+            ghostCities = ghostCities,
             onPickVertex = onPickVertex,
             onPickEdge = onPickEdge,
         )
@@ -231,6 +252,13 @@ private fun InGameContent(
                 selected = state.buildMode == BuildMode.ROAD,
                 onClick = onToggleRoad,
             )
+            BuildCard(
+                icon = Icons.Filled.LocationCity,
+                label = "City",
+                enabled = canBuildCity,
+                selected = state.buildMode == BuildMode.CITY,
+                onClick = onToggleCity,
+            )
             // Trade is available during your Play turn (not setup) to propose/bank-
             // trade, or whenever another player has an offer waiting for your reply.
             val me = state.myPlayerId
@@ -260,11 +288,16 @@ private fun InGameContent(
                 isMyTurn = state.isMyTurn,
                 players = state.state.players,
                 offers = state.state.pendingTrades,
+                proposeGive = proposeGive,
+                proposeReceive = proposeReceive,
                 onBankTrade = { swaps ->
                     onBankTrade(swaps)
                     showTradeSheet = false
                 },
-                onProposeTrade = onProposeTrade,
+                onCycleGive = onCycleGive,
+                onCycleReceive = onCycleReceive,
+                onClearPropose = onClearPropose,
+                onSubmitPropose = onSubmitPropose,
                 onRespondTrade = onRespondTrade,
                 onFinalizeTrade = onFinalizeTrade,
                 onCancelTrade = onCancelTrade,

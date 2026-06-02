@@ -9,11 +9,13 @@ import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.FinalizeTrade
 import eric.bitria.hexonkmp.core.game.action.PlaceRoad
 import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
+import eric.bitria.hexonkmp.core.game.action.UpgradeCity
 import eric.bitria.hexonkmp.core.game.action.ProposeTrade
 import eric.bitria.hexonkmp.core.game.action.RespondTrade
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
 import eric.bitria.hexonkmp.core.game.engine.GameEngine
 import eric.bitria.hexonkmp.core.game.event.BuildingPlaced
+import eric.bitria.hexonkmp.core.game.event.CityUpgraded
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
@@ -33,6 +35,7 @@ import eric.bitria.hexonkmp.core.game.model.GameState
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Edge
+import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.core.protocol.ActionRejected
 import eric.bitria.hexonkmp.core.protocol.ConnectionFailed
@@ -52,6 +55,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+// Upper bound for how many of a resource you can request in one proposed trade.
+private const val MAX_RECEIVE = 9
 
 class GameViewModel(
     private val repository: GameRepository,
@@ -116,13 +122,47 @@ class GameViewModel(
     }
 
     // --- Player-to-player trades ---
+    
+    data class ProposeDraft(
+        val give: ResourceCount = ResourceCount(),
+        val receive: ResourceCount = ResourceCount(),
+    )
 
-    // Propose a trade to all opponents (current player only). The engine
-    // re-validates; the sheet stays open so the proposer can finalize a response.
-    fun proposeTrade(give: ResourceCount, receive: ResourceCount) {
+    private val _proposeDraft = MutableStateFlow(ProposeDraft())
+    val proposeDraft: StateFlow<ProposeDraft> = _proposeDraft.asStateFlow()
+
+    // Tap-to-cycle the give side: +1 up to what you hold, wrapping to 0. A
+    // resource already on the "want" side can't also be given.
+    fun cycleGive(resource: Resource) {
+        val hand = (_state.value as? GameUiState.InGame)?.state?.handOf(myPlayerId ?: return) ?: return
+        _proposeDraft.update { d ->
+            if (d.receive[resource] > 0) d else d.copy(give = d.give.cycle(resource, hand[resource]))
+        }
+    }
+
+    // Tap-to-cycle the want side (cap arbitrary). Can't request what you're giving.
+    fun cycleReceive(resource: Resource) {
+        _proposeDraft.update { d ->
+            if (d.give[resource] > 0) d else d.copy(receive = d.receive.cycle(resource, MAX_RECEIVE))
+        }
+    }
+
+    fun clearProposeDraft() { _proposeDraft.value = ProposeDraft() }
+
+    // Send the drafted offer to all opponents (current player only), then reset
+    // the draft. The engine re-validates; the sheet stays open to finalize a reply.
+    fun submitProposal() {
         val s = _state.value as? GameUiState.InGame ?: return
-        if (!s.isMyTurn || give.isEmpty || receive.isEmpty) return
-        repository.sendAction(ProposeTrade(give, receive))
+        val draft = _proposeDraft.value
+        if (!s.isMyTurn || draft.give.isEmpty || draft.receive.isEmpty) return
+        repository.sendAction(ProposeTrade(draft.give, draft.receive))
+        _proposeDraft.value = ProposeDraft()
+    }
+
+    // +1 a single resource's count up to [max], wrapping back to 0.
+    private fun ResourceCount.cycle(resource: Resource, max: Int): ResourceCount {
+        val next = if (this[resource] + 1 > max) 0 else this[resource] + 1
+        return ResourceCount((amounts + (resource to next)).filterValues { it != 0 })
     }
 
     // Accept or decline an opponent's pending offer (allowed off-turn).
@@ -156,10 +196,14 @@ class GameViewModel(
     }
 
     // Tap handlers from the board: place at the picked location, then leave build mode.
+    // A vertex tap means a settlement or a city depending on the armed mode.
     fun pickVertex(vertex: Vertex) {
         val s = _state.value as? GameUiState.InGame ?: return
-        if (s.buildMode != BuildMode.SETTLEMENT) return
-        repository.sendAction(PlaceSettlement(vertex))
+        when (s.buildMode) {
+            BuildMode.SETTLEMENT -> repository.sendAction(PlaceSettlement(vertex))
+            BuildMode.CITY -> repository.sendAction(UpgradeCity(vertex))
+            else -> return
+        }
         _state.update { (it as? GameUiState.InGame)?.copy(buildMode = BuildMode.NONE) ?: it }
     }
 
@@ -172,27 +216,33 @@ class GameViewModel(
 
     // Everything the HUD needs about placement, computed from a SINGLE pass over
     // the board's legal moves: which build cards to enable, and the ghost markers
-    // to draw for the armed mode. Each legal-move query scans the whole board, so
-    // the callsite memoizes this (remember keyed on state + buildMode) to avoid
-    // rescanning on every recomposition.
+    // to draw for the armed mode. Surfaced through the [buildOptions] flow so the
+    // whole-board legal-move scans run once per state change, off composition.
     data class BuildOptions(
         val canSettlement: Boolean,
         val canRoad: Boolean,
+        val canCity: Boolean,
         val ghostSettlements: List<Vertex>,
         val ghostRoads: List<Edge>,
+        val ghostCities: List<Vertex>,
     ) {
-        companion object { val NONE = BuildOptions(false, false, emptyList(), emptyList()) }
+        companion object {
+            val NONE = BuildOptions(false, false, false, emptyList(), emptyList(), emptyList())
+        }
     }
 
     private fun computeBuildOptions(s: GameUiState.InGame): BuildOptions {
         if (!s.isMyTurn) return BuildOptions.NONE
         val settlements = engine.legalSettlements(s.state, s.myPlayerId)
         val roads = engine.legalRoads(s.state, s.myPlayerId)
+        val cities = engine.legalCities(s.state, s.myPlayerId)
         return BuildOptions(
             canSettlement = settlements.isNotEmpty(),
             canRoad = roads.isNotEmpty(),
+            canCity = cities.isNotEmpty(),
             ghostSettlements = if (s.buildMode == BuildMode.SETTLEMENT) settlements.toList() else emptyList(),
             ghostRoads = if (s.buildMode == BuildMode.ROAD) roads.toList() else emptyList(),
+            ghostCities = if (s.buildMode == BuildMode.CITY) cities.toList() else emptyList(),
         )
     }
 
@@ -264,6 +314,9 @@ class GameViewModel(
                 .let { if (it.phase is GamePhase.Play) it.spend(e.building.owner, e.building.kind.buildable) else it }
             is RoadPlaced -> s.state.copy(roads = s.state.roads + e.road)
                 .let { if (it.phase is GamePhase.Play) it.spend(e.road.owner, Buildable.ROAD) else it }
+            is CityUpgraded -> s.state.copy(
+                buildings = s.state.buildings.map { if (it.vertex == e.building.vertex) e.building else it },
+            ).spend(e.building.owner, Buildable.CITY)
             is BankTraded -> s.state.copy(
                 hands = s.state.hands.merge(mapOf(e.player to e.received))
                     .merge(mapOf(e.player to (ResourceCount() - e.given))),

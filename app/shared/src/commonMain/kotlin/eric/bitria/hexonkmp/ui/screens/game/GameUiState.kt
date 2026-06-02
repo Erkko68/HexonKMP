@@ -4,7 +4,7 @@ import eric.bitria.hexonkmp.core.game.model.GameState
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 
 // What the player is currently placing (drives the board's ghost markers).
-enum class BuildMode { NONE, SETTLEMENT, ROAD }
+enum class BuildMode { NONE, SETTLEMENT, ROAD, CITY }
 
 sealed class GameUiState {
     data object Idle : GameUiState()

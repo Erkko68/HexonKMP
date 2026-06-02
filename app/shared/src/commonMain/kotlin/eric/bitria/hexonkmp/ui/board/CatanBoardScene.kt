@@ -56,6 +56,7 @@ fun CatanBoardScene(
     me: eric.bitria.hexonkmp.core.game.model.PlayerId? = null,
     ghostSettlements: List<Vertex> = emptyList(),
     ghostRoads: List<Edge> = emptyList(),
+    ghostCities: List<Vertex> = emptyList(),
     onPickVertex: (Vertex) -> Unit = {},
     onPickEdge: (Edge) -> Unit = {},
 ) {
@@ -77,12 +78,14 @@ fun CatanBoardScene(
 
     // True only while placing — i.e. ghost markers are on the board. Picking is
     // gated on this so taps do no work the rest of the time.
-    val placing = ghostSettlements.isNotEmpty() || ghostRoads.isNotEmpty()
+    val placing = ghostSettlements.isNotEmpty() || ghostRoads.isNotEmpty() || ghostCities.isNotEmpty()
 
     // Map each ghost marker's renderable entity -> the board location it offers,
     // so a pick result resolves back to a Vertex/Edge. Rebuilt when the candidate
     // set changes (so stale entity ids from a previous build mode are dropped).
-    val entityToVertex = remember(ghostSettlements) { mutableMapOf<Int, Vertex>() }
+    // Settlement and city ghosts both resolve to a Vertex (onPickVertex routes by
+    // the armed build mode).
+    val entityToVertex = remember(ghostSettlements, ghostCities) { mutableMapOf<Int, Vertex>() }
     val entityToEdge = remember(ghostRoads) { mutableMapOf<Int, Edge>() }
 
     val solid: Material? = rememberMaterial(engine) {
@@ -201,6 +204,21 @@ fun CatanBoardScene(
                     },
                     scale = Scale(0.5f, 0.08f, 0.12f),
                     onCreate = { entityToEdge[it] = edge },
+                )
+            }
+
+            // Ghost markers for upgradeable settlements -> cities (city-sized cube
+            // sitting over your existing settlement).
+            ghostCities.forEach { vertex ->
+                val p = HexMath.vertexCenter(vertex, HEX_SIZE)
+                val inst = rememberMaterialInstance(solidMat, engine = engine).apply {
+                    setParameter("baseColor", ghostColor.x, ghostColor.y, ghostColor.z)
+                }
+                Cube(
+                    material = inst,
+                    position = Position(p.x, BUILDING_Y, p.z),
+                    size = 0.36f,
+                    onCreate = { entityToVertex[it] = vertex },
                 )
             }
         }

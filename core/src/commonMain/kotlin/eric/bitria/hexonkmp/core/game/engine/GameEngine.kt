@@ -10,12 +10,14 @@ import eric.bitria.hexonkmp.core.game.action.PlaceRoad
 import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
 import eric.bitria.hexonkmp.core.game.action.ProposeTrade
 import eric.bitria.hexonkmp.core.game.action.RespondTrade
+import eric.bitria.hexonkmp.core.game.action.UpgradeCity
 import eric.bitria.hexonkmp.core.game.board.BoardGenerator
 import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.config.ClassicCatan
 import eric.bitria.hexonkmp.core.game.config.ScenarioConfig
 import eric.bitria.hexonkmp.core.game.event.BankTraded
 import eric.bitria.hexonkmp.core.game.event.BuildingPlaced
+import eric.bitria.hexonkmp.core.game.event.CityUpgraded
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
@@ -64,6 +66,9 @@ interface GameEngine {
     fun legalSettlements(state: GameState, player: PlayerId): Set<Vertex>
     fun legalRoads(state: GameState, player: PlayerId): Set<Edge>
 
+    // Vertices where `player` may upgrade a settlement to a city right now.
+    fun legalCities(state: GameState, player: PlayerId): Set<Vertex>
+
     // Whether `player` can afford a buildable from their current hand. The UI
     // uses this to enable/disable build buttons during the Play phase.
     fun canAfford(state: GameState, player: PlayerId, buildable: Buildable): Boolean
@@ -108,6 +113,7 @@ class CatanGameEngine(
             is PlaceRoad ->
                 if (state.phase is GamePhase.Setup) placeRoad(state, actor, action.edge)
                 else buildRoad(state, actor, action.edge)
+            is UpgradeCity -> upgradeCity(state, actor, action.vertex)
             is BankTrade -> bankTrade(state, actor, action.swaps)
             is ProposeTrade -> proposeTrade(state, actor, action.give, action.receive)
             is FinalizeTrade -> finalizeTrade(state, actor, action.offerId, action.partner)
@@ -287,6 +293,34 @@ class CatanGameEngine(
         return GameResult(next, events = listOf(RoadPlaced(road)))
     }
 
+    private fun upgradeCity(state: GameState, actor: PlayerId, vertex: Vertex): GameResult {
+        if (state.phase !is GamePhase.Play) {
+            return GameResult(state, rejection = "Cannot build right now")
+        }
+        cityRejection(state, actor, vertex)?.let { return GameResult(state, rejection = it) }
+        val cost = state.config.rules.cost(Buildable.CITY)
+        if (!state.handOf(actor).covers(cost)) {
+            return GameResult(state, rejection = "Not enough resources")
+        }
+        val city = Building(actor, vertex, Building.Kind.CITY)
+        val next = state.copy(
+            buildings = state.buildings.map { if (it.vertex == vertex) city else it },
+            hands = spend(state.hands, actor, cost),
+        )
+        return GameResult(next, events = listOf(CityUpgraded(city)))
+    }
+
+    // Returns null if `actor` may upgrade the settlement at `vertex`, else why not.
+    private fun cityRejection(state: GameState, actor: PlayerId, vertex: Vertex): String? {
+        val building = state.buildingAt(vertex)
+        return when {
+            building == null -> "Build a settlement here first"
+            building.owner != actor -> "Not your settlement"
+            building.kind != Building.Kind.SETTLEMENT -> "Already a city"
+            else -> null
+        }
+    }
+
     // --- Setup: settlement placement ---
 
     private fun placeSettlement(state: GameState, actor: PlayerId, vertex: Vertex): GameResult {
@@ -420,6 +454,15 @@ class CatanGameEngine(
                 if (!canAfford(state, player, Buildable.ROAD)) emptySet()
                 else state.board.edges().filter { playRoadRejection(state, player, it) == null }.toSet()
         }
+    }
+
+    override fun legalCities(state: GameState, player: PlayerId): Set<Vertex> {
+        if (player != state.currentPlayer || state.phase !is GamePhase.Play) return emptySet()
+        if (!canAfford(state, player, Buildable.CITY)) return emptySet()
+        return state.buildings
+            .filter { it.owner == player && it.kind == Building.Kind.SETTLEMENT }
+            .map { it.vertex }
+            .toSet()
     }
 
     override fun canAfford(state: GameState, player: PlayerId, buildable: Buildable): Boolean =

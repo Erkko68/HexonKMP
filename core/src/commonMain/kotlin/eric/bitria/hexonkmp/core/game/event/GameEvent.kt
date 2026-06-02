@@ -47,6 +47,12 @@ data class BuildingPlaced(val building: Building) : GameEvent
 @SerialName("RoadPlaced")
 data class RoadPlaced(val road: Road) : GameEvent
 
+// A settlement was upgraded to a city. [building] is the resulting city; clients
+// replace the settlement at its vertex.
+@Serializable
+@SerialName("CityUpgraded")
+data class CityUpgraded(val building: Building) : GameEvent
+
 // A player traded with the bank: their hand lost [given] and gained [received].
 @Serializable
 @SerialName("BankTraded")
