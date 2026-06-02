@@ -5,8 +5,11 @@ import androidx.lifecycle.viewModelScope
 import eric.bitria.hexonkmp.core.game.action.BankSwap
 import eric.bitria.hexonkmp.core.game.action.BankTrade
 import eric.bitria.hexonkmp.core.game.action.EndTurn
+import eric.bitria.hexonkmp.core.game.action.FinalizeTrade
 import eric.bitria.hexonkmp.core.game.action.PlaceRoad
 import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
+import eric.bitria.hexonkmp.core.game.action.ProposeTrade
+import eric.bitria.hexonkmp.core.game.action.RespondTrade
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
 import eric.bitria.hexonkmp.core.game.engine.GameEngine
 import eric.bitria.hexonkmp.core.game.event.BuildingPlaced
@@ -106,6 +109,29 @@ class GameViewModel(
         val s = _state.value as? GameUiState.InGame ?: return
         if (!s.isMyTurn || swaps.isEmpty()) return
         repository.sendAction(BankTrade(swaps))
+    }
+
+    // --- Player-to-player trades ---
+
+    // Propose a trade to all opponents (current player only). The engine
+    // re-validates; the sheet stays open so the proposer can finalize a response.
+    fun proposeTrade(give: ResourceCount, receive: ResourceCount) {
+        val s = _state.value as? GameUiState.InGame ?: return
+        if (!s.isMyTurn || give.isEmpty || receive.isEmpty) return
+        repository.sendAction(ProposeTrade(give, receive))
+    }
+
+    // Accept or decline an opponent's pending offer (allowed off-turn).
+    fun respondTrade(offerId: Int, accept: Boolean) {
+        if (_state.value !is GameUiState.InGame) return
+        repository.sendAction(RespondTrade(offerId, accept))
+    }
+
+    // Finalize a pending offer with a player who accepted (proposer only).
+    fun finalizeTrade(offerId: Int, partner: PlayerId) {
+        val s = _state.value as? GameUiState.InGame ?: return
+        if (!s.isMyTurn) return
+        repository.sendAction(FinalizeTrade(offerId, partner))
     }
 
     // Build cards toggle a "build mode": entering it shows the legal spots as

@@ -1,7 +1,9 @@
 package eric.bitria.hexonkmp.ui.components
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,14 +43,17 @@ fun ResourceToken(
     )
 
     val content: @Composable () -> Unit = {
+        // Fill the fixed square and center the icon (+ optional count) within it,
+        // so the glyph is centered and the number isn't clipped at the edge.
         Column(
-            modifier = Modifier.padding(6.dp),
+            modifier = Modifier.fillMaxSize().padding(4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
             Icon(
                 Icons.Filled.Hexagon,
                 contentDescription = ResourceVisuals.label(resource),
-                modifier = Modifier.size(26.dp),
+                modifier = Modifier.size(22.dp),
             )
             if (count != null) {
                 Text("$count", style = MaterialTheme.typography.labelMedium)

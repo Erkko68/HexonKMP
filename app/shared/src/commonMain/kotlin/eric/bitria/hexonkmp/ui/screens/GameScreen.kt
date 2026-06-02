@@ -66,6 +66,9 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                 onPickVertex = viewModel::pickVertex,
                 onPickEdge = viewModel::pickEdge,
                 onBankTrade = viewModel::bankTrade,
+                onProposeTrade = viewModel::proposeTrade,
+                onRespondTrade = viewModel::respondTrade,
+                onFinalizeTrade = viewModel::finalizeTrade,
                 onEndTurn = viewModel::endTurn,
             )
             is GameUiState.Error -> ErrorContent(s.message, onRetry = viewModel::retryJoinGame)
@@ -140,6 +143,9 @@ private fun InGameContent(
     onPickVertex: (eric.bitria.hexonkmp.core.game.model.board.Vertex) -> Unit,
     onPickEdge: (eric.bitria.hexonkmp.core.game.model.board.Edge) -> Unit,
     onBankTrade: (List<eric.bitria.hexonkmp.core.game.action.BankSwap>) -> Unit,
+    onProposeTrade: (eric.bitria.hexonkmp.core.game.model.ResourceCount, eric.bitria.hexonkmp.core.game.model.ResourceCount) -> Unit,
+    onRespondTrade: (Int, Boolean) -> Unit,
+    onFinalizeTrade: (Int, eric.bitria.hexonkmp.core.game.model.PlayerId) -> Unit,
     onEndTurn: () -> Unit,
 ) {
     val setup = state.state.phase as? GamePhase.Setup
@@ -200,12 +206,13 @@ private fun InGameContent(
                 selected = state.buildMode == BuildMode.ROAD,
                 onClick = onToggleRoad,
             )
-            // Trade is available during your Play turn (not during setup placement);
-            // the sheet itself then shows what's actually possible.
+            // Trade is available during your Play turn (not setup) to propose/bank-
+            // trade, or whenever another player has an offer waiting for your reply.
+            val hasIncomingOffer = state.state.pendingTrades.any { it.proposer != state.myPlayerId }
             BuildCard(
                 icon = Icons.Filled.SwapHoriz,
                 label = "Trade",
-                enabled = state.isMyTurn && setup == null,
+                enabled = (state.isMyTurn && setup == null) || hasIncomingOffer,
                 selected = showTradeSheet,
                 onClick = { showTradeSheet = true },
             )
@@ -215,10 +222,17 @@ private fun InGameContent(
             TradeSheet(
                 ratio = bankRatio,
                 hand = state.state.handOf(state.myPlayerId),
+                me = state.myPlayerId,
+                isMyTurn = state.isMyTurn,
+                players = state.state.players,
+                offers = state.state.pendingTrades,
                 onBankTrade = { swaps ->
                     onBankTrade(swaps)
                     showTradeSheet = false
                 },
+                onProposeTrade = onProposeTrade,
+                onRespondTrade = onRespondTrade,
+                onFinalizeTrade = onFinalizeTrade,
                 onDismiss = { showTradeSheet = false },
             )
         }
