@@ -98,7 +98,7 @@ The transport envelope. Split by phase:
 | Client-local | `ConnectionFailed(reason)` (never sent over the wire)|
 
 `GameAction` variants so far: `EndTurn`, `PlaceSettlement(vertex)`,
-`PlaceRoad(edge)`.
+`PlaceRoad(edge)`, `BankTrade(give, get)`.
 
 ### `GameEvent` (engine output) — `core/game/event/`
 Pure domain deltas the engine emits. They describe *what changed* and have no

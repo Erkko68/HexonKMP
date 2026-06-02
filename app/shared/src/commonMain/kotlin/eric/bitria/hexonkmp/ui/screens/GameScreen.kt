@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddRoad
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -21,6 +22,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -28,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.ui.board.CatanBoardScene
+import eric.bitria.hexonkmp.ui.components.BankTradeSheet
 import eric.bitria.hexonkmp.ui.components.BuildCard
 import eric.bitria.hexonkmp.ui.components.ResourceCards
 import eric.bitria.hexonkmp.ui.components.RollBadge
@@ -55,10 +60,13 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                 canBuildRoad = viewModel.canBuild(s, Buildable.ROAD),
                 ghostSettlements = viewModel.ghostSettlements(s),
                 ghostRoads = viewModel.ghostRoads(s),
+                bankRatio = viewModel.bankTradeRatio(s),
+                tradableResources = viewModel.tradableResources(s),
                 onToggleSettlement = { viewModel.toggleBuildMode(BuildMode.SETTLEMENT) },
                 onToggleRoad = { viewModel.toggleBuildMode(BuildMode.ROAD) },
                 onPickVertex = viewModel::pickVertex,
                 onPickEdge = viewModel::pickEdge,
+                onBankTrade = viewModel::bankTrade,
                 onEndTurn = viewModel::endTurn,
             )
             is GameUiState.Error -> ErrorContent(s.message, onRetry = viewModel::retryJoinGame)
@@ -127,13 +135,17 @@ private fun InGameContent(
     canBuildRoad: Boolean,
     ghostSettlements: List<eric.bitria.hexonkmp.core.game.model.board.Vertex>,
     ghostRoads: List<eric.bitria.hexonkmp.core.game.model.board.Edge>,
+    bankRatio: Int,
+    tradableResources: List<eric.bitria.hexonkmp.core.game.model.board.Resource>,
     onToggleSettlement: () -> Unit,
     onToggleRoad: () -> Unit,
     onPickVertex: (eric.bitria.hexonkmp.core.game.model.board.Vertex) -> Unit,
     onPickEdge: (eric.bitria.hexonkmp.core.game.model.board.Edge) -> Unit,
+    onBankTrade: (List<eric.bitria.hexonkmp.core.game.action.BankSwap>) -> Unit,
     onEndTurn: () -> Unit,
 ) {
     val setup = state.state.phase as? GamePhase.Setup
+    var showTradeSheet by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
         // The 3D board fills the screen; HUD + cards overlay on top.
         CatanBoardScene(
@@ -189,6 +201,25 @@ private fun InGameContent(
                 enabled = canBuildRoad,
                 selected = state.buildMode == BuildMode.ROAD,
                 onClick = onToggleRoad,
+            )
+            BuildCard(
+                icon = Icons.Filled.SwapHoriz,
+                label = "Bank trade",
+                enabled = tradableResources.isNotEmpty(),
+                selected = showTradeSheet,
+                onClick = { showTradeSheet = true },
+            )
+        }
+
+        if (showTradeSheet) {
+            BankTradeSheet(
+                ratio = bankRatio,
+                hand = state.state.handOf(state.myPlayerId),
+                onConfirm = { swaps ->
+                    onBankTrade(swaps)
+                    showTradeSheet = false
+                },
+                onDismiss = { showTradeSheet = false },
             )
         }
 

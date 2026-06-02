@@ -17,6 +17,9 @@ data class RuleConfig(
     val victoryPointsToWin: Int = 10,
     val buildCosts: Map<Buildable, Map<Resource, Int>>,
     val pieceLimits: Map<Buildable, Int>,
+    // How many identical resources the bank takes for one of any other resource
+    // (classic Catan = 4:1; ports lower this, added later).
+    val bankTradeRatio: Int = 4,
 ) {
     // The cost of a buildable as a ResourceCount (empty if free/undefined).
     fun cost(buildable: Buildable): ResourceCount =

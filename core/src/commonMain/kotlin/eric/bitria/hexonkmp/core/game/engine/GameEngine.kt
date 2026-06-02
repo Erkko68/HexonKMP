@@ -1,5 +1,7 @@
 package eric.bitria.hexonkmp.core.game.engine
 
+import eric.bitria.hexonkmp.core.game.action.BankSwap
+import eric.bitria.hexonkmp.core.game.action.BankTrade
 import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.GameAction
 import eric.bitria.hexonkmp.core.game.action.PlaceRoad
@@ -8,6 +10,7 @@ import eric.bitria.hexonkmp.core.game.board.BoardGenerator
 import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.config.ClassicCatan
 import eric.bitria.hexonkmp.core.game.config.ScenarioConfig
+import eric.bitria.hexonkmp.core.game.event.BankTraded
 import eric.bitria.hexonkmp.core.game.event.BuildingPlaced
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
@@ -22,6 +25,7 @@ import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.Road
 import eric.bitria.hexonkmp.core.game.model.board.Edge
+import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.core.game.model.board.adjacentVertices
 import eric.bitria.hexonkmp.core.game.model.board.endpoints
@@ -92,7 +96,39 @@ class CatanGameEngine(
             is PlaceRoad ->
                 if (state.phase is GamePhase.Setup) placeRoad(state, actor, action.edge)
                 else buildRoad(state, actor, action.edge)
+            is BankTrade -> bankTrade(state, actor, action.swaps)
         }
+    }
+
+    // --- Play: bank trade (ratio:1 with the bank, applied atomically) ---
+
+    private fun bankTrade(state: GameState, actor: PlayerId, swaps: List<BankSwap>): GameResult {
+        if (state.phase !is GamePhase.Play) {
+            return GameResult(state, rejection = "You can only trade during your turn")
+        }
+        if (swaps.isEmpty()) {
+            return GameResult(state, rejection = "Nothing to trade")
+        }
+        if (swaps.any { it.give == it.get }) {
+            return GameResult(state, rejection = "Trade must be for a different resource")
+        }
+        val ratio = state.config.rules.bankTradeRatio
+        // Aggregate the whole trade: each swap costs `ratio` of its give-resource
+        // and yields 1 of its get-resource. Summing first lets us validate the
+        // total against the hand once, with no partial application.
+        var given = ResourceCount()
+        var received = ResourceCount()
+        for (swap in swaps) {
+            given += ResourceCount.of(swap.give to ratio)
+            received += ResourceCount.of(swap.get to 1)
+        }
+        if (!state.handOf(actor).covers(given)) {
+            return GameResult(state, rejection = "Not enough resources for this trade")
+        }
+        val next = state.copy(
+            hands = addGain(spend(state.hands, actor, given), actor, received),
+        )
+        return GameResult(next, events = listOf(BankTraded(actor, given, received)))
     }
 
     // --- Play: building (costs resources, unlike free setup placement) ---

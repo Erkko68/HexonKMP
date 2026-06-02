@@ -45,3 +45,12 @@ data class BuildingPlaced(val building: Building) : GameEvent
 @Serializable
 @SerialName("RoadPlaced")
 data class RoadPlaced(val road: Road) : GameEvent
+
+// A player traded with the bank: their hand lost [given] and gained [received].
+@Serializable
+@SerialName("BankTraded")
+data class BankTraded(
+    val player: PlayerId,
+    val given: ResourceCount,
+    val received: ResourceCount,
+) : GameEvent

@@ -2,6 +2,8 @@ package eric.bitria.hexonkmp.ui.screens.game
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import eric.bitria.hexonkmp.core.game.action.BankSwap
+import eric.bitria.hexonkmp.core.game.action.BankTrade
 import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.PlaceRoad
 import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
@@ -12,6 +14,7 @@ import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.event.RoadPlaced
+import eric.bitria.hexonkmp.core.game.event.BankTraded
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
 import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.model.GamePhase
@@ -19,6 +22,7 @@ import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Edge
+import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.core.protocol.ActionRejected
 import eric.bitria.hexonkmp.core.protocol.ConnectionFailed
@@ -76,6 +80,26 @@ class GameViewModel(
     fun endTurn() {
         val s = _state.value
         if (s is GameUiState.InGame && s.isMyTurn) repository.sendAction(EndTurn)
+    }
+
+    // --- Bank trade ---
+
+    // The bank's exchange ratio (e.g. 4:1) for the current game.
+    fun bankTradeRatio(s: GameUiState.InGame): Int = s.state.config.rules.bankTradeRatio
+
+    // Resources the player holds enough of to trade to the bank (>= ratio).
+    fun tradableResources(s: GameUiState.InGame): List<Resource> {
+        if (!s.isMyTurn || s.state.phase !is GamePhase.Play) return emptyList()
+        val ratio = bankTradeRatio(s)
+        val hand = s.state.handOf(s.myPlayerId)
+        return Resource.entries.filter { hand[it] >= ratio }
+    }
+
+    // Send one atomic bank trade bundling all the chosen swaps.
+    fun bankTrade(swaps: List<BankSwap>) {
+        val s = _state.value as? GameUiState.InGame ?: return
+        if (!s.isMyTurn || swaps.isEmpty()) return
+        repository.sendAction(BankTrade(swaps))
     }
 
     // Build cards toggle a "build mode": entering it shows the legal spots as
@@ -187,6 +211,10 @@ class GameViewModel(
             is PhaseChanged -> s.state.copy(phase = e.phase)
             is BuildingPlaced -> s.state.copy(buildings = s.state.buildings + e.building)
             is RoadPlaced -> s.state.copy(roads = s.state.roads + e.road)
+            is BankTraded -> s.state.copy(
+                hands = s.state.hands.merge(mapOf(e.player to e.received))
+                    .merge(mapOf(e.player to (ResourceCount() - e.given))),
+            )
         }
 
     // Adds each player's gains onto their current hand.
