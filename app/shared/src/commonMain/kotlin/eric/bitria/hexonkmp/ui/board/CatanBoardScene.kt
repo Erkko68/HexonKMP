@@ -17,7 +17,6 @@ import io.github.erkko68.filament.compose.scene.Color
 import io.github.erkko68.filament.compose.scene.Direction
 import io.github.erkko68.filament.compose.scene.Light
 import io.github.erkko68.filament.compose.scene.Position
-import io.github.erkko68.filament.compose.scene.Projection
 import io.github.erkko68.filament.compose.scene.SkyboxSource
 import io.github.erkko68.filament.compose.scene.primitives.Cube
 import io.github.erkko68.filament.compose.scene.rememberCameraState
@@ -49,35 +48,14 @@ fun CatanBoardScene(state: GameState, engine: Engine, modifier: Modifier = Modif
         (maxR + HEX_SIZE * 2.0f).toDouble()
     }
 
-    // Angled orthographic camera: eye above and in front of the board so cubes
-    // (buildings/roads) show some height, with parallel projection (no perspective
-    // distortion). up = +Y for a normal upright tilt.
-    val cameraState = rememberCameraState(
-        eye = Position(0f, 16f, 13f),
-        target = Position(0f, 0f, 0f),
-        up = Direction(0f, 1f, 0f),
-        projection = Projection.Orthographic(
-            left = -halfExtent, right = halfExtent,
-            bottom = -halfExtent, top = halfExtent,
-            near = 0.1, far = 100.0,
-        ),
-    )
+    // Angled orthographic camera driven by our own BoardCameraState (pan + zoom,
+    // fixed tilt). The eye/target/projection are computed there so board tiles
+    // and cube buildings share one consistent parallel projection.
+    val cameraState = rememberCameraState(up = Direction(0f, 1f, 0f))
+    val camera = rememberBoardCameraState(cameraState, baseHalfExtent = halfExtent.toFloat())
     val skybox = rememberSkyboxState(source = SkyboxSource.Color(Color(0.10f, 0.14f, 0.20f)))
 
-    // Keep the orthographic frustum matched to the viewport aspect ratio so the
-    // board is never stretched: widen (or heighten) the half-extents by aspect.
-    var aspect by remember { mutableStateOf(1f) }
-    cameraState.projection = if (aspect >= 1f) {
-        Projection.Orthographic(
-            left = -halfExtent * aspect, right = halfExtent * aspect,
-            bottom = -halfExtent, top = halfExtent, near = 0.1, far = 100.0,
-        )
-    } else {
-        Projection.Orthographic(
-            left = -halfExtent, right = halfExtent,
-            bottom = -halfExtent / aspect, top = halfExtent / aspect, near = 0.1, far = 100.0,
-        )
-    }
+    var viewportHeight by remember { mutableStateOf(1) }
 
     // The single LIT color material, instanced per color below.
     val material: Material? = rememberMaterial(engine) {
@@ -85,9 +63,12 @@ fun CatanBoardScene(state: GameState, engine: Engine, modifier: Modifier = Modif
     }
 
     FilamentSceneView(
-        modifier = modifier.onSizeChanged {
-            if (it.height > 0) aspect = it.width.toFloat() / it.height.toFloat()
-        },
+        modifier = modifier
+            .onSizeChanged {
+                viewportHeight = it.height
+                camera.setViewport(it.width, it.height)
+            }
+            .boardGestures(camera, viewportHeight = { viewportHeight }),
         engine = engine,
         cameraState = cameraState,
         skyboxState = skybox,

@@ -10,10 +10,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddRoad
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,9 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.model.GamePhase
-import eric.bitria.hexonkmp.core.game.model.ResourceCount
-import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.ui.board.CatanBoardScene
+import eric.bitria.hexonkmp.ui.components.BuildCard
+import eric.bitria.hexonkmp.ui.components.ResourceCards
 import eric.bitria.hexonkmp.ui.screens.game.GameUiState
 import eric.bitria.hexonkmp.ui.screens.game.GameViewModel
 import eric.bitria.hexonkmp.ui.theme.Spacing
@@ -137,7 +137,7 @@ private fun InGameContent(
                 if (setup != null) "Setup" else "Turn ${state.state.turn}",
                 style = MaterialTheme.typography.titleSmall,
             )
-            state.state.lastRoll?.let { roll -> Text("🎲 $roll", style = MaterialTheme.typography.bodyMedium) }
+            state.state.lastRoll?.let { roll -> Text("Roll: $roll", style = MaterialTheme.typography.bodyMedium) }
             Text(
                 if (state.isMyTurn) "Your turn" else "Waiting for ${state.state.currentPlayer.value}",
                 style = MaterialTheme.typography.bodyMedium,
@@ -154,8 +154,8 @@ private fun InGameContent(
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.md),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            BuildCard("🏠", "Settlement", enabled = canBuildSettlement, onClick = onBuildSettlement)
-            BuildCard("🛣️", "Road", enabled = canBuildRoad, onClick = onBuildRoad)
+            BuildCard(Icons.Filled.Home, "Settlement", enabled = canBuildSettlement, onClick = onBuildSettlement)
+            BuildCard(Icons.Filled.AddRoad, "Road", enabled = canBuildRoad, onClick = onBuildRoad)
         }
 
         // --- Resource cards, bottom-left ---
@@ -174,68 +174,6 @@ private fun InGameContent(
         }
     }
 }
-
-// A small build action presented as a card; dimmed and non-clickable when the
-// player can't currently build it (not their turn / not enough resources).
-@Composable
-private fun BuildCard(icon: String, label: String, enabled: Boolean, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        enabled = enabled,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(icon, style = MaterialTheme.typography.titleLarge)
-            Text(label, style = MaterialTheme.typography.labelSmall)
-        }
-    }
-}
-
-// The player's resource hand as a row of small cards (one per resource type that
-// they hold), bottom-left.
-@Composable
-private fun ResourceCards(hand: ResourceCount, modifier: Modifier = Modifier) {
-    val held = Resource.entries.filter { hand[it] > 0 }
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        if (held.isEmpty()) {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Text(
-                    "No resources",
-                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
-            held.forEach { res ->
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(res.label, style = MaterialTheme.typography.titleMedium)
-                        Text("${hand[res]}", style = MaterialTheme.typography.labelMedium)
-                    }
-                }
-            }
-        }
-    }
-}
-
-// Short display label per resource for the resource cards.
-private val Resource.label: String
-    get() = when (this) {
-        Resource.BRICK -> "🧱"
-        Resource.LUMBER -> "🌲"
-        Resource.WOOL -> "🐑"
-        Resource.GRAIN -> "🌾"
-        Resource.ORE -> "⛰️"
-    }
 
 @Composable
 private fun ErrorContent(message: String, onRetry: () -> Unit) {
