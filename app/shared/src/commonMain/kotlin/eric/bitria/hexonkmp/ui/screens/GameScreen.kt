@@ -33,7 +33,7 @@ import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.ui.board.CatanBoardScene
 import eric.bitria.hexonkmp.ui.components.TradeSheet
 import eric.bitria.hexonkmp.ui.components.BuildCard
-import eric.bitria.hexonkmp.ui.components.PlayerChip
+import eric.bitria.hexonkmp.ui.components.PlayerCard
 import eric.bitria.hexonkmp.ui.components.ResourceCards
 import eric.bitria.hexonkmp.ui.components.RollBadge
 import eric.bitria.hexonkmp.ui.components.TurnIndicator
@@ -184,12 +184,13 @@ private fun InGameContent(
             // dimmed/struck-through for anyone who has left.
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 state.state.players.forEach { p ->
-                    PlayerChip(
+                    PlayerCard(
                         player = p,
                         players = state.state.players,
                         me = state.myPlayerId,
                         current = p == state.state.currentPlayer,
                         present = p in state.state.present,
+                        size = 40,
                     )
                 }
             }
