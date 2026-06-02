@@ -116,16 +116,17 @@ fun rememberBoardCameraState(
     }
 }
 
-// All board gestures in ONE handler so tap / pan / zoom share a single arbiter:
-//  - a press that never moves beyond TAP_SLOP and releases quickly -> onTap
+// All board gestures in ONE handler so tap / pan / zoom share a single arbiter
+// (separate pointerInput nodes would compete for the same pointer and silently
+// eat taps):
+//  - a press that never moves beyond TAP_SLOP -> onTap (only when non-null)
 //  - single-pointer drag -> pan
 //  - two-pointer pinch -> zoom
-// Keeping tap here (instead of a separate detectTapGestures pointerInput) avoids
-// the two input nodes competing for the same pointer, which silently ate taps.
+// onTap is null when not placing, so taps cost nothing the rest of the time.
 fun Modifier.boardGestures(
     state: BoardCameraState,
     viewportHeight: () -> Int,
-    onTap: (Offset) -> Unit = {},
+    onTap: ((Offset) -> Unit)? = null,
 ): Modifier = this
     .pointerInput(state, onTap) {
         awaitEachGesture {
@@ -159,7 +160,7 @@ fun Modifier.boardGestures(
                 }
             }
             // No drag/pinch happened -> treat as a tap at the press position.
-            if (!moved && pointerCount == 1) onTap(down.position)
+            if (!moved && pointerCount == 1) onTap?.invoke(down.position)
         }
     }
     .pointerInput(state) {

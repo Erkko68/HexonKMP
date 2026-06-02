@@ -75,6 +75,10 @@ fun CatanBoardScene(
     var viewportHeight by remember { mutableStateOf(1) }
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
 
+    // True only while placing — i.e. ghost markers are on the board. Picking is
+    // gated on this so taps do no work the rest of the time.
+    val placing = ghostSettlements.isNotEmpty() || ghostRoads.isNotEmpty()
+
     // Map each ghost marker's renderable entity -> the board location it offers,
     // so a pick result resolves back to a Vertex/Edge. Rebuilt when the candidate
     // set changes (so stale entity ids from a previous build mode are dropped).
@@ -99,12 +103,13 @@ fun CatanBoardScene(
                 viewportHeight = it.height
                 camera.setViewport(it.width, it.height)
             }
-            // One gesture handler arbitrates tap vs pan/zoom. A tap (no drag)
-            // issues a Filament pick; if it hits a ghost marker entity, place there.
+            // One gesture handler arbitrates tap vs pan/zoom. We only run a pick
+            // query while placing (ghost markers are showing) — otherwise a tap
+            // does nothing and we skip the work entirely.
             .boardGestures(
                 state = camera,
                 viewportHeight = { viewportHeight },
-                onTap = { offset ->
+                onTap = if (!placing) null else { offset ->
                     pickAt(offset, viewState, boxSize) { entity ->
                         entityToVertex[entity]?.let { onPickVertex(it); return@pickAt }
                         entityToEdge[entity]?.let { onPickEdge(it) }
