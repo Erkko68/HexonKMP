@@ -138,6 +138,7 @@ private fun InGameContent(
             state = state.state,
             engine = engine,
             modifier = Modifier.fillMaxSize(),
+            me = state.myPlayerId,
             ghostSettlements = ghostSettlements,
             ghostRoads = ghostRoads,
             onPickVertex = onPickVertex,

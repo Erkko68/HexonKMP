@@ -28,4 +28,15 @@ object ResourceColors {
         val i = players.indexOf(player).coerceAtLeast(0)
         return palette[i % palette.size]
     }
+
+    // A desaturated, lightened tint of [color] for opaque "ghost" placement
+    // markers — recognisably the player's color but clearly a preview, not a real
+    // piece. amount=0 keeps the color; amount=1 is fully grey-white.
+    fun ghost(color: Color, amount: Float = 0.7f): Color {
+        val luma = 0.2126f * color.x + 0.7152f * color.y + 0.0722f * color.z
+        // Blend toward a light grey based on the color's luminance.
+        val target = 0.6f + 0.4f * luma
+        fun mix(c: Float) = c + (target - c) * amount
+        return Color(mix(color.x), mix(color.y), mix(color.z))
+    }
 }

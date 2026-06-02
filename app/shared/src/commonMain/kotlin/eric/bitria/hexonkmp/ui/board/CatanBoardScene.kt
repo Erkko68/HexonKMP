@@ -1,6 +1,5 @@
 package eric.bitria.hexonkmp.ui.board
 
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -10,7 +9,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import eric.bitria.hexonkmp.core.game.model.GameState
@@ -21,6 +19,7 @@ import io.github.erkko68.filament.Engine
 import io.github.erkko68.filament.LightManager
 import io.github.erkko68.filament.Material
 import io.github.erkko68.filament.compose.FilamentSceneView
+import io.github.erkko68.filament.compose.FilamentViewState
 import io.github.erkko68.filament.compose.rememberFilamentViewState
 import io.github.erkko68.filament.compose.scene.Color
 import io.github.erkko68.filament.compose.scene.Direction
@@ -39,19 +38,22 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 private const val HEX_SIZE = 1f
 private const val BUILDING_Y = 0.15f
 private const val ROAD_Y = 0.06f
-private const val GHOST_Y = 0.25f
+
 private val RAD_TO_DEG = 180f / kotlin.math.PI.toFloat()
 
 // Renders the authoritative GameState as a 3D Catan board: colored hexagon tiles,
 // cubes for settlements/cities, thin cubes for roads. When [ghostSettlements] /
-// [ghostRoads] are non-empty they're drawn as translucent markers the player can
-// tap to place there (via Filament picking). Pure view — no game logic here.
+// [ghostRoads] are non-empty they're drawn as OPAQUE, desaturated player-colored
+// markers the player taps to place there. Markers are opaque on purpose: Filament
+// picking reads the depth buffer, which transparent materials don't write to, so
+// only opaque geometry is hit-testable. Pure view — no game logic here.
 @OptIn(ExperimentalResourceApi::class)
 @Composable
 fun CatanBoardScene(
     state: GameState,
     engine: Engine,
     modifier: Modifier = Modifier,
+    me: eric.bitria.hexonkmp.core.game.model.PlayerId? = null,
     ghostSettlements: List<Vertex> = emptyList(),
     ghostRoads: List<Edge> = emptyList(),
     onPickVertex: (Vertex) -> Unit = {},
@@ -73,16 +75,20 @@ fun CatanBoardScene(
     var viewportHeight by remember { mutableStateOf(1) }
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
 
-    // Maps a ghost-marker renderable entity -> the vertex/edge it represents, so
-    // a pick result resolves back to a board location.
+    // Map each ghost marker's renderable entity -> the board location it offers,
+    // so a pick result resolves back to a Vertex/Edge. Rebuilt when the candidate
+    // set changes (so stale entity ids from a previous build mode are dropped).
     val entityToVertex = remember(ghostSettlements) { mutableMapOf<Int, Vertex>() }
     val entityToEdge = remember(ghostRoads) { mutableMapOf<Int, Edge>() }
 
-    val solid: Material? = rememberMaterial(engine, key = "solid") {
+    val solid: Material? = rememberMaterial(engine) {
         Res.readBytes("files/materials/board_color.filamat")
     }
-    val ghost: Material? = rememberMaterial(engine, key = "ghost") {
-        Res.readBytes("files/materials/board_ghost.filamat")
+
+    val ghostColor = remember(me, state.players) {
+        // Desaturated tint of the player's color; falls back to a neutral grey.
+        val base = me?.let { ResourceColors.forPlayer(it, state.players) } ?: Color(0.8f, 0.8f, 0.8f)
+        ResourceColors.ghost(base)
     }
 
     Box(
@@ -93,19 +99,18 @@ fun CatanBoardScene(
                 viewportHeight = it.height
                 camera.setViewport(it.width, it.height)
             }
-            // Tap to pick a ghost marker (only when ghosts are showing). Drag/zoom
-            // are handled by boardGestures below; a tap that doesn't hit a ghost
-            // simply resolves to nothing.
-            .pointerInput(ghostSettlements, ghostRoads) {
-                if (ghostSettlements.isEmpty() && ghostRoads.isEmpty()) return@pointerInput
-                detectTapGestures { offset ->
+            // One gesture handler arbitrates tap vs pan/zoom. A tap (no drag)
+            // issues a Filament pick; if it hits a ghost marker entity, place there.
+            .boardGestures(
+                state = camera,
+                viewportHeight = { viewportHeight },
+                onTap = { offset ->
                     pickAt(offset, viewState, boxSize) { entity ->
                         entityToVertex[entity]?.let { onPickVertex(it); return@pickAt }
                         entityToEdge[entity]?.let { onPickEdge(it) }
                     }
-                }
-            }
-            .boardGestures(camera, viewportHeight = { viewportHeight }),
+                },
+            ),
     ) {
         FilamentSceneView(
             modifier = Modifier.fillMaxSize(),
@@ -164,37 +169,34 @@ fun CatanBoardScene(
                 )
             }
 
-            // --- Ghost markers for legal placements (tappable) ---
-            val ghostMat = ghost
-            if (ghostMat != null) {
-                ghostSettlements.forEach { vertex ->
-                    val p = HexMath.vertexCenter(vertex, HEX_SIZE)
-                    val inst = rememberMaterialInstance(ghostMat, engine = engine).apply {
-                        setParameter("baseColor", 1f, 1f, 1f, 0.5f)
-                    }
-                    Cube(
-                        material = inst,
-                        position = Position(p.x, GHOST_Y, p.z),
-                        size = 0.30f,
-                        onCreate = { entityToVertex[it] = vertex },
-                    )
+            // --- Ghost markers for legal placements (opaque -> pickable) ---
+            ghostSettlements.forEach { vertex ->
+                val p = HexMath.vertexCenter(vertex, HEX_SIZE)
+                val inst = rememberMaterialInstance(solidMat, engine = engine).apply {
+                    setParameter("baseColor", ghostColor.x, ghostColor.y, ghostColor.z)
                 }
-                ghostRoads.forEach { edge ->
-                    val p = HexMath.edgeCenter(edge, HEX_SIZE)
-                    val angle = HexMath.edgeAngleY(edge, HEX_SIZE)
-                    val inst = rememberMaterialInstance(ghostMat, engine = engine).apply {
-                        setParameter("baseColor", 1f, 1f, 1f, 0.5f)
-                    }
-                    Cube(
-                        material = inst,
-                        position = Position(p.x, GHOST_Y, p.z),
-                        rotation = remember(angle) {
-                            Quaternion.fromAxisAngle(Direction(0f, 1f, 0f), angle * RAD_TO_DEG)
-                        },
-                        scale = Scale(0.5f, 0.1f, 0.14f),
-                        onCreate = { entityToEdge[it] = edge },
-                    )
+                Cube(
+                    material = inst,
+                    position = Position(p.x, BUILDING_Y, p.z),
+                    size = 0.26f,
+                    onCreate = { entityToVertex[it] = vertex },
+                )
+            }
+            ghostRoads.forEach { edge ->
+                val p = HexMath.edgeCenter(edge, HEX_SIZE)
+                val angle = HexMath.edgeAngleY(edge, HEX_SIZE)
+                val inst = rememberMaterialInstance(solidMat, engine = engine).apply {
+                    setParameter("baseColor", ghostColor.x, ghostColor.y, ghostColor.z)
                 }
+                Cube(
+                    material = inst,
+                    position = Position(p.x, ROAD_Y, p.z),
+                    rotation = remember(angle) {
+                        Quaternion.fromAxisAngle(Direction(0f, 1f, 0f), angle * RAD_TO_DEG)
+                    },
+                    scale = Scale(0.5f, 0.08f, 0.12f),
+                    onCreate = { entityToEdge[it] = edge },
+                )
             }
         }
     }
@@ -205,16 +207,14 @@ fun CatanBoardScene(
 // [onEntity] with the picked renderable entity id (0 if nothing was hit).
 private fun pickAt(
     offset: Offset,
-    viewState: io.github.erkko68.filament.compose.FilamentViewState,
+    viewState: FilamentViewState,
     boxSize: IntSize,
     onEntity: (Int) -> Unit,
 ) {
     val v = viewState.view ?: return
     val vw = v.viewport.width
     val vh = v.viewport.height
-    val lw = boxSize.width.coerceAtLeast(1)
-    val lh = boxSize.height.coerceAtLeast(1)
-    val px = (offset.x * vw / lw).toInt()
-    val py = vh - (offset.y * vh / lh).toInt()
+    val px = (offset.x * vw / boxSize.width.coerceAtLeast(1)).toInt()
+    val py = vh - (offset.y * vh / boxSize.height.coerceAtLeast(1)).toInt()
     viewState.pick(px, py) { result -> onEntity(result.renderable) }
 }
