@@ -17,7 +17,9 @@ import eric.bitria.hexonkmp.core.game.event.RoadPlaced
 import eric.bitria.hexonkmp.core.game.event.BankTraded
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
 import eric.bitria.hexonkmp.core.game.config.Buildable
+import eric.bitria.hexonkmp.core.game.model.Building
 import eric.bitria.hexonkmp.core.game.model.GamePhase
+import eric.bitria.hexonkmp.core.game.model.GameState
 // BuildMode is in this package (GameUiState.kt)
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
@@ -210,11 +212,27 @@ class GameViewModel(
             is ResourcesProduced -> s.state.copy(hands = s.state.hands.merge(e.gains))
             is PhaseChanged -> s.state.copy(phase = e.phase)
             is BuildingPlaced -> s.state.copy(buildings = s.state.buildings + e.building)
+                // In Play, building costs resources (Setup placement is free) — mirror
+                // the engine's spend so the local hand matches the server.
+                .let { if (it.phase is GamePhase.Play) it.spend(e.building.owner, e.building.kind.buildable) else it }
             is RoadPlaced -> s.state.copy(roads = s.state.roads + e.road)
+                .let { if (it.phase is GamePhase.Play) it.spend(e.road.owner, Buildable.ROAD) else it }
             is BankTraded -> s.state.copy(
                 hands = s.state.hands.merge(mapOf(e.player to e.received))
                     .merge(mapOf(e.player to (ResourceCount() - e.given))),
             )
+        }
+
+    // Deducts a buildable's cost from the owner's hand (the Play-phase build price).
+    private fun GameState.spend(player: PlayerId, buildable: Buildable): GameState {
+        val cost = config.rules.cost(buildable)
+        return copy(hands = hands.merge(mapOf(player to (ResourceCount() - cost))))
+    }
+
+    private val Building.Kind.buildable: Buildable
+        get() = when (this) {
+            Building.Kind.SETTLEMENT -> Buildable.SETTLEMENT
+            Building.Kind.CITY -> Buildable.CITY
         }
 
     // Adds each player's gains onto their current hand.

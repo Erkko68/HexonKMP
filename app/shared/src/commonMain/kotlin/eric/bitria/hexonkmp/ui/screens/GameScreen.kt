@@ -32,7 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.ui.board.CatanBoardScene
-import eric.bitria.hexonkmp.ui.components.BankTradeSheet
+import eric.bitria.hexonkmp.ui.components.TradeSheet
 import eric.bitria.hexonkmp.ui.components.BuildCard
 import eric.bitria.hexonkmp.ui.components.ResourceCards
 import eric.bitria.hexonkmp.ui.components.RollBadge
@@ -61,7 +61,6 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                 ghostSettlements = viewModel.ghostSettlements(s),
                 ghostRoads = viewModel.ghostRoads(s),
                 bankRatio = viewModel.bankTradeRatio(s),
-                tradableResources = viewModel.tradableResources(s),
                 onToggleSettlement = { viewModel.toggleBuildMode(BuildMode.SETTLEMENT) },
                 onToggleRoad = { viewModel.toggleBuildMode(BuildMode.ROAD) },
                 onPickVertex = viewModel::pickVertex,
@@ -136,7 +135,6 @@ private fun InGameContent(
     ghostSettlements: List<eric.bitria.hexonkmp.core.game.model.board.Vertex>,
     ghostRoads: List<eric.bitria.hexonkmp.core.game.model.board.Edge>,
     bankRatio: Int,
-    tradableResources: List<eric.bitria.hexonkmp.core.game.model.board.Resource>,
     onToggleSettlement: () -> Unit,
     onToggleRoad: () -> Unit,
     onPickVertex: (eric.bitria.hexonkmp.core.game.model.board.Vertex) -> Unit,
@@ -202,20 +200,22 @@ private fun InGameContent(
                 selected = state.buildMode == BuildMode.ROAD,
                 onClick = onToggleRoad,
             )
+            // Trade is available during your Play turn (not during setup placement);
+            // the sheet itself then shows what's actually possible.
             BuildCard(
                 icon = Icons.Filled.SwapHoriz,
-                label = "Bank trade",
-                enabled = tradableResources.isNotEmpty(),
+                label = "Trade",
+                enabled = state.isMyTurn && setup == null,
                 selected = showTradeSheet,
                 onClick = { showTradeSheet = true },
             )
         }
 
         if (showTradeSheet) {
-            BankTradeSheet(
+            TradeSheet(
                 ratio = bankRatio,
                 hand = state.state.handOf(state.myPlayerId),
-                onConfirm = { swaps ->
+                onBankTrade = { swaps ->
                     onBankTrade(swaps)
                     showTradeSheet = false
                 },
