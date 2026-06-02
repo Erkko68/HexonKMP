@@ -28,7 +28,7 @@ Everything Catan lives behind `reduce`. Everything network lives in front of it.
 core/        Shared KMP module — pure types + game engine + wire protocol.
              No server deps, no UI. Runs on every platform.
 server/      Ktor (Netty) server. Owns connections + the authoritative state.
-app/shared/  Compose Multiplatform client (Android, iOS, JVM, JS, wasmJs).
+app/shared/  Compose Multiplatform client (Android, iOS, JVM, JS).
 app/*App/    Thin per-platform launchers.
 ```
 
@@ -84,7 +84,13 @@ Player intents. The only thing a client can *do*.
 ```kotlin
 sealed interface GameAction
 data object EndTurn : GameAction
-// future: RollDice, BuildRoad, BuildSettlement, Trade, ...
+data class PlaceSettlement(val vertex: Vertex) : GameAction   // setup placement or play-phase build
+data class PlaceRoad(val edge: Edge) : GameAction
+data class BankTrade(val swaps: List<BankSwap>) : GameAction  // atomic ratio:1 swaps with the bank
+// Player-to-player trades:
+data class ProposeTrade(val give: ResourceCount, val receive: ResourceCount) : GameAction
+data class RespondTrade(val offerId: Int, val accept: Boolean) : GameAction
+data class FinalizeTrade(val offerId: Int, val partner: PlayerId) : GameAction
 ```
 
 ### `ServerEvent` (server → client) — `core/protocol/`
@@ -98,7 +104,8 @@ The transport envelope. Split by phase:
 | Client-local | `ConnectionFailed(reason)` (never sent over the wire)|
 
 `GameAction` variants so far: `EndTurn`, `PlaceSettlement(vertex)`,
-`PlaceRoad(edge)`, `BankTrade(give, get)`.
+`PlaceRoad(edge)`, `BankTrade(swaps)`, and the player-trade trio
+`ProposeTrade` / `RespondTrade` / `FinalizeTrade`.
 
 ### `GameEvent` (engine output) — `core/game/event/`
 Pure domain deltas the engine emits. They describe *what changed* and have no
@@ -109,6 +116,15 @@ sealed interface GameEvent
 data class TurnChanged(val currentPlayer: PlayerId, val turn: Int) : GameEvent
 data class DiceRolled(val die1: Int, val die2: Int, val total: Int) : GameEvent
 data class ResourcesProduced(val gains: Map<PlayerId, ResourceCount>) : GameEvent
+data class PhaseChanged(val phase: GamePhase) : GameEvent
+data class BuildingPlaced(val building: Building) : GameEvent
+data class RoadPlaced(val road: Road) : GameEvent
+data class BankTraded(val player: PlayerId, val given: ResourceCount, val received: ResourceCount) : GameEvent
+// Player-to-player trades:
+data class TradeProposed(val offer: TradeOffer) : GameEvent
+data class TradeResponded(val offerId: Int, val player: PlayerId, val accepted: Boolean) : GameEvent
+data class TradeFinalized(/* proposer/partner + the give/receive that swapped */) : GameEvent
+data object TradeOffersCleared : GameEvent   // the proposer's turn ended
 ```
 
 > **Why three types instead of one?** `GameAction` is what players request,
@@ -206,15 +222,68 @@ stateDiagram-v2
   and the first player's turn opens with the usual auto-roll.
 
 **Full placement validation lives in the engine:**
-- Settlement: the vertex must be empty *and* the distance rule holds (no
+- Settlement (setup): the vertex must be empty *and* the distance rule holds (no
   building on any adjacent vertex).
 - Road (setup): the edge must be empty *and* touch the settlement just placed.
+- Settlement (play): the above, **plus** it must touch one of your own roads, and
+  you must afford `RuleConfig.cost(SETTLEMENT)` (deducted on success).
+- Road (play): empty edge connected to your network, and you must afford
+  `cost(ROAD)`. **Connectivity is per-endpoint**: a road extends your network from
+  an endpoint vertex only if that vertex isn't occupied by *another player's*
+  building — you can't run a road through an opponent's settlement/city, even if
+  your own road reaches the far side.
+
+Play-phase builds cost resources; the engine `spend`s them and the client mirrors
+the deduction when it applies `BuildingPlaced` / `RoadPlaced` during `Play`.
 
 **Legal-move queries.** The engine also exposes pure
 `legalSettlements(state, player)` / `legalRoads(state, player)`. The server uses
 them implicitly (validation), and the **client reuses the very same engine** to
 offer only valid placements — the canonical example of the shared-engine payoff.
 These are also what a rendered board will use to highlight tappable spots.
+
+### Trading
+
+Two trade kinds, both Play-phase only and both re-validated server-side.
+
+**Bank trades** (`BankTrade`). A bundle of `BankSwap(give, get)`, each one
+`ratio` of a resource for 1 of another (`RuleConfig.bankTradeRatio`, classic
+4:1). Applied **atomically**: the engine sums every swap's gives/gets, validates
+the hand covers the total once, and applies all-or-nothing — emitting a single
+`BankTraded`. A swap *list* (not a pooled `ResourceCount`) is the natural shape
+because you can't pool different resources toward one swap.
+
+**Player-to-player trades** (`ProposeTrade` → `RespondTrade` → `FinalizeTrade`).
+This is the first feature with **pending cross-player state**:
+`GameState.pendingTrades: List<TradeOffer>` (with a monotonic `tradeCounter` for
+unique ids). Flow:
+
+```mermaid
+sequenceDiagram
+    participant P as Proposer (current)
+    participant Srv as GameSession
+    participant O as Opponent(s)
+    P->>Srv: ProposeTrade(give, receive)   // broadcast to all opponents
+    Srv-->>O: TradeProposed(offer)
+    O->>Srv: RespondTrade(offerId, accept) // allowed OFF-TURN
+    Srv-->>P: TradeResponded(offerId, player, accepted)
+    P->>Srv: FinalizeTrade(offerId, partner) // a player who accepted
+    Note over Srv: re-validate BOTH hands, swap, clear ALL offers
+    Srv-->>P: TradeFinalized(...)
+```
+
+- **Broadcast, not targeted**: one offer is visible to every opponent; any may
+  accept/decline.
+- **`RespondTrade` is the one action a non-current player may take.** It is
+  dispatched in `reduce` *before* the `actor != currentPlayer` guard; every other
+  action still requires it to be your turn.
+- **Anti-cheat = re-validate at both ends.** Propose checks the proposer covers
+  `give`; accept checks the responder covers `receive`; **finalize re-checks both
+  hands** (and that the partner is present and actually accepted), because hands
+  can change between proposing and finalizing.
+- **Finalize clears all offers**; the proposer re-proposes if they want more.
+  Offers also clear on any turn change (`TradeOffersCleared`), so they live only
+  for the proposer's turn.
 
 ## Server responsibilities — `server/`
 
@@ -332,10 +401,19 @@ changes — `GameUpdate` already carries any `GameEvent`.
 
 ## What is intentionally NOT here yet
 
-- Real Catan domain: board (hex grid, tiles, number tokens), resources, hands,
-  buildings, dev cards, robber, trading, victory points.
+- Remaining Catan domain: **cities** (settlement→city upgrade), dev cards, the
+  **robber** (a roll of 7 currently produces nothing but doesn't move a robber or
+  force discards), victory-point tracking / win detection, and longest-road /
+  largest-army.
+- Player-trade **UI**: the engine + events are in place and `GameViewModel`
+  mirrors `pendingTrades`, but the `TradeSheet` "Players" tab is still a
+  placeholder (the propose/respond/finalize UI is the next step).
 - Persistence (state is in-memory; a server restart loses games).
 - Auth (the `playerId` from the query string is trusted as-is).
 - Server-side reconnect of game state validation beyond the slot mapping.
+
+*Built this far:* hex board + generation, resources/hands, setup draft,
+auto-roll + production, settlement/road building with costs and connectivity
+(incl. opponent-building road blocking), bank trades, and the player-trade engine.
 
 These build on top of the seam above without reshaping it.
