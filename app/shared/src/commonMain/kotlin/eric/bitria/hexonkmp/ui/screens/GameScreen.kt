@@ -29,11 +29,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.ui.board.CatanBoardScene
 import eric.bitria.hexonkmp.ui.components.TradeSheet
 import eric.bitria.hexonkmp.ui.components.BuildCard
+import eric.bitria.hexonkmp.ui.components.PlayerChip
 import eric.bitria.hexonkmp.ui.components.ResourceCards
 import eric.bitria.hexonkmp.ui.components.RollBadge
 import eric.bitria.hexonkmp.ui.components.TurnIndicator
@@ -47,31 +47,36 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Derived placement options come from the ViewModel as their own flow, so the
+    // expensive legal-move scans run once per state change, not in composition.
+    val opts by viewModel.buildOptions.collectAsStateWithLifecycle()
 
     Box(Modifier.fillMaxSize()) {
         when (val s = state) {
             is GameUiState.Idle -> IdleContent(onFindGame = viewModel::joinGame)
             is GameUiState.Connecting -> ConnectingContent()
             is GameUiState.Waiting -> WaitingContent(s)
-            is GameUiState.InGame -> InGameContent(
-                state = s,
-                engine = engine,
-                canBuildSettlement = viewModel.canBuild(s, Buildable.SETTLEMENT),
-                canBuildRoad = viewModel.canBuild(s, Buildable.ROAD),
-                ghostSettlements = viewModel.ghostSettlements(s),
-                ghostRoads = viewModel.ghostRoads(s),
-                bankRatio = viewModel.bankTradeRatio(s),
-                onToggleSettlement = { viewModel.toggleBuildMode(BuildMode.SETTLEMENT) },
-                onToggleRoad = { viewModel.toggleBuildMode(BuildMode.ROAD) },
-                onPickVertex = viewModel::pickVertex,
-                onPickEdge = viewModel::pickEdge,
-                onBankTrade = viewModel::bankTrade,
-                onProposeTrade = viewModel::proposeTrade,
-                onRespondTrade = viewModel::respondTrade,
-                onFinalizeTrade = viewModel::finalizeTrade,
-                onCancelTrade = viewModel::cancelTrade,
-                onEndTurn = viewModel::endTurn,
-            )
+            is GameUiState.InGame -> {
+                InGameContent(
+                    state = s,
+                    engine = engine,
+                    canBuildSettlement = opts.canSettlement,
+                    canBuildRoad = opts.canRoad,
+                    ghostSettlements = opts.ghostSettlements,
+                    ghostRoads = opts.ghostRoads,
+                    bankRatio = viewModel.bankTradeRatio(s),
+                    onToggleSettlement = { viewModel.toggleBuildMode(BuildMode.SETTLEMENT) },
+                    onToggleRoad = { viewModel.toggleBuildMode(BuildMode.ROAD) },
+                    onPickVertex = viewModel::pickVertex,
+                    onPickEdge = viewModel::pickEdge,
+                    onBankTrade = viewModel::bankTrade,
+                    onProposeTrade = viewModel::proposeTrade,
+                    onRespondTrade = viewModel::respondTrade,
+                    onFinalizeTrade = viewModel::finalizeTrade,
+                    onCancelTrade = viewModel::cancelTrade,
+                    onEndTurn = viewModel::endTurn,
+                )
+            }
             is GameUiState.Error -> ErrorContent(s.message, onRetry = viewModel::retryJoinGame)
         }
 
@@ -165,13 +170,30 @@ private fun InGameContent(
             onPickEdge = onPickEdge,
         )
 
-        // --- Turn indicator, top-left ---
-        TurnIndicator(
-            phaseLabel = if (setup != null) "Setup" else "Turn ${state.state.turn}",
-            statusLabel = if (state.isMyTurn) "Your turn" else "Waiting for opponent",
-            isMyTurn = state.isMyTurn,
+        // --- Turn indicator + player chips, top-left ---
+        Column(
             modifier = Modifier.align(Alignment.TopStart).padding(Spacing.md),
-        )
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            TurnIndicator(
+                phaseLabel = if (setup != null) "Setup" else "Turn ${state.state.turn}",
+                statusLabel = if (state.isMyTurn) "Your turn" else "Waiting for opponent",
+                isMyTurn = state.isMyTurn,
+            )
+            // One chip per player in seat order: outlined for the current player,
+            // dimmed/struck-through for anyone who has left.
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                state.state.players.forEach { p ->
+                    PlayerChip(
+                        player = p,
+                        players = state.state.players,
+                        me = state.myPlayerId,
+                        current = p == state.state.currentPlayer,
+                        present = p in state.state.present,
+                    )
+                }
+            }
+        }
 
         // --- Dice roll badge, top-center (prominent) ---
         state.state.lastRoll?.let { roll ->

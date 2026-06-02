@@ -185,7 +185,7 @@ private fun PlayersTab(
             // right above the form that created it.
             if (offers.isNotEmpty()) {
                 Text("Your offers", style = MaterialTheme.typography.labelMedium)
-                offers.asReversed().forEach { offer -> ProposerOfferCard(offer, players, onFinalize, onCancel) }
+                offers.asReversed().forEach { offer -> ProposerOfferCard(offer, players, me, onFinalize, onCancel) }
             }
             ProposeForm(hand, onPropose)
         } else {
@@ -194,7 +194,7 @@ private fun PlayersTab(
                 Placeholder("No offers right now")
             } else {
                 Text("Offers for you", style = MaterialTheme.typography.labelMedium)
-                incoming.asReversed().forEach { offer -> IncomingOfferCard(offer, me, hand, onRespond) }
+                incoming.asReversed().forEach { offer -> IncomingOfferCard(offer, me, players, hand, onRespond) }
             }
         }
     }
@@ -254,6 +254,7 @@ private fun ProposeForm(hand: ResourceCount, onPropose: (ResourceCount, Resource
 private fun ProposerOfferCard(
     offer: TradeOffer,
     players: List<PlayerId>,
+    me: PlayerId,
     onFinalize: (Int, PlayerId) -> Unit,
     onCancel: (Int) -> Unit,
 ) {
@@ -267,16 +268,28 @@ private fun ProposerOfferCard(
             }
             val responders = players.filter { it in offer.responses }
             if (responders.isEmpty()) {
-                Text("Waiting for responses…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Waiting for responses…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             } else {
                 responders.forEach { player ->
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        Text(player.value, style = MaterialTheme.typography.bodyMedium)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        PlayerChip(player, players, me)
                         Box(Modifier.weight(1f))
                         if (offer.responses[player] == true) {
                             Button(onClick = { onFinalize(offer.id, player) }) { Text("Trade") }
                         } else {
-                            Text("declined", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "declined",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
@@ -288,12 +301,26 @@ private fun ProposerOfferCard(
 // Opponent's view of an incoming offer. The offer is described from the
 // proposer's side (gives -> wants); accepting means you provide what they want.
 @Composable
-private fun IncomingOfferCard(offer: TradeOffer, me: PlayerId, hand: ResourceCount, onRespond: (Int, Boolean) -> Unit) {
+private fun IncomingOfferCard(
+    offer: TradeOffer,
+    me: PlayerId,
+    players: List<PlayerId>,
+    hand: ResourceCount,
+    onRespond: (Int, Boolean) -> Unit,
+) {
     val myResponse = offer.responses[me]
     val canAccept = hand.covers(offer.receive)
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text("${offer.proposer.value} offers", style = MaterialTheme.typography.bodyMedium)
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                PlayerChip(offer.proposer, players, me)
+                Text("offers", style = MaterialTheme.typography.bodyMedium)
+            }
+            // From your seat: you hand over the right side and receive the left.
             OfferLine(offer.give, offer.receive)
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Button(
@@ -306,15 +333,26 @@ private fun IncomingOfferCard(offer: TradeOffer, me: PlayerId, hand: ResourceCou
                 ) { Text("Decline") }
             }
             when {
-                myResponse == true -> Text("You accepted — waiting for confirmation", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                myResponse == false -> Text("You declined", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                !canAccept -> Text("You don't have what they want", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                myResponse == true -> StatusText("You accepted — waiting for confirmation")
+                myResponse == false -> StatusText("You declined")
+                !canAccept -> StatusText("You don't have what they want", error = true)
             }
         }
     }
 }
 
-// A "give -> receive" line of resource bundles.
+@Composable
+private fun StatusText(text: String, error: Boolean = false) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodySmall,
+        color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+    )
+}
+
+// A "give -> receive" line of resource bundles, with captions so it's clear
+// which side is which.
 @Composable
 private fun OfferLine(give: ResourceCount, receive: ResourceCount) {
     Row(

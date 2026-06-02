@@ -46,8 +46,11 @@ import eric.bitria.hexonkmp.core.protocol.WaitingForPlayers
 import eric.bitria.hexonkmp.data.repository.GameRepository
 import eric.bitria.hexonkmp.data.storage.DevicePreferences
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -57,6 +60,14 @@ class GameViewModel(
 ) : ViewModel() {
     private val _state = MutableStateFlow<GameUiState>(GameUiState.Idle)
     val state: StateFlow<GameUiState> = _state.asStateFlow()
+
+    // Derived placement options (which build cards to enable, ghost markers to
+    // draw). Computed once per state change — including buildMode toggles, which
+    // are part of the state — off the UI/composition, so the legal-move board
+    // scans never run during recomposition.
+    val buildOptions: StateFlow<BuildOptions> =
+        _state.map { (it as? GameUiState.InGame)?.let(::computeBuildOptions) ?: BuildOptions.NONE }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, BuildOptions.NONE)
 
     private var myPlayerId: PlayerId? = null
 
@@ -168,24 +179,30 @@ class GameViewModel(
         _state.update { (it as? GameUiState.InGame)?.copy(buildMode = BuildMode.NONE) ?: it }
     }
 
-    // Legal ghost spots to render, only when the matching build mode is active.
-    fun ghostSettlements(s: GameUiState.InGame): List<Vertex> =
-        if (s.buildMode == BuildMode.SETTLEMENT) engine.legalSettlements(s.state, s.myPlayerId).toList()
-        else emptyList()
+    // Everything the HUD needs about placement, computed from a SINGLE pass over
+    // the board's legal moves: which build cards to enable, and the ghost markers
+    // to draw for the armed mode. Each legal-move query scans the whole board, so
+    // the callsite memoizes this (remember keyed on state + buildMode) to avoid
+    // rescanning on every recomposition.
+    data class BuildOptions(
+        val canSettlement: Boolean,
+        val canRoad: Boolean,
+        val ghostSettlements: List<Vertex>,
+        val ghostRoads: List<Edge>,
+    ) {
+        companion object { val NONE = BuildOptions(false, false, emptyList(), emptyList()) }
+    }
 
-    fun ghostRoads(s: GameUiState.InGame): List<Edge> =
-        if (s.buildMode == BuildMode.ROAD) engine.legalRoads(s.state, s.myPlayerId).toList()
-        else emptyList()
-
-    // Whether the given buildable's card should be enabled — i.e. at least one
-    // legal placement exists right now (setup awaits it / play affords it).
-    fun canBuild(s: GameUiState.InGame, buildable: Buildable): Boolean {
-        if (!s.isMyTurn) return false
-        return when (buildable) {
-            Buildable.SETTLEMENT -> engine.legalSettlements(s.state, s.myPlayerId).isNotEmpty()
-            Buildable.ROAD -> engine.legalRoads(s.state, s.myPlayerId).isNotEmpty()
-            else -> false
-        }
+    private fun computeBuildOptions(s: GameUiState.InGame): BuildOptions {
+        if (!s.isMyTurn) return BuildOptions.NONE
+        val settlements = engine.legalSettlements(s.state, s.myPlayerId)
+        val roads = engine.legalRoads(s.state, s.myPlayerId)
+        return BuildOptions(
+            canSettlement = settlements.isNotEmpty(),
+            canRoad = roads.isNotEmpty(),
+            ghostSettlements = if (s.buildMode == BuildMode.SETTLEMENT) settlements.toList() else emptyList(),
+            ghostRoads = if (s.buildMode == BuildMode.ROAD) roads.toList() else emptyList(),
+        )
     }
 
     fun retryJoinGame() {
