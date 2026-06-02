@@ -64,8 +64,13 @@ fun ResourceToken(
         }
     }
 
-    if (onClick != null && enabled) {
-        Card(onClick = onClick, modifier = cardModifier, shape = shape, colors = colors) { content() }
+    // Keep the SAME node whether or not it's currently enabled — toggle the
+    // clickable Card's `enabled` instead of swapping between a clickable and a
+    // plain Card. Swapping node types when `enabled` flips (e.g. selecting the
+    // opposite side of a trade) disposes/recreates the node and can swallow an
+    // in-flight press, which showed up as "the first click doesn't register".
+    if (onClick != null) {
+        Card(onClick = onClick, enabled = enabled, modifier = cardModifier, shape = shape, colors = colors) { content() }
     } else {
         Card(modifier = cardModifier, shape = shape, colors = colors) { content() }
     }
