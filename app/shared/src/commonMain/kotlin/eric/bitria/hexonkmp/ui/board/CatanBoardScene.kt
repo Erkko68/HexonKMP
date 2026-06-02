@@ -45,9 +45,13 @@ private const val ROAD_Y = 0.06f
 // Number tokens (glb models, exported flat from Blender) sit just above the tile
 // at its center. Scale/height are eyeballed for a ~1-unit hex — tweak to taste.
 private const val NUMBER_Y = 0.08f
-private const val NUMBER_SCALE = 0.5f
+private const val NUMBER_SCALE = 0.8f
 
 private val RAD_TO_DEG = 180f / kotlin.math.PI.toFloat()
+
+// Lay the (flat) number models with a 45° counterclockwise spin about the
+// up axis (positive Y rotation reads CCW from the top-down camera).
+private val NUMBER_ROTATION = Quaternion.fromAxisAngle(Direction(0f, 1f, 0f), 45f)
 
 // Renders the authoritative GameState as a 3D Catan board: colored hexagon tiles,
 // cubes for settlements/cities, thin cubes for roads. When [ghostSettlements] /
@@ -175,6 +179,7 @@ fun CatanBoardScene(
                 GltfInstance(
                     asset = asset,
                     position = Position(c.x, NUMBER_Y, c.z),
+                    rotation = NUMBER_ROTATION,
                     scale = Scale(NUMBER_SCALE),
                     onCreate = {
                         val rm = engine.getRenderableManager()
