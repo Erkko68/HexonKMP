@@ -274,27 +274,24 @@ private fun ProposerOfferCard(
                     Icon(Icons.Filled.Close, contentDescription = "cancel offer")
                 }
             }
+            HorizontalDivider()
             val responders = players.filter { it in offer.responses }
             if (responders.isEmpty()) {
-                HorizontalDivider()
                 StatusText("Waiting for responses…")
             } else {
+                // One centered row per responder: the player + a button. Accepted
+                // shows a live "Trade" (finalize) button; declined a disabled one.
                 responders.forEach { player ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
                     ) {
                         PlayerCard(player, players, me, size = 36)
-                        Box(Modifier.weight(1f))
                         if (offer.responses[player] == true) {
                             Button(onClick = { onFinalize(offer.id, player) }) { Text("Trade") }
                         } else {
-                            Text(
-                                "declined",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Button(onClick = {}, enabled = false) { Text("Declined") }
                         }
                     }
                 }
@@ -321,15 +318,8 @@ private fun IncomingOfferCard(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Proposer card on the left; the offered resources centered beside it.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                PlayerCard(offer.proposer, players, me)
-                OfferLine(offer.give, offer.receive, modifier = Modifier.weight(1f))
-            }
+            // [Player]: [give] -> [receive], centered.
+            OfferLine(offer.give, offer.receive, leading = { PlayerCard(offer.proposer, players, me, size = 40) })
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Button(
                     onClick = { onRespond(offer.id, true) },
@@ -340,11 +330,7 @@ private fun IncomingOfferCard(
                     enabled = myResponse != false,
                 ) { Text("Decline") }
             }
-            when {
-                myResponse == true -> StatusText("You accepted — waiting for confirmation")
-                myResponse == false -> StatusText("You declined")
-                !canAccept -> StatusText("You don't have what they want", error = true)
-            }
+            if (!canAccept) StatusText("You don't have what they want", error = true)
         }
     }
 }
@@ -359,14 +345,25 @@ private fun StatusText(text: String, error: Boolean = false) {
     )
 }
 
-// A "give -> receive" line of resource bundles, centered within its width.
+// A "give -> receive" line of resource bundles, centered within its width. An
+// optional [leading] slot (e.g. a player card) is shown before a ":" separator,
+// giving the "[Player]: [give] -> [receive]" form.
 @Composable
-private fun OfferLine(give: ResourceCount, receive: ResourceCount, modifier: Modifier = Modifier) {
+private fun OfferLine(
+    give: ResourceCount,
+    receive: ResourceCount,
+    modifier: Modifier = Modifier,
+    leading: (@Composable () -> Unit)? = null,
+) {
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
     ) {
+        if (leading != null) {
+            leading()
+            Text(":", style = MaterialTheme.typography.titleMedium)
+        }
         ResourceBundle(give)
         Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "for")
         ResourceBundle(receive)

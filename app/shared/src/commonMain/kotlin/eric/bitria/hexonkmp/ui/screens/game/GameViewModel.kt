@@ -33,7 +33,6 @@ import eric.bitria.hexonkmp.core.game.model.GameState
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Edge
-import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.core.protocol.ActionRejected
 import eric.bitria.hexonkmp.core.protocol.ConnectionFailed
@@ -108,14 +107,6 @@ class GameViewModel(
 
     // The bank's exchange ratio (e.g. 4:1) for the current game.
     fun bankTradeRatio(s: GameUiState.InGame): Int = s.state.config.rules.bankTradeRatio
-
-    // Resources the player holds enough of to trade to the bank (>= ratio).
-    fun tradableResources(s: GameUiState.InGame): List<Resource> {
-        if (!s.isMyTurn || s.state.phase !is GamePhase.Play) return emptyList()
-        val ratio = bankTradeRatio(s)
-        val hand = s.state.handOf(s.myPlayerId)
-        return Resource.entries.filter { hand[it] >= ratio }
-    }
 
     // Send one atomic bank trade bundling all the chosen swaps.
     fun bankTrade(swaps: List<BankSwap>) {
