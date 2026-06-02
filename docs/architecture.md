@@ -91,6 +91,7 @@ data class BankTrade(val swaps: List<BankSwap>) : GameAction  // atomic ratio:1 
 data class ProposeTrade(val give: ResourceCount, val receive: ResourceCount) : GameAction
 data class RespondTrade(val offerId: Int, val accept: Boolean) : GameAction
 data class FinalizeTrade(val offerId: Int, val partner: PlayerId) : GameAction
+data class CancelTrade(val offerId: Int) : GameAction          // proposer withdraws one offer
 ```
 
 ### `ServerEvent` (server → client) — `core/protocol/`
@@ -104,8 +105,8 @@ The transport envelope. Split by phase:
 | Client-local | `ConnectionFailed(reason)` (never sent over the wire)|
 
 `GameAction` variants so far: `EndTurn`, `PlaceSettlement(vertex)`,
-`PlaceRoad(edge)`, `BankTrade(swaps)`, and the player-trade trio
-`ProposeTrade` / `RespondTrade` / `FinalizeTrade`.
+`PlaceRoad(edge)`, `BankTrade(swaps)`, and the player-trade actions
+`ProposeTrade` / `RespondTrade` / `FinalizeTrade` / `CancelTrade`.
 
 ### `GameEvent` (engine output) — `core/game/event/`
 Pure domain deltas the engine emits. They describe *what changed* and have no
@@ -124,7 +125,8 @@ data class BankTraded(val player: PlayerId, val given: ResourceCount, val receiv
 data class TradeProposed(val offer: TradeOffer) : GameEvent
 data class TradeResponded(val offerId: Int, val player: PlayerId, val accepted: Boolean) : GameEvent
 data class TradeFinalized(/* proposer/partner + the give/receive that swapped */) : GameEvent
-data object TradeOffersCleared : GameEvent   // the proposer's turn ended
+data object TradeOffersCleared : GameEvent    // the proposer's turn ended
+data class TradeCancelled(val offerId: Int) : GameEvent  // proposer withdrew one offer
 ```
 
 > **Why three types instead of one?** `GameAction` is what players request,
@@ -283,7 +285,8 @@ sequenceDiagram
   can change between proposing and finalizing.
 - **Finalize clears all offers**; the proposer re-proposes if they want more.
   Offers also clear on any turn change (`TradeOffersCleared`), so they live only
-  for the proposer's turn.
+  for the proposer's turn. The proposer can also withdraw a single offer with
+  `CancelTrade` (`TradeCancelled`).
 
 ## Server responsibilities — `server/`
 
