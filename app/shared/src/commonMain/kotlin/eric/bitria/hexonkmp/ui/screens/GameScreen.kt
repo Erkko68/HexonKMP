@@ -30,6 +30,8 @@ import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.ui.board.CatanBoardScene
 import eric.bitria.hexonkmp.ui.components.BuildCard
 import eric.bitria.hexonkmp.ui.components.ResourceCards
+import eric.bitria.hexonkmp.ui.components.RollBadge
+import eric.bitria.hexonkmp.ui.components.TurnIndicator
 import eric.bitria.hexonkmp.ui.screens.game.BuildMode
 import eric.bitria.hexonkmp.ui.screens.game.GameUiState
 import eric.bitria.hexonkmp.ui.screens.game.GameViewModel
@@ -145,30 +147,31 @@ private fun InGameContent(
             onPickEdge = onPickEdge,
         )
 
-        // --- Status HUD, top-center ---
-        Column(
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = Spacing.sm),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Text(
-                if (setup != null) "Setup" else "Turn ${state.state.turn}",
-                style = MaterialTheme.typography.titleSmall,
-            )
-            state.state.lastRoll?.let { roll -> Text("Roll: $roll", style = MaterialTheme.typography.bodyMedium) }
-            Text(
-                if (state.isMyTurn) "Your turn" else "Waiting for ${state.state.currentPlayer.value}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (state.isMyTurn) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            state.notice?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-            }
+        // --- Turn indicator, top-left ---
+        TurnIndicator(
+            phaseLabel = if (setup != null) "Setup" else "Turn ${state.state.turn}",
+            statusLabel = if (state.isMyTurn) "Your turn" else "Waiting for opponent",
+            isMyTurn = state.isMyTurn,
+            modifier = Modifier.align(Alignment.TopStart).padding(Spacing.md),
+        )
+
+        // --- Dice roll badge, top-center (prominent) ---
+        state.state.lastRoll?.let { roll ->
+            RollBadge(roll, modifier = Modifier.align(Alignment.TopCenter).padding(top = Spacing.md))
         }
 
-        // --- Build cards, bottom-center. Tapping arms a build mode (highlighted)
-        // which shows ghost markers on the board; tap a marker to place. ---
+        // --- Transient notice, just below the roll badge ---
+        state.notice?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 72.dp),
+            )
+        }
+
+        // --- Build cards (icon-only), bottom-center. Tapping arms a build mode
+        // (highlighted) which shows ghost markers on the board; tap to place. ---
         Row(
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.md),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),

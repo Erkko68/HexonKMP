@@ -15,11 +15,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import eric.bitria.hexonkmp.ui.theme.Spacing
 
-// A build action shown as a small card with a vector icon + label. Dimmed and
-// non-clickable when the action isn't currently available (not your turn, or you
-// can't afford it). When [selected] (its build mode is armed), it's highlighted
-// with the primary color. Uses Material vector icons rather than emoji, which the
-// Compose canvas font can't render.
+// A build action shown as an icon-only square card. Dimmed and non-clickable
+// when the action isn't currently available (not your turn, or you can't afford
+// it). When [selected] (its build mode is armed), it's highlighted with the
+// primary color. [label] is the icon's accessibility description.
 @Composable
 fun BuildCard(
     icon: ImageVector,
@@ -40,12 +39,10 @@ fun BuildCard(
             else MaterialTheme.colorScheme.onSurfaceVariant,
         ),
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Icon(icon, contentDescription = label, modifier = Modifier.size(28.dp))
-            Text(label, style = MaterialTheme.typography.labelSmall)
-        }
+        Icon(
+            icon,
+            contentDescription = label,
+            modifier = Modifier.padding(Spacing.sm).size(32.dp),
+        )
     }
 }

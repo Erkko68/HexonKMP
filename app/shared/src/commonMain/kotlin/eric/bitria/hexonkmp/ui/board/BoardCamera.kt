@@ -66,10 +66,10 @@ class BoardCameraState internal constructor(
         val rightX = upZ
         val rightZ = -upX
 
-        // Drag right (dx>0) should move the world left under the finger, so the
-        // content follows the finger -> subtract along right; same for up/forward.
-        panX -= (dxScreen * rightX + dyScreen * upX) * worldPerPixel
-        panZ -= (dxScreen * rightZ + dyScreen * upZ) * worldPerPixel
+        // Move the camera target along the screen-aligned ground basis so the
+        // board tracks the drag direction (drag right -> view moves right).
+        panX += (dxScreen * rightX + dyScreen * upX) * worldPerPixel
+        panZ += (dxScreen * rightZ + dyScreen * upZ) * worldPerPixel
         apply()
     }
 

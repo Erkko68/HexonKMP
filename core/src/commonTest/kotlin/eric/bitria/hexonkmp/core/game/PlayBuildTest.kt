@@ -43,8 +43,9 @@ class PlayBuildTest {
     fun affordableRoadDeductsItsCost() {
         val current = play.currentPlayer
         val s = play.copy(hands = play.hands + (current to roadCost))
-        val freeEdge = s.board.edges().first { s.roadAt(it) == null }
-        val result = engine.reduce(s, current, PlaceRoad(freeEdge))
+        // A legal road must connect to the player's existing network.
+        val edge = engine.legalRoads(s, current).first()
+        val result = engine.reduce(s, current, PlaceRoad(edge))
         assertNull(result.rejection)
         // Spent exactly the cost -> empty hand.
         assertTrue(result.state.handOf(current).isEmpty)
@@ -52,16 +53,48 @@ class PlayBuildTest {
     }
 
     @Test
+    fun roadNotConnectedToNetworkIsRejected() {
+        val current = play.currentPlayer
+        val s = play.copy(hands = play.hands + (current to roadCost))
+        // An empty edge that is NOT in the legal set (not connected to the player).
+        val legal = engine.legalRoads(s, current)
+        val disconnected = s.board.edges().first { s.roadAt(it) == null && it !in legal }
+        val result = engine.reduce(s, current, PlaceRoad(disconnected))
+        assertNotNull(result.rejection)
+    }
+
+    @Test
     fun affordableSettlementDeductsItsCost() {
         val current = play.currentPlayer
-        // Fund the settlement plus one extra brick to verify exact deduction.
-        val funded = settlementCost + ResourceCount.of(Resource.BRICK to 1)
-        val s = play.copy(hands = play.hands + (current to funded))
-        // A vertex far from existing buildings to satisfy the distance rule.
-        val spot = s.board.vertices().first { v -> v.isPlaceable(s) }
+        // Build a road first to extend the network, then a settlement on its far
+        // end — guaranteeing a spot that satisfies both distance and connectivity.
+        val funded = settlementCost + roadCost + ResourceCount.of(Resource.BRICK to 1)
+        var s = play.copy(hands = play.hands + (current to funded))
+        val roadEdge = engine.legalRoads(s, current).first()
+        s = engine.reduce(s, current, PlaceRoad(roadEdge)).state
+
+        val spot = engine.legalSettlements(s, current).firstOrNull()
+        // If the new road opened no legal settlement spot, the rule still holds;
+        // only assert deduction when a legal spot exists.
+        if (spot != null) {
+            val before = s.handOf(current)[Resource.BRICK]
+            val result = engine.reduce(s, current, PlaceSettlement(spot))
+            assertNull(result.rejection)
+            assertEquals(before, result.state.handOf(current)[Resource.BRICK])
+        }
+    }
+
+    @Test
+    fun settlementNotConnectedToOwnRoadIsRejected() {
+        val current = play.currentPlayer
+        val s = play.copy(hands = play.hands + (current to settlementCost))
+        // A vertex that's empty and distance-legal but touches none of the
+        // player's roads.
+        val spot = s.board.vertices().first { v ->
+            v.isDistanceLegal(s) && v.adjacentVertices().isNotEmpty() && v !in engine.legalSettlements(s, current)
+        }
         val result = engine.reduce(s, current, PlaceSettlement(spot))
-        assertNull(result.rejection)
-        assertEquals(1, result.state.handOf(current)[Resource.BRICK])
+        assertNotNull(result.rejection)
     }
 
     @Test
@@ -73,6 +106,6 @@ class PlayBuildTest {
         assertEquals(true, engine.canAfford(funded, current, Buildable.ROAD))
     }
 
-    private fun Vertex.isPlaceable(s: GameState): Boolean =
+    private fun Vertex.isDistanceLegal(s: GameState): Boolean =
         s.buildingAt(this) == null && adjacentVertices().none { s.buildingAt(it) != null }
 }

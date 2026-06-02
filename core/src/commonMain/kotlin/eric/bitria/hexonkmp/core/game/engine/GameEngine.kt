@@ -24,6 +24,9 @@ import eric.bitria.hexonkmp.core.game.model.Road
 import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.core.game.model.board.adjacentVertices
+import eric.bitria.hexonkmp.core.game.model.board.endpoints
+import eric.bitria.hexonkmp.core.game.model.board.incidentEdges
+import eric.bitria.hexonkmp.core.game.model.board.isConnectedTo
 import eric.bitria.hexonkmp.core.game.model.board.touches
 import kotlin.random.Random
 
@@ -98,7 +101,7 @@ class CatanGameEngine(
         if (state.phase !is GamePhase.Play) {
             return GameResult(state, rejection = "Cannot build right now")
         }
-        settlementRejection(state, vertex)?.let { return GameResult(state, rejection = it) }
+        playSettlementRejection(state, actor, vertex)?.let { return GameResult(state, rejection = it) }
         val cost = state.config.rules.cost(Buildable.SETTLEMENT)
         if (!state.handOf(actor).covers(cost)) {
             return GameResult(state, rejection = "Not enough resources")
@@ -115,10 +118,7 @@ class CatanGameEngine(
         if (state.phase !is GamePhase.Play) {
             return GameResult(state, rejection = "Cannot build right now")
         }
-        when {
-            edge !in state.board.edges() -> return GameResult(state, rejection = "Not a valid spot")
-            state.roadAt(edge) != null -> return GameResult(state, rejection = "Already occupied")
-        }
+        playRoadRejection(state, actor, edge)?.let { return GameResult(state, rejection = it) }
         val cost = state.config.rules.cost(Buildable.ROAD)
         if (!state.handOf(actor).covers(cost)) {
             return GameResult(state, rejection = "Not enough resources")
@@ -250,7 +250,7 @@ class CatanGameEngine(
                 else state.board.vertices().filter { settlementRejection(state, it) == null }.toSet()
             GamePhase.Play ->
                 if (!canAfford(state, player, Buildable.SETTLEMENT)) emptySet()
-                else state.board.vertices().filter { settlementRejection(state, it) == null }.toSet()
+                else state.board.vertices().filter { playSettlementRejection(state, player, it) == null }.toSet()
         }
     }
 
@@ -262,7 +262,7 @@ class CatanGameEngine(
                 else state.board.edges().filter { roadRejection(state, phase, it) == null }.toSet()
             GamePhase.Play ->
                 if (!canAfford(state, player, Buildable.ROAD)) emptySet()
-                else state.board.edges().filter { state.roadAt(it) == null }.toSet()
+                else state.board.edges().filter { playRoadRejection(state, player, it) == null }.toSet()
         }
     }
 
@@ -288,6 +288,27 @@ class CatanGameEngine(
         setup.lastSettlement?.let { edge.touches(it) } != true ->
             "Road must connect to your new settlement"
         else -> null
+    }
+
+    // --- Play-phase placement rules (settlement/road must connect to your network) ---
+
+    private fun playSettlementRejection(state: GameState, actor: PlayerId, vertex: Vertex): String? {
+        settlementRejection(state, vertex)?.let { return it } // base: on board, free, distance
+        // Must connect to one of your own roads.
+        val touchesOwnRoad = vertex.incidentEdges().any { e -> state.roadAt(e)?.owner == actor }
+        return if (touchesOwnRoad) null else "Must connect to one of your roads"
+    }
+
+    private fun playRoadRejection(state: GameState, actor: PlayerId, edge: Edge): String? {
+        when {
+            edge !in state.board.edges() -> return "Not a valid spot"
+            state.roadAt(edge) != null -> return "Already occupied"
+        }
+        // Must connect to your own road or building at either endpoint.
+        val ends = edge.endpoints()
+        val touchesOwnBuilding = ends.any { state.buildingAt(it)?.owner == actor }
+        val touchesOwnRoad = state.roads.any { it.owner == actor && it.edge.isConnectedTo(edge) }
+        return if (touchesOwnBuilding || touchesOwnRoad) null else "Must connect to your network"
     }
 
     private fun startingResources(state: GameState, vertex: Vertex): ResourceCount {
