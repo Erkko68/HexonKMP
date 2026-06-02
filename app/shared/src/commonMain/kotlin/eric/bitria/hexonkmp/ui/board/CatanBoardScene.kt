@@ -51,7 +51,7 @@ private val RAD_TO_DEG = 180f / kotlin.math.PI.toFloat()
 
 // Lay the (flat) number models with a 45° counterclockwise spin about the
 // up axis (positive Y rotation reads CCW from the top-down camera).
-private val NUMBER_ROTATION = Quaternion.fromAxisAngle(Direction(0f, 1f, 0f), 45f)
+private val NUMBER_ROTATION = Quaternion.fromAxisAngle(Direction(0f, 1f, 0f), 30f)
 
 // Renders the authoritative GameState as a 3D Catan board: colored hexagon tiles,
 // cubes for settlements/cities, thin cubes for roads. When [ghostSettlements] /
