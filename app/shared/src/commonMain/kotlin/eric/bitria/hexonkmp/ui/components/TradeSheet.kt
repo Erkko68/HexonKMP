@@ -160,19 +160,23 @@ private fun BankTab(
             }
         }
 
-        OutlinedButton(
-            onClick = {
-                val g = give; val r = get
-                if (g != null && r != null) { swaps.add(BankSwap(g, r)); give = null; get = null }
-            },
-            enabled = give != null && get != null,
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Add swap") }
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            OutlinedButton(
+                onClick = {
+                    val g = give; val r = get
+                    if (g != null && r != null) { swaps.add(BankSwap(g, r)); give = null; get = null }
+                },
+                enabled = give != null && get != null,
+            ) { Text("Add swap") }
+            OutlinedButton(
+                onClick = { swaps.clear(); give = null; get = null },
+                enabled = swaps.isNotEmpty() || give != null || get != null,
+            ) { Text("Clear") }
+        }
 
         Button(
             onClick = { onConfirm(swaps.toList()) },
             enabled = swaps.isNotEmpty(),
-            modifier = Modifier.fillMaxWidth(),
         ) { Text(if (swaps.isEmpty()) "Confirm trade" else "Confirm trade (${swaps.size})") }
     }
 }
