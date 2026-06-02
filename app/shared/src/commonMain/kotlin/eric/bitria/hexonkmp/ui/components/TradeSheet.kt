@@ -133,13 +133,14 @@ private fun BankTab(
             }
         }
 
-        // Give picker: every resource, dimmed/disabled when unaffordable.
+        // Give picker: every resource, showing what's still spendable after the
+        // queued swaps; dimmed/disabled when no longer enough to trade.
         Text("Give", style = MaterialTheme.typography.labelMedium)
         TokenRow {
             Resource.entries.forEach { r ->
                 ResourceToken(
                     resource = r,
-                    count = hand[r],
+                    count = hand[r] - queued[r],
                     selected = give == r,
                     enabled = canGive(r),
                     onClick = { give = r; if (get == r) get = null },
