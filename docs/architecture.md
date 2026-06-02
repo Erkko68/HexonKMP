@@ -87,6 +87,7 @@ data object EndTurn : GameAction
 data class PlaceSettlement(val vertex: Vertex) : GameAction   // setup placement or play-phase build
 data class PlaceRoad(val edge: Edge) : GameAction
 data class UpgradeCity(val vertex: Vertex) : GameAction       // settlement -> city
+data class MoveRobber(val hex: Axial) : GameAction           // after a 7
 data class BankTrade(val swaps: List<BankSwap>) : GameAction  // atomic ratio:1 swaps with the bank
 // Player-to-player trades:
 data class ProposeTrade(val give: ResourceCount, val receive: ResourceCount) : GameAction
@@ -106,8 +107,8 @@ The transport envelope. Split by phase:
 | Client-local | `ConnectionFailed(reason)` (never sent over the wire)|
 
 `GameAction` variants so far: `EndTurn`, `PlaceSettlement(vertex)`,
-`PlaceRoad(edge)`, `UpgradeCity(vertex)`, `BankTrade(swaps)`, and the
-player-trade actions `ProposeTrade` / `RespondTrade` / `FinalizeTrade` /
+`PlaceRoad(edge)`, `UpgradeCity(vertex)`, `MoveRobber(hex)`, `BankTrade(swaps)`,
+and the player-trade actions `ProposeTrade` / `RespondTrade` / `FinalizeTrade` /
 `CancelTrade`.
 
 ### `GameEvent` (engine output) — `core/game/event/`
@@ -123,6 +124,8 @@ data class PhaseChanged(val phase: GamePhase) : GameEvent
 data class BuildingPlaced(val building: Building) : GameEvent
 data class RoadPlaced(val road: Road) : GameEvent
 data class CityUpgraded(val building: Building) : GameEvent   // the resulting city
+data class RobberMoved(val hex: Axial) : GameEvent
+data class ResourceStolen(val from: PlayerId, val by: PlayerId, val resource: Resource) : GameEvent
 data class BankTraded(val player: PlayerId, val given: ResourceCount, val received: ResourceCount) : GameEvent
 // Player-to-player trades:
 data class TradeProposed(val offer: TradeOffer) : GameEvent
@@ -174,9 +177,22 @@ This is modeled as an **engine-internal turn-begin step, not a `GameAction`**:
   given a state (testable) while dice are effectively random across turns.
 
 Resource production: each `Building` on a vertex touching a tile whose `token`
-matches the roll collects that tile's resource (settlement ×1, city ×2). A roll
-of 7 produces nothing. All of this reads from `state` + `state.config` — no
-hardcoded numbers.
+matches the roll collects that tile's resource (settlement ×1, city ×2) — except
+the tile the **robber** sits on, which produces for nobody. A roll of 7 produces
+nothing and instead hands the current player the robber (see below). All of this
+reads from `state` + `state.config` — no hardcoded numbers.
+
+### The robber (a roll of 7)
+
+A 7 doesn't produce; it puts the current player into a **`GamePhase.Robber`**
+sub-phase (building/trading/ending the turn all gate on `Play`, so they're
+blocked until it's resolved). The player picks a new tile (`MoveRobber(hex)`,
+must differ from the current robber tile); the engine relocates the robber and
+**auto-steals** one random card from a random opponent with a building on that
+tile (the robbing player is excluded; nothing happens if none qualify or all are
+empty-handed), then returns to `Play`. Events: `RobberMoved` (+ `ResourceStolen`
+if a card moved). Discarding-half on a 7 is not implemented. The client renders
+the robber as a cylinder and, during the Robber phase, makes the tiles tappable.
 
 > The same pattern fits future automatic effects (e.g. a turn timer auto-ending
 > a turn): drive them through the engine as state transitions that emit events,
@@ -215,6 +231,8 @@ stateDiagram-v2
     Setup --> Setup: PlaceSettlement -> PlaceRoad (snake draft)
     Setup --> Play: draft complete (PhaseChanged + first auto-roll)
     Play --> Play: EndTurn -> auto-roll
+    Play --> Robber: roll a 7
+    Robber --> Play: MoveRobber (relocate + steal)
 ```
 
 - **`Setup`** is the classic snake draft: each player places a settlement then a
@@ -409,16 +427,16 @@ changes — `GameUpdate` already carries any `GameEvent`.
 
 ## What is intentionally NOT here yet
 
-- Remaining Catan domain: dev cards, the **robber** (a roll of 7 currently
-  produces nothing but doesn't move a robber or force discards), victory-point
-  win detection, and longest-road / largest-army.
+- Remaining Catan domain: dev cards, **discard-half on a 7**, victory-point win
+  detection, and longest-road / largest-army.
 - Persistence (state is in-memory; a server restart loses games).
 - Auth (the `playerId` from the query string is trusted as-is).
 - Server-side reconnect of game state validation beyond the slot mapping.
 
 *Built this far:* hex board + generation, resources/hands, setup draft,
 auto-roll + production, settlement/road building with costs and connectivity
-(incl. opponent-building road blocking), city upgrades, bank trades, and
-player-to-player trades (end to end).
+(incl. opponent-building road blocking), city upgrades, the robber on a 7
+(move + auto-steal, robbed tile blocked), bank trades, and player-to-player
+trades (end to end).
 
 These build on top of the seam above without reshaping it.

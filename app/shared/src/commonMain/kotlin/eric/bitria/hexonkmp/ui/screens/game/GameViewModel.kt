@@ -7,6 +7,7 @@ import eric.bitria.hexonkmp.core.game.action.BankTrade
 import eric.bitria.hexonkmp.core.game.action.CancelTrade
 import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.FinalizeTrade
+import eric.bitria.hexonkmp.core.game.action.MoveRobber
 import eric.bitria.hexonkmp.core.game.action.PlaceRoad
 import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
 import eric.bitria.hexonkmp.core.game.action.UpgradeCity
@@ -20,6 +21,8 @@ import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.event.RoadPlaced
+import eric.bitria.hexonkmp.core.game.event.RobberMoved
+import eric.bitria.hexonkmp.core.game.event.ResourceStolen
 import eric.bitria.hexonkmp.core.game.event.BankTraded
 import eric.bitria.hexonkmp.core.game.event.TradeCancelled
 import eric.bitria.hexonkmp.core.game.event.TradeFinalized
@@ -34,6 +37,7 @@ import eric.bitria.hexonkmp.core.game.model.GameState
 // BuildMode is in this package (GameUiState.kt)
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
+import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
@@ -220,6 +224,13 @@ class GameViewModel(
         _state.update { (it as? GameUiState.InGame)?.copy(buildMode = BuildMode.NONE) ?: it }
     }
 
+    // Tap a tile during the Robber phase to relocate the robber there.
+    fun pickHex(hex: Axial) {
+        val s = _state.value as? GameUiState.InGame ?: return
+        if (!s.isMyTurn || s.state.phase !is GamePhase.Robber) return
+        repository.sendAction(MoveRobber(hex))
+    }
+
     // Everything the HUD needs about placement, computed from a SINGLE pass over
     // the board's legal moves: which build cards to enable, and the ghost markers
     // to draw for the armed mode. Surfaced through the [buildOptions] flow so the
@@ -231,14 +242,20 @@ class GameViewModel(
         val ghostSettlements: List<Vertex>,
         val ghostRoads: List<Edge>,
         val ghostCities: List<Vertex>,
+        // Tiles the current player may move the robber to (Robber phase only).
+        val robberTargets: List<Axial>,
     ) {
         companion object {
-            val NONE = BuildOptions(false, false, false, emptyList(), emptyList(), emptyList())
+            val NONE = BuildOptions(false, false, false, emptyList(), emptyList(), emptyList(), emptyList())
         }
     }
 
     private fun computeBuildOptions(s: GameUiState.InGame): BuildOptions {
         if (!s.isMyTurn) return BuildOptions.NONE
+        if (s.state.phase is GamePhase.Robber) {
+            val targets = s.state.board.tiles.map { it.hex }.filter { it != s.state.board.robber }
+            return BuildOptions.NONE.copy(robberTargets = targets)
+        }
         val settlements = engine.legalSettlements(s.state, s.myPlayerId)
         val roads = engine.legalRoads(s.state, s.myPlayerId)
         val cities = engine.legalCities(s.state, s.myPlayerId)
@@ -249,6 +266,7 @@ class GameViewModel(
             ghostSettlements = if (s.buildMode == BuildMode.SETTLEMENT) settlements.toList() else emptyList(),
             ghostRoads = if (s.buildMode == BuildMode.ROAD) roads.toList() else emptyList(),
             ghostCities = if (s.buildMode == BuildMode.CITY) cities.toList() else emptyList(),
+            robberTargets = emptyList(),
         )
     }
 
@@ -344,6 +362,12 @@ class GameViewModel(
             is TradeOffersCleared -> s.state.copy(pendingTrades = emptyList())
             is TradeCancelled -> s.state.copy(
                 pendingTrades = s.state.pendingTrades.filterNot { it.id == e.offerId },
+            )
+            is RobberMoved -> s.state.copy(board = s.state.board.copy(robber = e.hex))
+            is ResourceStolen -> s.state.copy(
+                hands = s.state.hands
+                    .merge(mapOf(e.by to ResourceCount.of(e.resource to 1)))
+                    .merge(mapOf(e.from to (ResourceCount() - ResourceCount.of(e.resource to 1)))),
             )
         }
 

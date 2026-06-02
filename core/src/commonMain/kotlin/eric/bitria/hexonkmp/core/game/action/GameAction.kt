@@ -2,6 +2,7 @@ package eric.bitria.hexonkmp.core.game.action
 
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
+import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
@@ -33,6 +34,11 @@ data class PlaceRoad(val edge: Edge) : GameAction
 @Serializable
 @SerialName("UpgradeCity")
 data class UpgradeCity(val vertex: Vertex) : GameAction
+
+// After rolling a 7, the current player moves the robber to [hex] (Robber phase).
+@Serializable
+@SerialName("MoveRobber")
+data class MoveRobber(val hex: Axial) : GameAction
 
 // One bank swap: `ratio` of [give] -> one [get] (ratio from RuleConfig). Each
 // swap is independent — you can't pool different resources toward one swap.

@@ -1,10 +1,12 @@
 package eric.bitria.hexonkmp.core.game
 
 import eric.bitria.hexonkmp.core.game.action.EndTurn
+import eric.bitria.hexonkmp.core.game.action.MoveRobber
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.model.Building
+import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.board.cornerVertex
 import kotlin.test.Test
@@ -65,6 +67,13 @@ class DiceAndProductionTest {
 
         var sawProduction = false
         repeat(200) {
+            if (state.phase is GamePhase.Robber) {
+                // A 7 came up — move the robber to a tile other than the watched one
+                // so it keeps producing, then carry on.
+                val hex = state.board.tiles.first { it.hex != state.board.robber && it.hex != tile.hex }.hex
+                state = engine.reduce(state, state.currentPlayer, MoveRobber(hex)).state
+                return@repeat
+            }
             if (state.currentPlayer != alice) {
                 state = engine.reduce(state, state.currentPlayer, EndTurn).state
                 return@repeat
@@ -89,6 +98,12 @@ class DiceAndProductionTest {
         // Whenever a 7 comes up, no ResourcesProduced event is emitted.
         var sawSeven = false
         repeat(300) {
+            if (state.phase is GamePhase.Robber) {
+                // The 7 that triggered this was already checked; clear the robber.
+                val hex = state.board.tiles.first { it.hex != state.board.robber }.hex
+                state = engine.reduce(state, state.currentPlayer, MoveRobber(hex)).state
+                return@repeat
+            }
             val result = engine.reduce(state, state.currentPlayer, EndTurn)
             if (result.state.lastRoll == 7) {
                 sawSeven = true

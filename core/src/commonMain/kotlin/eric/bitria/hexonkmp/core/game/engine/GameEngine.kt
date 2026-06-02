@@ -7,6 +7,7 @@ import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.FinalizeTrade
 import eric.bitria.hexonkmp.core.game.action.GameAction
 import eric.bitria.hexonkmp.core.game.action.PlaceRoad
+import eric.bitria.hexonkmp.core.game.action.MoveRobber
 import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
 import eric.bitria.hexonkmp.core.game.action.ProposeTrade
 import eric.bitria.hexonkmp.core.game.action.RespondTrade
@@ -20,8 +21,10 @@ import eric.bitria.hexonkmp.core.game.event.BuildingPlaced
 import eric.bitria.hexonkmp.core.game.event.CityUpgraded
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
+import eric.bitria.hexonkmp.core.game.event.ResourceStolen
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.event.RoadPlaced
+import eric.bitria.hexonkmp.core.game.event.RobberMoved
 import eric.bitria.hexonkmp.core.game.event.TradeCancelled
 import eric.bitria.hexonkmp.core.game.event.TradeFinalized
 import eric.bitria.hexonkmp.core.game.event.TradeOffersCleared
@@ -36,6 +39,7 @@ import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.Road
 import eric.bitria.hexonkmp.core.game.model.TradeOffer
+import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
@@ -114,6 +118,7 @@ class CatanGameEngine(
                 if (state.phase is GamePhase.Setup) placeRoad(state, actor, action.edge)
                 else buildRoad(state, actor, action.edge)
             is UpgradeCity -> upgradeCity(state, actor, action.vertex)
+            is MoveRobber -> moveRobber(state, actor, action.hex)
             is BankTrade -> bankTrade(state, actor, action.swaps)
             is ProposeTrade -> proposeTrade(state, actor, action.give, action.receive)
             is FinalizeTrade -> finalizeTrade(state, actor, action.offerId, action.partner)
@@ -310,6 +315,45 @@ class CatanGameEngine(
         return GameResult(next, events = listOf(CityUpgraded(city)))
     }
 
+    // --- Play: the robber (rolled a 7) ---
+
+    private fun moveRobber(state: GameState, actor: PlayerId, hex: Axial): GameResult {
+        if (state.phase != GamePhase.Robber) {
+            return GameResult(state, rejection = "There's no robber to move")
+        }
+        if (state.board.tileAt(hex) == null) {
+            return GameResult(state, rejection = "Not a valid tile")
+        }
+        if (hex == state.board.robber) {
+            return GameResult(state, rejection = "Move the robber to a different tile")
+        }
+        val moved = state.copy(board = state.board.copy(robber = hex), phase = GamePhase.Play)
+        // Steal one random card from a random opponent with a building on the tile.
+        val victims = state.buildings
+            .filter { hex in it.vertex.hexes && it.owner != actor }
+            .map { it.owner }
+            .distinct()
+            .filter { !state.handOf(it).isEmpty }
+        val events = mutableListOf<eric.bitria.hexonkmp.core.game.event.GameEvent>(
+            RobberMoved(hex),
+            PhaseChanged(GamePhase.Play),
+        )
+        if (victims.isEmpty()) {
+            return GameResult(moved, events = events)
+        }
+        val rng = Random(state.rngSeed)
+        val victim = victims[rng.nextInt(victims.size)]
+        val pool = state.handOf(victim).amounts.flatMap { (res, n) -> List(n) { res } }
+        val stolen = pool[rng.nextInt(pool.size)]
+        val one = ResourceCount.of(stolen to 1)
+        val next = moved.copy(
+            hands = addGain(spend(moved.hands, victim, one), actor, one),
+            rngSeed = rng.nextLong(),
+        )
+        events += ResourceStolen(victim, actor, stolen)
+        return GameResult(next, events = events)
+    }
+
     // Returns null if `actor` may upgrade the settlement at `vertex`, else why not.
     private fun cityRejection(state: GameState, actor: PlayerId, vertex: Vertex): String? {
         val building = state.buildingAt(vertex)
@@ -424,6 +468,8 @@ class CatanGameEngine(
             is GamePhase.Play -> advanceTurn(base)
             // Skip the leaver's remaining setup placement(s).
             is GamePhase.Setup -> skipSetup(base, phase)
+            // Left mid-robber-move: just move on (robber stays put).
+            is GamePhase.Robber -> advanceTurn(base.copy(phase = GamePhase.Play))
         }
     }
 
@@ -441,6 +487,7 @@ class CatanGameEngine(
             GamePhase.Play ->
                 if (!canAfford(state, player, Buildable.SETTLEMENT)) emptySet()
                 else state.board.vertices().filter { playSettlementRejection(state, player, it) == null }.toSet()
+            GamePhase.Robber -> emptySet()
         }
     }
 
@@ -453,6 +500,7 @@ class CatanGameEngine(
             GamePhase.Play ->
                 if (!canAfford(state, player, Buildable.ROAD)) emptySet()
                 else state.board.edges().filter { playRoadRejection(state, player, it) == null }.toSet()
+            GamePhase.Robber -> emptySet()
         }
     }
 
@@ -580,15 +628,18 @@ class CatanGameEngine(
         val die1 = rng.nextInt(1, 7)
         val die2 = rng.nextInt(1, 7)
         val total = die1 + die2
+        val nextSeed = rng.nextLong() // advance so the next draw differs
+
+        // A 7 produces nothing and hands the current player the robber: they must
+        // move it before they can do anything else (Robber phase).
+        if (total == 7) {
+            val rolled = state.copy(lastRoll = 7, rngSeed = nextSeed, phase = GamePhase.Robber)
+            return GameResult(rolled, events = listOf(DiceRolled(die1, die2, 7), PhaseChanged(GamePhase.Robber)))
+        }
 
         val gains = produce(state, total)
         val newHands = applyGains(state.hands, gains)
-
-        val rolled = state.copy(
-            hands = newHands,
-            lastRoll = total,
-            rngSeed = rng.nextLong(), // advance so the next turn rolls differently
-        )
+        val rolled = state.copy(hands = newHands, lastRoll = total, rngSeed = nextSeed)
         val events = buildList {
             add(DiceRolled(die1, die2, total))
             if (gains.isNotEmpty()) add(ResourcesProduced(gains))
@@ -604,6 +655,7 @@ class CatanGameEngine(
         val gains = mutableMapOf<PlayerId, ResourceCount>()
         for (tile in state.board.tiles) {
             if (tile.token != total) continue
+            if (tile.hex == state.board.robber) continue // robbed tile produces for nobody
             val resource = tile.terrain.resource ?: continue
             for (building in state.buildings) {
                 if (tile.hex !in building.vertex.hexes) continue

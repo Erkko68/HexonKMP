@@ -35,4 +35,10 @@ sealed interface GamePhase {
     @Serializable
     @SerialName("Play")
     data object Play : GamePhase
+
+    // The current player rolled a 7 and must move the robber before continuing.
+    // Building/trading/ending the turn all gate on Play, so they're blocked here.
+    @Serializable
+    @SerialName("Robber")
+    data object Robber : GamePhase
 }

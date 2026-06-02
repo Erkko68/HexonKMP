@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import eric.bitria.hexonkmp.core.game.model.GameState
+import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import hexonkmp.app.shared.generated.resources.Res
@@ -30,6 +31,7 @@ import io.github.erkko68.filament.compose.scene.Position
 import io.github.erkko68.filament.compose.scene.Scale
 import io.github.erkko68.filament.compose.scene.SkyboxSource
 import io.github.erkko68.filament.compose.scene.primitives.Cube
+import io.github.erkko68.filament.compose.scene.primitives.Cylinder
 import io.github.erkko68.filament.compose.scene.rememberCameraState
 import io.github.erkko68.filament.compose.scene.rememberGltfAsset
 import io.github.erkko68.filament.compose.scene.rememberMaterial
@@ -41,6 +43,8 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 private const val HEX_SIZE = 1f
 private const val BUILDING_Y = 0.15f
 private const val ROAD_Y = 0.06f
+private const val ROBBER_Y = 0.25f
+private const val ROBBER_HEIGHT = 0.5f
 
 // Number tokens (glb models, exported flat from Blender) sit just above the tile
 // at its center. Scale/height are eyeballed for a ~1-unit hex — tweak to taste.
@@ -69,8 +73,10 @@ fun CatanBoardScene(
     ghostSettlements: List<Vertex> = emptyList(),
     ghostRoads: List<Edge> = emptyList(),
     ghostCities: List<Vertex> = emptyList(),
+    robberTargets: List<Axial> = emptyList(),
     onPickVertex: (Vertex) -> Unit = {},
     onPickEdge: (Edge) -> Unit = {},
+    onPickHex: (Axial) -> Unit = {},
 ) {
     val halfExtent = remember(state.board.tiles) {
         val maxR = state.board.tiles.maxOfOrNull { tile ->
@@ -88,9 +94,12 @@ fun CatanBoardScene(
     var viewportHeight by remember { mutableStateOf(1) }
     var boxSize by remember { mutableStateOf(IntSize.Zero) }
 
-    // True only while placing — i.e. ghost markers are on the board. Picking is
-    // gated on this so taps do no work the rest of the time.
-    val placing = ghostSettlements.isNotEmpty() || ghostRoads.isNotEmpty() || ghostCities.isNotEmpty()
+    // True only while placing — i.e. ghost markers are on the board, or the robber
+    // is being moved (tiles become tappable). Picking is gated on this so taps do
+    // no work the rest of the time.
+    val movingRobber = robberTargets.isNotEmpty()
+    val placing = ghostSettlements.isNotEmpty() || ghostRoads.isNotEmpty() ||
+        ghostCities.isNotEmpty() || movingRobber
 
     // Map each ghost marker's renderable entity -> the board location it offers,
     // so a pick result resolves back to a Vertex/Edge. Rebuilt when the candidate
@@ -99,6 +108,8 @@ fun CatanBoardScene(
     // the armed build mode).
     val entityToVertex = remember(ghostSettlements, ghostCities) { mutableMapOf<Int, Vertex>() }
     val entityToEdge = remember(ghostRoads) { mutableMapOf<Int, Edge>() }
+    // Tile entity -> hex, for relocating the robber (populated as tiles are drawn).
+    val entityToHex = remember(state.board.tiles) { mutableMapOf<Int, Axial>() }
 
     val solid: Material? = rememberMaterial(engine) {
         Res.readBytes("files/materials/board_color.filamat")
@@ -134,6 +145,10 @@ fun CatanBoardScene(
                 viewportHeight = { viewportHeight },
                 onTap = if (!placing) null else { offset ->
                     pickAt(offset, viewState, boxSize) { entity ->
+                        if (movingRobber) {
+                            entityToHex[entity]?.takeIf { it in robberTargets }?.let { onPickHex(it) }
+                            return@pickAt
+                        }
                         entityToVertex[entity]?.let { onPickVertex(it); return@pickAt }
                         entityToEdge[entity]?.let { onPickEdge(it) }
                     }
@@ -162,7 +177,26 @@ fun CatanBoardScene(
                 val inst = rememberMaterialInstance(solidMat, engine = engine).apply {
                     setParameter("baseColor", color.x, color.y, color.z)
                 }
-                Hexagon(material = inst, position = Position(c.x, 0f, c.z), radius = HEX_SIZE * 0.95f)
+                Hexagon(
+                    material = inst,
+                    position = Position(c.x, 0f, c.z),
+                    radius = HEX_SIZE * 0.95f,
+                    onCreate = { entityToHex[it] = tile.hex },
+                )
+            }
+
+            // The robber: a dark cylinder on its current tile.
+            state.board.robber?.let { robberHex ->
+                val c = HexMath.center(robberHex, HEX_SIZE)
+                val inst = rememberMaterialInstance(solidMat, engine = engine).apply {
+                    setParameter("baseColor", 0.12f, 0.12f, 0.12f)
+                }
+                Cylinder(
+                    material = inst,
+                    position = Position(c.x, ROBBER_Y, c.z),
+                    radius = 0.16f,
+                    height = ROBBER_HEIGHT,
+                )
             }
 
             // Number tokens: a white glb model centered on each non-desert tile.

@@ -6,6 +6,8 @@ import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.Road
 import eric.bitria.hexonkmp.core.game.model.TradeOffer
+import eric.bitria.hexonkmp.core.game.model.board.Axial
+import eric.bitria.hexonkmp.core.game.model.board.Resource
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -52,6 +54,16 @@ data class RoadPlaced(val road: Road) : GameEvent
 @Serializable
 @SerialName("CityUpgraded")
 data class CityUpgraded(val building: Building) : GameEvent
+
+// The robber moved to [hex] (which now produces for nobody until moved again).
+@Serializable
+@SerialName("RobberMoved")
+data class RobberMoved(val hex: Axial) : GameEvent
+
+// The robber move stole one [resource] from [from], handed to [by].
+@Serializable
+@SerialName("ResourceStolen")
+data class ResourceStolen(val from: PlayerId, val by: PlayerId, val resource: Resource) : GameEvent
 
 // A player traded with the bank: their hand lost [given] and gained [received].
 @Serializable

@@ -73,6 +73,7 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                     ghostSettlements = opts.ghostSettlements,
                     ghostRoads = opts.ghostRoads,
                     ghostCities = opts.ghostCities,
+                    robberTargets = opts.robberTargets,
                     bankRatio = viewModel.bankTradeRatio(s),
                     myVictoryPoints = viewModel.victoryPoints(s, s.myPlayerId),
                     onToggleSettlement = { viewModel.toggleBuildMode(BuildMode.SETTLEMENT) },
@@ -80,6 +81,7 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                     onToggleCity = { viewModel.toggleBuildMode(BuildMode.CITY) },
                     onPickVertex = viewModel::pickVertex,
                     onPickEdge = viewModel::pickEdge,
+                    onPickHex = viewModel::pickHex,
                     onBankTrade = viewModel::bankTrade,
                     proposeGive = proposeDraft.give,
                     proposeReceive = proposeDraft.receive,
@@ -161,6 +163,7 @@ private fun InGameContent(
     ghostSettlements: List<eric.bitria.hexonkmp.core.game.model.board.Vertex>,
     ghostRoads: List<eric.bitria.hexonkmp.core.game.model.board.Edge>,
     ghostCities: List<eric.bitria.hexonkmp.core.game.model.board.Vertex>,
+    robberTargets: List<eric.bitria.hexonkmp.core.game.model.board.Axial>,
     bankRatio: Int,
     myVictoryPoints: Int,
     onToggleSettlement: () -> Unit,
@@ -168,6 +171,7 @@ private fun InGameContent(
     onToggleCity: () -> Unit,
     onPickVertex: (eric.bitria.hexonkmp.core.game.model.board.Vertex) -> Unit,
     onPickEdge: (eric.bitria.hexonkmp.core.game.model.board.Edge) -> Unit,
+    onPickHex: (eric.bitria.hexonkmp.core.game.model.board.Axial) -> Unit,
     onBankTrade: (List<eric.bitria.hexonkmp.core.game.action.BankSwap>) -> Unit,
     proposeGive: eric.bitria.hexonkmp.core.game.model.ResourceCount,
     proposeReceive: eric.bitria.hexonkmp.core.game.model.ResourceCount,
@@ -192,8 +196,10 @@ private fun InGameContent(
             ghostSettlements = ghostSettlements,
             ghostRoads = ghostRoads,
             ghostCities = ghostCities,
+            robberTargets = robberTargets,
             onPickVertex = onPickVertex,
             onPickEdge = onPickEdge,
+            onPickHex = onPickHex,
         )
 
         // --- Turn indicator + player chips, top-left ---
@@ -234,12 +240,14 @@ private fun InGameContent(
             RollBadge(roll, modifier = Modifier.align(Alignment.TopCenter).padding(top = Spacing.md))
         }
 
-        // --- Transient notice, just below the roll badge ---
-        state.notice?.let {
+        // --- Robber prompt / transient notice, just below the roll badge ---
+        val robberPrompt = (state.state.phase is GamePhase.Robber && state.isMyTurn)
+        val notice = if (robberPrompt) "Move the robber — tap a tile" else state.notice
+        notice?.let {
             Text(
                 it,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (robberPrompt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 72.dp),
             )
         }
@@ -323,8 +331,9 @@ private fun InGameContent(
             modifier = Modifier.align(Alignment.BottomStart).padding(Spacing.md),
         )
 
-        // --- End Turn, bottom-right (Play phase only) ---
-        if (setup == null) {
+        // --- End Turn, bottom-right (Play phase only — hidden during setup and
+        // while a robber move is owed). ---
+        if (state.state.phase is GamePhase.Play) {
             Button(
                 onClick = onEndTurn,
                 enabled = state.isMyTurn,
