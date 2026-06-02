@@ -14,8 +14,11 @@ import androidx.compose.material.icons.filled.AddRoad
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationCity
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -71,6 +74,7 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                     ghostRoads = opts.ghostRoads,
                     ghostCities = opts.ghostCities,
                     bankRatio = viewModel.bankTradeRatio(s),
+                    myVictoryPoints = viewModel.victoryPoints(s, s.myPlayerId),
                     onToggleSettlement = { viewModel.toggleBuildMode(BuildMode.SETTLEMENT) },
                     onToggleRoad = { viewModel.toggleBuildMode(BuildMode.ROAD) },
                     onToggleCity = { viewModel.toggleBuildMode(BuildMode.CITY) },
@@ -158,6 +162,7 @@ private fun InGameContent(
     ghostRoads: List<eric.bitria.hexonkmp.core.game.model.board.Edge>,
     ghostCities: List<eric.bitria.hexonkmp.core.game.model.board.Vertex>,
     bankRatio: Int,
+    myVictoryPoints: Int,
     onToggleSettlement: () -> Unit,
     onToggleRoad: () -> Unit,
     onToggleCity: () -> Unit,
@@ -196,11 +201,18 @@ private fun InGameContent(
             modifier = Modifier.align(Alignment.TopStart).padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            TurnIndicator(
-                phaseLabel = if (setup != null) "Setup" else "Turn ${state.state.turn}",
-                statusLabel = if (state.isMyTurn) "Your turn" else "Waiting for opponent",
-                isMyTurn = state.isMyTurn,
-            )
+            // Phase card + your victory-point count beside it.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                TurnIndicator(
+                    phaseLabel = if (setup != null) "Setup" else "Turn ${state.state.turn}",
+                    statusLabel = if (state.isMyTurn) "Your turn" else "Waiting for opponent",
+                    isMyTurn = state.isMyTurn,
+                )
+                VictoryPointBadge(points = myVictoryPoints)
+            }
             // One chip per player in seat order: outlined for the current player,
             // dimmed/struck-through for anyone who has left.
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -318,6 +330,26 @@ private fun InGameContent(
                 enabled = state.isMyTurn,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.md),
             ) { Text("End Turn") }
+        }
+    }
+}
+
+// Compact victory-point count for the top-left HUD, beside the phase card.
+@Composable
+private fun VictoryPointBadge(points: Int) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            Icon(Icons.Filled.Star, contentDescription = "Victory points", modifier = Modifier.height(18.dp))
+            Text("$points", style = MaterialTheme.typography.titleMedium)
         }
     }
 }

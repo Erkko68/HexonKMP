@@ -411,10 +411,7 @@ changes — `GameUpdate` already carries any `GameEvent`.
 
 - Remaining Catan domain: dev cards, the **robber** (a roll of 7 currently
   produces nothing but doesn't move a robber or force discards), victory-point
-  tracking / win detection, and longest-road / largest-army.
-- Player-trade **UI**: the engine + events are in place and `GameViewModel`
-  mirrors `pendingTrades`, but the `TradeSheet` "Players" tab is still a
-  placeholder (the propose/respond/finalize UI is the next step).
+  win detection, and longest-road / largest-army.
 - Persistence (state is in-memory; a server restart loses games).
 - Auth (the `playerId` from the query string is trusted as-is).
 - Server-side reconnect of game state validation beyond the slot mapping.

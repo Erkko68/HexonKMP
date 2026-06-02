@@ -114,6 +114,12 @@ class GameViewModel(
     // The bank's exchange ratio (e.g. 4:1) for the current game.
     fun bankTradeRatio(s: GameUiState.InGame): Int = s.state.config.rules.bankTradeRatio
 
+    // Victory points from built pieces (settlement 1, city 2). Dev cards /
+    // longest road / largest army aren't counted yet.
+    fun victoryPoints(s: GameUiState.InGame, player: PlayerId): Int =
+        s.state.buildings.filter { it.owner == player }
+            .sumOf { if (it.kind == Building.Kind.CITY) 2 else 1 }
+
     // Send one atomic bank trade bundling all the chosen swaps.
     fun bankTrade(swaps: List<BankSwap>) {
         val s = _state.value as? GameUiState.InGame ?: return
