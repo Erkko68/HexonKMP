@@ -45,6 +45,28 @@ class DiscardTest {
     }
 
     @Test
+    fun anOwerAbsentWhenTheSevenIsRolledIsAutoDiscardedNotWaitedOn() {
+        val carol = PlayerId("carol")
+        val threePlay = engine.completeSetup(engine.initialState(listOf(alice, bob, carol)))
+        // Carol leaves, then holds too many cards when a 7 comes up.
+        val withoutCarol = engine.playerLeft(threePlay, carol).state
+        val seven = generateSequence(0L) { it + 1 }.first { s ->
+            val r = Random(s); r.nextInt(1, 7) + r.nextInt(1, 7) == 7
+        }
+        val s = withoutCarol.copy(
+            hands = withoutCarol.hands + (carol to ResourceCount.of(brick to 10)),
+            rngSeed = seven,
+            currentPlayerIndex = withoutCarol.players.indexOf(withoutCarol.currentPlayer),
+        )
+        // End the current present player's turn -> next present player rolls the 7.
+        val result = engine.reduce(s, s.currentPlayer, EndTurn)
+        assertEquals(7, result.state.lastRoll)
+        // Carol was auto-discarded (10 -> 5 left); nobody else owes -> straight to robber.
+        assertEquals(5, result.state.handOf(carol).total)
+        assertEquals(GamePhase.Robber, result.state.phase)
+    }
+
+    @Test
     fun discardingTheExactCountClearsYourDebtThenMovesToRobber() {
         val s = play.copy(
             phase = GamePhase.Discard(mapOf(alice to 2)),

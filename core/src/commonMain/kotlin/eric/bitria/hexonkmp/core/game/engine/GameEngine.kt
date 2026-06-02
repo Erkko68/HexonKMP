@@ -716,15 +716,32 @@ class CatanGameEngine(
         val nextSeed = rng.nextLong() // advance so the next draw differs
 
         // A 7 produces nothing. Players holding too many cards must first discard
-        // half (Discard phase); then the current player moves the robber.
+        // half (Discard phase); then the current player moves the robber. Absent
+        // owers are auto-discarded right now (at random) so the phase only ever
+        // waits on present players and never stalls on someone who already left.
         if (total == 7) {
             val threshold = state.config.rules.robberDiscardThreshold
             val owed = state.players.associateWith { state.handOf(it).total }
                 .filterValues { it > threshold }
                 .mapValues { (_, n) -> n / 2 }
-            val nextPhase = if (owed.isEmpty()) GamePhase.Robber else GamePhase.Discard(owed)
-            val rolled = state.copy(lastRoll = 7, rngSeed = nextSeed, phase = nextPhase)
-            return GameResult(rolled, events = listOf(DiceRolled(die1, die2, 7), PhaseChanged(nextPhase)))
+            var hands = state.hands
+            var seed = nextSeed
+            val autoDiscards = mutableListOf<GameEvent>()
+            val pending = LinkedHashMap<PlayerId, Int>()
+            for ((player, count) in owed) {
+                if (player in state.present) {
+                    pending[player] = count
+                } else {
+                    val (cards, advanced) = randomCards(state.handOf(player), count, seed)
+                    hands = spend(hands, player, cards)
+                    seed = advanced
+                    autoDiscards += ResourcesDiscarded(player, cards)
+                }
+            }
+            val nextPhase = if (pending.isEmpty()) GamePhase.Robber else GamePhase.Discard(pending)
+            val rolled = state.copy(hands = hands, lastRoll = 7, rngSeed = seed, phase = nextPhase)
+            val events = listOf(DiceRolled(die1, die2, 7)) + autoDiscards + PhaseChanged(nextPhase)
+            return GameResult(rolled, events = events)
         }
 
         val gains = produce(state, total)
