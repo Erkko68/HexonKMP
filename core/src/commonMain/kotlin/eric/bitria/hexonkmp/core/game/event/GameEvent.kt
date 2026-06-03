@@ -1,6 +1,7 @@
 package eric.bitria.hexonkmp.core.game.event
 
 import eric.bitria.hexonkmp.core.game.model.Building
+import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.Redactable
@@ -26,6 +27,9 @@ sealed interface GameEvent : Redactable<GameEvent> {
         // The stolen card's type is known only to the thief and the victim; third
         // parties see the theft but not which resource changed hands.
         is ResourceStolen -> if (viewer == by || viewer == from) this else copy(resource = null)
+        // A bought dev card's type is known only to the buyer; others learn only
+        // that the player's hand grew by one (their count, public, still moves).
+        is DevCardBought -> if (viewer == player) this else copy(card = null)
         else -> this
     }
 }
@@ -135,3 +139,23 @@ data object TradeOffersCleared : GameEvent
 @Serializable
 @SerialName("TradeCancelled")
 data class TradeCancelled(val offerId: Int) : GameEvent
+
+// --- Development cards ---
+
+// A player bought a dev card. [card] is the drawn type, known only to the buyer —
+// it is null when redacted for everyone else (who still learn the count grew).
+// [deckSize] is the public number of cards left in the deck after the draw.
+@Serializable
+@SerialName("DevCardBought")
+data class DevCardBought(val player: PlayerId, val card: DevCard?, val deckSize: Int) : GameEvent
+
+// A player played a dev card (playing always reveals it — public).
+@Serializable
+@SerialName("DevCardPlayed")
+data class DevCardPlayed(val player: PlayerId, val card: DevCard) : GameEvent
+
+// Largest Army changed hands (or was first awarded). [holder] is null only if it
+// were ever revoked; in practice it names the new holder.
+@Serializable
+@SerialName("LargestArmyChanged")
+data class LargestArmyChanged(val holder: PlayerId?) : GameEvent

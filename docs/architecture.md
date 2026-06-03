@@ -130,6 +130,9 @@ data class ProposeTrade(val give: ResourceCount, val receive: ResourceCount) : G
 data class RespondTrade(val offerId: Int, val accept: Boolean) : GameAction
 data class FinalizeTrade(val offerId: Int, val partner: PlayerId) : GameAction
 data class CancelTrade(val offerId: Int) : GameAction          // proposer withdraws one offer
+// Development cards:
+data object BuyDevCard : GameAction                            // draw one (hidden) card
+data object PlayKnight : GameAction                            // move robber + Largest Army
 ```
 
 ### `ServerEvent<S, E>` (server → client) — `core/protocol/`
@@ -178,6 +181,10 @@ data class TradeResponded(val offerId: Int, val player: PlayerId, val accepted: 
 data class TradeFinalized(/* proposer/partner + the give/receive that swapped */) : GameEvent
 data object TradeOffersCleared : GameEvent    // the proposer's turn ended
 data class TradeCancelled(val offerId: Int) : GameEvent  // proposer withdrew one offer
+// Development cards:
+data class DevCardBought(val player: PlayerId, val card: DevCard?, val deckSize: Int) : GameEvent  // card null when redacted
+data class DevCardPlayed(val player: PlayerId, val card: DevCard) : GameEvent  // public (playing reveals it)
+data class LargestArmyChanged(val holder: PlayerId?) : GameEvent
 ```
 
 > **Why three types instead of one?** `GameAction` is what players request,
@@ -290,6 +297,7 @@ stateDiagram-v2
     Play --> Play: EndTurn -> auto-roll
     Play --> Discard: roll a 7 (someone over the card limit)
     Play --> Robber: roll a 7 (nobody over the limit)
+    Play --> Robber: PlayKnight (no discard)
     Discard --> Robber: all present owers discarded
     Robber --> Play: MoveRobber (relocate + steal)
     Play --> Finished: a build reaches the VP goal
@@ -376,6 +384,33 @@ sequenceDiagram
   Offers also clear on any turn change (`TradeOffersCleared`), so they live only
   for the proposer's turn. The proposer can also withdraw a single offer with
   `CancelTrade` (`TradeCancelled`).
+
+### Development cards
+
+The deck composition is data (`RuleConfig.devCardDeck`, classic 14 knight / 5 VP
+/ 2 each progress card), shuffled deterministically into `GameState.devDeck` at
+game start. Per-player state: `devCards` (playable), `boughtThisTurn` (not yet
+playable), `knightsPlayed`, plus `largestArmy` and a one-per-turn `devCardPlayed`
+flag. Card *types* are hidden — only counts are public (see *Hidden information*).
+
+- **Buy** (`BuyDevCard`) — Play phase, costs `cost(DEV_CARD)`, draws the top deck
+  card into the buyer's `boughtThisTurn`. The `DevCardBought` event carries the
+  card to the buyer and `null` to everyone else; a Victory-Point card can win on
+  purchase (the buy runs `endIfWon`, and `VICTORY_POINT` cards count toward VP).
+- **Maturation** — at the owner's next turn start (`beginTurn`), their
+  `boughtThisTurn` cards graduate into `devCards`, and `devCardPlayed` resets. So
+  you can never play a card the turn you bought it, and only one per turn.
+- **Knight** (`PlayKnight`) — spends a playable knight, bumps `knightsPlayed`, and
+  enters `GamePhase.Robber` (then the usual `MoveRobber` + steal — like a 7 but
+  with no discard). **Largest Army** goes to whoever has played the most knights
+  once past `RuleConfig.largestArmyMin` (3), strictly exceeding the incumbent;
+  it's worth `largestArmyVp` (2) and can itself win the game.
+- **Victory points** now sum built pieces + held VP cards + Largest Army. The
+  client computes this exactly for *you* (it sees your cards) and as a lower bound
+  for opponents (their VP cards are hidden) — the server decides the actual win.
+
+The remaining progress cards (Road Building, Year of Plenty, Monopoly) are not
+implemented yet; they slot in as more `reduce` handlers behind their own actions.
 
 ## Hidden information (per-recipient redaction)
 
@@ -566,11 +601,9 @@ changes — `GameUpdate` already carries any `GameEvent`.
 
 ## What is intentionally NOT here yet
 
-- Dev-card **gameplay**: the secrecy seam, `DevCard` deck (in `RuleConfig`), and
-  hidden-hand state exist, but buying/playing cards (Knight, Road Building, Year
-  of Plenty, Monopoly, VP) is the next vertical slice — along with largest-army /
-  longest-road, which also feed victory points (VP currently counts only built
-  settlements/cities).
+- Remaining dev cards: **Buy + Knight + Largest Army are done** (VP cards count
+  too); the progress cards **Road Building, Year of Plenty, Monopoly** are the
+  next slice. **Longest road** is still unimplemented (largest army is done).
 - Persistence (state is in-memory; a server restart loses games).
 - Auth (the `playerId` from the query string is trusted as-is).
 - Server-side reconnect of game state validation beyond the slot mapping.
@@ -582,7 +615,8 @@ city upgrades, the robber on a 7 (discard-half + move + auto-steal, robbed tile
 blocked), bank trades, player-to-player trades (end to end), the victory-point
 win condition (`GameEnded` → `GamePhase.Finished(winner)` + winner overlay),
 config-driven matchmaking with an auto-start countdown, a per-recipient
-hidden-information seam (dev cards + resource hands shown as counts), and a fully
+hidden-information seam (dev cards + resource hands shown as counts), development
+cards (buy + Knight + Largest Army, VP cards counting toward the win), and a fully
 **generic transport** (`S/A/E`) with Catan as one wiring.
 
 These build on top of the seam above without reshaping it.

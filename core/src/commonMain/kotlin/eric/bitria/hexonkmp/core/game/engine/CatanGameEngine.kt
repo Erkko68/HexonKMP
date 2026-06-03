@@ -2,9 +2,11 @@ package eric.bitria.hexonkmp.core.game.engine
 
 import eric.bitria.hexonkmp.core.game.action.BankSwap
 import eric.bitria.hexonkmp.core.game.action.BankTrade
+import eric.bitria.hexonkmp.core.game.action.BuyDevCard
 import eric.bitria.hexonkmp.core.game.action.CancelTrade
 import eric.bitria.hexonkmp.core.game.action.DiscardResources
 import eric.bitria.hexonkmp.core.game.action.EndTurn
+import eric.bitria.hexonkmp.core.game.action.PlayKnight
 import eric.bitria.hexonkmp.core.game.action.FinalizeTrade
 import eric.bitria.hexonkmp.core.game.action.GameAction
 import eric.bitria.hexonkmp.core.game.action.PlaceRoad
@@ -20,8 +22,11 @@ import eric.bitria.hexonkmp.core.game.config.ScenarioConfig
 import eric.bitria.hexonkmp.core.game.event.BankTraded
 import eric.bitria.hexonkmp.core.game.event.BuildingPlaced
 import eric.bitria.hexonkmp.core.game.event.CityUpgraded
+import eric.bitria.hexonkmp.core.game.event.DevCardBought
+import eric.bitria.hexonkmp.core.game.event.DevCardPlayed
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.GameEnded
+import eric.bitria.hexonkmp.core.game.event.LargestArmyChanged
 import eric.bitria.hexonkmp.core.game.event.GameEvent
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourceStolen
@@ -115,6 +120,8 @@ class CatanGameEngine(
                 else buildRoad(state, actor, action.edge)
             is UpgradeCity -> upgradeCity(state, actor, action.vertex)
             is MoveRobber -> moveRobber(state, actor, action.hex)
+            BuyDevCard -> buyDevCard(state, actor)
+            PlayKnight -> playKnight(state, actor)
             is BankTrade -> bankTrade(state, actor, action.swaps)
             is ProposeTrade -> proposeTrade(state, actor, action.give, action.receive)
             is FinalizeTrade -> finalizeTrade(state, actor, action.offerId, action.partner)
@@ -312,9 +319,97 @@ class CatanGameEngine(
         return endIfWon(CatanResult(next, events = listOf(CityUpgraded(city)), ), actor)
     }
 
-    private fun victoryPoints(state: GameState, player: PlayerId): Int =
-        state.buildings.filter { it.owner == player }
+    // --- Play: development cards ---
+
+    // Buy the top card of the deck. Costs DEV_CARD; the card lands in the buyer's
+    // boughtThisTurn bucket (not playable until next turn). A Victory-Point card can
+    // win the game on purchase, so we run endIfWon. The drawn card is private — the
+    // event is redacted to null for everyone but the buyer.
+    private fun buyDevCard(state: GameState, actor: PlayerId): CatanResult {
+        if (state.phase !is GamePhase.Play) {
+            return CatanResult(state, rejection = "You can only buy on your turn")
+        }
+        if (state.devDeck.isEmpty()) {
+            return CatanResult(state, rejection = "No development cards left")
+        }
+        val cost = state.config.rules.cost(Buildable.DEV_CARD)
+        if (!state.handOf(actor).covers(cost)) {
+            return CatanResult(state, rejection = "Not enough resources")
+        }
+        val card = state.devDeck.first()
+        val deck = state.devDeck.drop(1)
+        val bought = state.boughtThisTurn + (actor to (state.boughtThisTurn[actor].orEmpty() + card))
+        val next = state.copy(
+            devDeck = deck,
+            boughtThisTurn = bought,
+            hands = spend(state.hands, actor, cost),
+        )
+        return endIfWon(CatanResult(next, events = listOf(DevCardBought(actor, card, deck.size))), actor)
+    }
+
+    // Play a Knight: spend a playable KNIGHT, count it toward Largest Army, and
+    // enter the Robber phase (the player then issues MoveRobber to relocate+steal,
+    // exactly like a 7 — but with no discard step). One dev card per turn.
+    private fun playKnight(state: GameState, actor: PlayerId): CatanResult {
+        if (state.phase !is GamePhase.Play) {
+            return CatanResult(state, rejection = "You can only play a card on your turn")
+        }
+        if (state.devCardPlayed) {
+            return CatanResult(state, rejection = "You already played a development card this turn")
+        }
+        val playable = state.devCards[actor].orEmpty()
+        if (DevCard.KNIGHT !in playable) {
+            return CatanResult(state, rejection = "You have no Knight to play")
+        }
+        // Remove one knight from the playable hand.
+        val remaining = playable.toMutableList().apply { remove(DevCard.KNIGHT) }
+        val knights = state.knightsPlayed + (actor to (state.knightsPlayed[actor] ?: 0) + 1)
+        var next = state.copy(
+            devCards = state.devCards + (actor to remaining),
+            knightsPlayed = knights,
+            devCardPlayed = true,
+            phase = GamePhase.Robber,
+        )
+        val events = mutableListOf<GameEvent>(
+            DevCardPlayed(actor, DevCard.KNIGHT),
+        )
+        // Award Largest Army if this knight makes [actor] the strict leader past the
+        // minimum threshold.
+        val newHolder = largestArmyHolder(next)
+        if (newHolder != next.largestArmy) {
+            next = next.copy(largestArmy = newHolder)
+            events += LargestArmyChanged(newHolder)
+        }
+        events += PhaseChanged(GamePhase.Robber)
+        // Largest Army's points can reach the goal — end the game if so.
+        return endIfWon(CatanResult(next, events = events), actor)
+    }
+
+    // Whoever should hold Largest Army given knights played: the strict maximum once
+    // it reaches the configured minimum. The incumbent keeps it on ties (you must
+    // exceed, not match, to take it).
+    private fun largestArmyHolder(state: GameState): PlayerId? {
+        val min = state.config.rules.largestArmyMin
+        val leadCount = state.largestArmy?.let { state.knightsPlayed[it] ?: 0 } ?: 0
+        var holder = state.largestArmy
+        var best = maxOf(leadCount, min - 1) // must reach min, and beat the incumbent
+        for (player in state.players) {
+            val n = state.knightsPlayed[player] ?: 0
+            if (n >= min && n > best) {
+                best = n
+                holder = player
+            }
+        }
+        return holder
+    }
+
+    private fun victoryPoints(state: GameState, player: PlayerId): Int {
+        val fromBuildings = state.buildings.filter { it.owner == player }
             .sumOf { if (it.kind == Building.Kind.CITY) 2 else 1 }
+        val fromVpCards = state.allDevCardsOf(player).count { it == DevCard.VICTORY_POINT }
+        val fromArmy = if (state.largestArmy == player) state.config.rules.largestArmyVp else 0
+        return fromBuildings + fromVpCards + fromArmy
+    }
 
     // If [actor] just reached the victory goal, end the game: switch to Finished
     // and append a GameEnded event. Otherwise return the result unchanged.
@@ -755,10 +850,24 @@ class CatanGameEngine(
         return CatanResult(state)
     }
 
-    // Begins the current player's turn: rolls the dice automatically (digital
-    // game — no manual roll step) and distributes resources. Pure: randomness is
-    // driven by state.rngSeed, which advances so the next roll differs.
-    private fun beginTurn(state: GameState): CatanResult {
+    // Begins the current player's turn: matures any dev cards they bought last turn
+    // into their playable hand, clears the one-dev-card-per-turn flag, then rolls the
+    // dice automatically (digital game — no manual roll step) and distributes
+    // resources. Pure: randomness is driven by state.rngSeed, which advances so the
+    // next roll differs.
+    private fun beginTurn(stateIn: GameState): CatanResult {
+        // Graduate the current player's bought-this-turn cards to playable, and
+        // reset the per-turn dev-card limit. (A player only buys on their own turn,
+        // so by their next turn those cards are eligible to play.)
+        val player = stateIn.currentPlayer
+        val matured = stateIn.boughtThisTurn[player].orEmpty()
+        val state = stateIn.copy(
+            devCards = if (matured.isEmpty()) stateIn.devCards
+            else stateIn.devCards + (player to (stateIn.devCards[player].orEmpty() + matured)),
+            boughtThisTurn = if (matured.isEmpty()) stateIn.boughtThisTurn
+            else stateIn.boughtThisTurn - player,
+            devCardPlayed = false,
+        )
         val rng = Random(state.rngSeed)
         val die1 = rng.nextInt(1, 7)
         val die2 = rng.nextInt(1, 7)

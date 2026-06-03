@@ -82,3 +82,18 @@ data class FinalizeTrade(val offerId: Int, val partner: PlayerId) : GameAction
 @Serializable
 @SerialName("CancelTrade")
 data class CancelTrade(val offerId: Int) : GameAction
+
+// --- Development cards ---
+
+// Buy one development card from the deck (Play phase, current player). Costs
+// RuleConfig.cost(DEV_CARD); the drawn card is hidden from opponents.
+@Serializable
+@SerialName("BuyDevCard")
+data object BuyDevCard : GameAction
+
+// Play a Knight dev card: moves the robber (enters the Robber phase, then the
+// usual MoveRobber + steal) and counts toward Largest Army. One dev card per turn,
+// and not one bought this turn.
+@Serializable
+@SerialName("PlayKnight")
+data object PlayKnight : GameAction

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexonkmp.core.game.action.BankSwap
 import eric.bitria.hexonkmp.core.game.action.BankTrade
+import eric.bitria.hexonkmp.core.game.action.BuyDevCard
 import eric.bitria.hexonkmp.core.game.action.CancelTrade
 import eric.bitria.hexonkmp.core.game.action.DiscardResources
 import eric.bitria.hexonkmp.core.game.action.EndTurn
@@ -11,6 +12,7 @@ import eric.bitria.hexonkmp.core.game.action.FinalizeTrade
 import eric.bitria.hexonkmp.core.game.action.MoveRobber
 import eric.bitria.hexonkmp.core.game.action.PlaceRoad
 import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
+import eric.bitria.hexonkmp.core.game.action.PlayKnight
 import eric.bitria.hexonkmp.core.game.action.UpgradeCity
 import eric.bitria.hexonkmp.core.game.action.ProposeTrade
 import eric.bitria.hexonkmp.core.game.action.RespondTrade
@@ -18,6 +20,8 @@ import eric.bitria.hexonkmp.core.game.engine.CatanEngine
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
 import eric.bitria.hexonkmp.core.game.event.BuildingPlaced
 import eric.bitria.hexonkmp.core.game.event.CityUpgraded
+import eric.bitria.hexonkmp.core.game.event.DevCardBought
+import eric.bitria.hexonkmp.core.game.event.DevCardPlayed
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.GameEnded
 import eric.bitria.hexonkmp.core.game.event.GameEvent
@@ -34,8 +38,10 @@ import eric.bitria.hexonkmp.core.game.event.TradeOffersCleared
 import eric.bitria.hexonkmp.core.game.event.TradeProposed
 import eric.bitria.hexonkmp.core.game.event.TradeResponded
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
+import eric.bitria.hexonkmp.core.game.event.LargestArmyChanged
 import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.model.Building
+import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.GameState
 // BuildMode is in this package (GameUiState.kt)
@@ -122,11 +128,31 @@ class GameViewModel(
     // The bank's exchange ratio (e.g. 4:1) for the current game.
     fun bankTradeRatio(s: GameUiState.InGame): Int = s.state.config.rules.bankTradeRatio
 
-    // Victory points from built pieces (settlement 1, city 2). Dev cards /
-    // longest road / largest army aren't counted yet.
-    fun victoryPoints(s: GameUiState.InGame, player: PlayerId): Int =
-        s.state.buildings.filter { it.owner == player }
+    // Victory points: built pieces (settlement 1, city 2) + held Victory-Point dev
+    // cards + Largest Army. For opponents we only know our own dev cards (theirs are
+    // hidden), so an opponent's count here is a lower bound — exact for ourselves,
+    // which is what the HUD badge shows.
+    fun victoryPoints(s: GameUiState.InGame, player: PlayerId): Int {
+        val st = s.state
+        val fromBuildings = st.buildings.filter { it.owner == player }
             .sumOf { if (it.kind == Building.Kind.CITY) 2 else 1 }
+        val fromVpCards = (st.devCards[player].orEmpty() + st.boughtThisTurn[player].orEmpty())
+            .count { it == DevCard.VICTORY_POINT }
+        val fromArmy = if (st.largestArmy == player) st.config.rules.largestArmyVp else 0
+        return fromBuildings + fromVpCards + fromArmy
+    }
+
+    // Send: buy one development card (drawn server-side, hidden from opponents).
+    fun buyDevCard() {
+        val s = _state.value as? GameUiState.InGame ?: return
+        if (s.isMyTurn) repository.sendAction(BuyDevCard)
+    }
+
+    // Send: play a Knight (moves the robber, counts toward Largest Army).
+    fun playKnight() {
+        val s = _state.value as? GameUiState.InGame ?: return
+        if (s.isMyTurn) repository.sendAction(PlayKnight)
+    }
 
     // Send one atomic bank trade bundling all the chosen swaps.
     fun bankTrade(swaps: List<BankSwap>) {
@@ -269,6 +295,9 @@ class GameViewModel(
         val canSettlement: Boolean,
         val canRoad: Boolean,
         val canCity: Boolean,
+        // Whether the buy-dev-card button is enabled (Play phase, affordable, deck
+        // not empty).
+        val canBuyDevCard: Boolean,
         val ghostSettlements: List<Vertex>,
         val ghostRoads: List<Edge>,
         val ghostCities: List<Vertex>,
@@ -276,7 +305,7 @@ class GameViewModel(
         val robberTargets: List<Axial>,
     ) {
         companion object {
-            val NONE = BuildOptions(false, false, false, emptyList(), emptyList(), emptyList(), emptyList())
+            val NONE = BuildOptions(false, false, false, false, emptyList(), emptyList(), emptyList(), emptyList())
         }
     }
 
@@ -289,10 +318,14 @@ class GameViewModel(
         val settlements = engine.legalSettlements(s.state, s.myPlayerId)
         val roads = engine.legalRoads(s.state, s.myPlayerId)
         val cities = engine.legalCities(s.state, s.myPlayerId)
+        val canBuyDev = s.state.phase is GamePhase.Play &&
+            s.state.devDeckSize > 0 &&
+            engine.canAfford(s.state, s.myPlayerId, Buildable.DEV_CARD)
         return BuildOptions(
             canSettlement = settlements.isNotEmpty(),
             canRoad = roads.isNotEmpty(),
             canCity = cities.isNotEmpty(),
+            canBuyDevCard = canBuyDev,
             ghostSettlements = if (s.buildMode == BuildMode.SETTLEMENT) settlements.toList() else emptyList(),
             ghostRoads = if (s.buildMode == BuildMode.ROAD) roads.toList() else emptyList(),
             ghostCities = if (s.buildMode == BuildMode.CITY) cities.toList() else emptyList(),
@@ -355,10 +388,22 @@ class GameViewModel(
 
     private fun applyEvent(s: GameUiState.InGame, update: GameUpdate<GameEvent>) =
         when (val e = update.event) {
-            is TurnChanged -> s.state.copy(
-                currentPlayerIndex = s.state.players.indexOf(e.currentPlayer),
-                turn = e.turn,
-            )
+            is TurnChanged -> {
+                // Mirror the engine's beginTurn: our own bought-this-turn dev cards
+                // mature into our playable hand, and the one-per-turn flag resets.
+                val st = s.state
+                val me = myPlayerId
+                val matured = if (e.currentPlayer == me) st.boughtThisTurn[me].orEmpty() else emptyList()
+                st.copy(
+                    currentPlayerIndex = st.players.indexOf(e.currentPlayer),
+                    turn = e.turn,
+                    devCards = if (matured.isEmpty() || me == null) st.devCards
+                    else st.devCards + (me to (st.devCards[me].orEmpty() + matured)),
+                    boughtThisTurn = if (matured.isEmpty() || me == null) st.boughtThisTurn
+                    else st.boughtThisTurn - me,
+                    devCardPlayed = false,
+                )
+            }
             is DiceRolled -> s.state.copy(lastRoll = e.total)
             is ResourcesProduced -> s.state.applyResourceDeltas(e.gains)
             is PhaseChanged -> s.state.copy(phase = e.phase)
@@ -397,6 +442,37 @@ class GameViewModel(
                     mapOf(e.by to ResourceCount.of(res to 1), e.from to (ResourceCount() - ResourceCount.of(res to 1))),
                 )
             } ?: s.state.adjustCounts(mapOf(e.by to 1, e.from to -1))
+            // --- Development cards ---
+            is DevCardBought -> {
+                // Our own buy reveals the card (-> our boughtThisTurn); an opponent's
+                // only bumps their public count. The deck size is public either way,
+                // and the cost is spent via the shared spend() helper.
+                val st = s.state
+                val mine = e.player == myPlayerId && e.card != null
+                st.copy(
+                    boughtThisTurn = if (!mine) st.boughtThisTurn
+                    else st.boughtThisTurn + (e.player to (st.boughtThisTurn[e.player].orEmpty() + e.card!!)),
+                    devCardCounts = st.devCardCounts + (e.player to ((st.devCardCounts[e.player] ?: 0) + 1)),
+                    devDeckSize = e.deckSize,
+                ).spend(e.player, Buildable.DEV_CARD)
+            }
+            is DevCardPlayed -> {
+                // Public. Drop the card from our playable hand (if ours), bump knights,
+                // lower the player's public count, and mark a dev card played this turn.
+                val st = s.state
+                val newDev = if (e.player == myPlayerId)
+                    st.devCards + (e.player to st.devCards[e.player].orEmpty().toMutableList()
+                        .apply { remove(e.card) }) else st.devCards
+                st.copy(
+                    devCards = newDev,
+                    knightsPlayed = if (e.card == DevCard.KNIGHT)
+                        st.knightsPlayed + (e.player to ((st.knightsPlayed[e.player] ?: 0) + 1))
+                    else st.knightsPlayed,
+                    devCardCounts = st.devCardCounts + (e.player to ((st.devCardCounts[e.player] ?: 0) - 1)),
+                    devCardPlayed = true,
+                )
+            }
+            is LargestArmyChanged -> s.state.copy(largestArmy = e.holder)
         }
 
     // Deducts a buildable's cost from the owner (the Play-phase build price).

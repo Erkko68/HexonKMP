@@ -44,6 +44,14 @@ data class GameState(
     val devCardCounts: Map<PlayerId, Int> = emptyMap(),
     val devDeckSize: Int = 0,
     val resourceCounts: Map<PlayerId, Int> = emptyMap(),
+    // How many knights each player has PLAYED (public — playing a knight is open).
+    // Drives largest army.
+    val knightsPlayed: Map<PlayerId, Int> = emptyMap(),
+    // Who currently holds Largest Army (null = nobody yet). Public.
+    val largestArmy: PlayerId? = null,
+    // Whether the current player has already played a dev card this turn (one per
+    // turn). Reset at each turn's start.
+    val devCardPlayed: Boolean = false,
     // Advances on each random draw so reduce() stays a pure function while dice
     // are effectively random. Seeded from the board seed at creation.
     val rngSeed: Long = 0L,
@@ -60,6 +68,11 @@ data class GameState(
     // count is public in Catan even though the card TYPES are not.
     fun devCardCountOf(player: PlayerId): Int =
         (devCards[player]?.size ?: 0) + (boughtThisTurn[player]?.size ?: 0)
+
+    // All dev cards a player holds across both buckets (playable + bought this
+    // turn). Used to count Victory-Point cards toward the win.
+    fun allDevCardsOf(player: PlayerId): List<DevCard> =
+        (devCards[player] ?: emptyList()) + (boughtThisTurn[player] ?: emptyList())
 
     // The per-recipient projection sent to a client: this is THE transport seam for
     // hidden information. It strips every secret another player must not see — the

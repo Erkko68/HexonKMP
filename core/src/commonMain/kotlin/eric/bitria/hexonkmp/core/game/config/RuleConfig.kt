@@ -21,6 +21,10 @@ data class RuleConfig(
     // The development-card deck composition: how many of each card type to shuffle
     // into the draw pile. Data, so a variant just lists different counts.
     val devCardDeck: Map<DevCard, Int> = emptyMap(),
+    // Largest Army: the fewest knights that earns the award, and the victory points
+    // it's worth (held by whoever has played the most knights, once past the min).
+    val largestArmyMin: Int = 3,
+    val largestArmyVp: Int = 2,
     // How many identical resources the bank takes for one of any other resource
     // (classic Catan = 4:1; ports lower this, added later).
     val bankTradeRatio: Int = 4,

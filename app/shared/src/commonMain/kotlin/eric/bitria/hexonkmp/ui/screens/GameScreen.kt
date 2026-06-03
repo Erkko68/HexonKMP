@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationCity
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -34,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import eric.bitria.hexonkmp.core.game.action.BankSwap
+import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
@@ -44,6 +46,7 @@ import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.ui.board.CatanBoardScene
 import eric.bitria.hexonkmp.ui.components.TradeSheet
 import eric.bitria.hexonkmp.ui.components.BuildCard
+import eric.bitria.hexonkmp.ui.components.DevCardHand
 import eric.bitria.hexonkmp.ui.components.DiscardSheet
 import eric.bitria.hexonkmp.ui.components.PlayerCard
 import eric.bitria.hexonkmp.ui.components.ResourceCards
@@ -86,6 +89,9 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                     robberTargets = opts.robberTargets,
                     bankRatio = viewModel.bankTradeRatio(s),
                     myVictoryPoints = viewModel.victoryPoints(s, s.myPlayerId),
+                    canBuyDevCard = opts.canBuyDevCard,
+                    onBuyDevCard = viewModel::buyDevCard,
+                    onPlayKnight = viewModel::playKnight,
                     discardRequired = viewModel.discardOwed(s),
                     discardSelected = discardDraft,
                     onCycleDiscard = viewModel::cycleDiscard,
@@ -182,6 +188,9 @@ private fun InGameContent(
     robberTargets: List<Axial>,
     bankRatio: Int,
     myVictoryPoints: Int,
+    canBuyDevCard: Boolean,
+    onBuyDevCard: () -> Unit,
+    onPlayKnight: () -> Unit,
     discardRequired: Int,
     discardSelected: ResourceCount,
     onCycleDiscard: (Resource) -> Unit,
@@ -317,6 +326,13 @@ private fun InGameContent(
                 selected = state.buildMode == BuildMode.CITY,
                 onClick = onToggleCity,
             )
+            // Buy a development card (drawn server-side, hidden from opponents).
+            BuildCard(
+                icon = Icons.Filled.Style,
+                label = "Buy development card",
+                enabled = canBuyDevCard,
+                onClick = onBuyDevCard,
+            )
             // Trade is available during your Play turn (not setup) to propose/bank-
             // trade, or whenever another player has an offer waiting for your reply.
             val me = state.myPlayerId
@@ -376,11 +392,26 @@ private fun InGameContent(
             )
         }
 
-        // --- Resource cards, bottom-left ---
-        ResourceCards(
-            hand = state.state.handOf(state.myPlayerId),
+        // --- Dev cards (above the resource cards) + resource cards, bottom-left ---
+        Column(
             modifier = Modifier.align(Alignment.BottomStart).padding(Spacing.md),
-        )
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            val me = state.myPlayerId
+            val playable = state.state.devCards[me].orEmpty()
+            val held = playable + state.state.boughtThisTurn[me].orEmpty()
+            // Knights are playable only on your Play turn, once per turn, and not the
+            // ones bought this turn (those live in boughtThisTurn, excluded here).
+            val canPlay = state.isMyTurn &&
+                state.state.phase is GamePhase.Play &&
+                !state.state.devCardPlayed
+            DevCardHand(
+                cards = held.groupingBy { it }.eachCount(),
+                playableKnights = if (canPlay) playable.count { it == DevCard.KNIGHT } else 0,
+                onPlayKnight = onPlayKnight,
+            )
+            ResourceCards(hand = state.state.handOf(state.myPlayerId))
+        }
 
         // --- End Turn, bottom-right (Play phase only — hidden during setup and
         // while a robber move is owed). ---
