@@ -6,6 +6,7 @@ import eric.bitria.hexonkmp.core.game.config.ScenarioConfig
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
 import eric.bitria.hexonkmp.core.game.engine.GameEngine
 import eric.bitria.hexonkmp.core.game.event.GameEvent
+import eric.bitria.hexonkmp.core.game.event.redactedFor
 import eric.bitria.hexonkmp.core.game.model.GameState
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.protocol.ActionRejected
@@ -72,40 +73,53 @@ class GameSession(
         // Decide everything under the lock; perform the sends outside it.
         val plan = mutex.withLock {
             if (playerId !in reservations) return false
-            val others = connections.values.toList()
             connections[playerId] = ws
             val current = state
-            if (current != null) {
-                // Reconnect into a running game: mark the player present again.
-                state = engine.playerJoined(current, PlayerId(playerId)).state
-                ConnectPlan(self = ws, others = others, state = state, justStarted = false)
-            } else if (connections.size >= maxPlayers) {
-                // Room is full — start immediately and drop any pending countdown.
-                cancelAutoStart()
-                state = startState()
-                ConnectPlan(self = ws, others = others, state = state, justStarted = true)
-            } else {
-                // Still in the lobby. Arm the auto-start countdown once we have the
-                // minimum (no-op if it's already running).
-                if (connections.size >= minPlayers) armAutoStart()
-                ConnectPlan(self = ws, others = others, state = null, justStarted = false)
+            val outcome = when {
+                current != null -> {
+                    // Reconnect into a running game: mark the player present again.
+                    state = engine.playerJoined(current, PlayerId(playerId)).state
+                    Outcome.RECONNECTED
+                }
+                connections.size >= maxPlayers -> {
+                    // Room is full — start immediately, drop any pending countdown.
+                    cancelAutoStart()
+                    state = startState()
+                    Outcome.STARTED
+                }
+                else -> {
+                    // Still in the lobby. Arm the countdown once we have the minimum
+                    // (no-op if it's already running).
+                    if (connections.size >= minPlayers) armAutoStart()
+                    Outcome.WAITING
+                }
             }
+            // Snapshot the connections so per-recipient redaction happens outside the
+            // lock; GameStarted must be redacted per player (hidden dev cards).
+            ConnectPlan(selfId = playerId, recipients = connections.toMap(), state = state, outcome = outcome)
         }
 
         val gameState = plan.state
-        if (gameState == null) {
+        when (plan.outcome) {
             // Lobby phase: everyone sees the updated count.
-            broadcast(WaitingForPlayers(plan.others.size + 1, maxPlayers), plan.others + plan.self)
-        } else {
-            // In-game. The connecting player enters the game (gets a snapshot);
-            // existing players see either the start (room just filled) or a join.
-            send(plan.self, GameStarted(gameState))
-            if (plan.others.isNotEmpty()) {
-                val event = if (plan.justStarted) GameStarted(gameState) else PlayerJoined(playerId)
-                broadcast(event, plan.others)
+            Outcome.WAITING ->
+                broadcast(WaitingForPlayers(plan.recipients.size, maxPlayers), plan.recipients.values.toList())
+            // Room just filled: each connected player gets their own redacted snapshot.
+            Outcome.STARTED -> sendStartedTo(plan.recipients, gameState!!)
+            // Reconnect: only the returning player gets a snapshot; others see a join.
+            Outcome.RECONNECTED -> {
+                plan.recipients[plan.selfId]?.let { send(it, GameStarted(gameState!!.redactedFor(PlayerId(plan.selfId)))) }
+                plan.recipients.filterKeys { it != plan.selfId }.values
+                    .forEach { send(it, PlayerJoined(plan.selfId)) }
             }
         }
         return true
+    }
+
+    // Sends each recipient a GameStarted snapshot redacted from their viewpoint, so
+    // nobody sees another player's hidden dev cards (or the deck order).
+    private suspend fun sendStartedTo(recipients: Map<String, DefaultWebSocketSession>, gameState: GameState) {
+        recipients.forEach { (pid, ws) -> send(ws, GameStarted(gameState.redactedFor(PlayerId(pid)))) }
     }
 
     suspend fun disconnect(playerId: String) {
@@ -126,12 +140,12 @@ class GameSession(
                 if (connections.size < minPlayers) cancelAutoStart()
                 emptyList()
             }
-            DisconnectPlan(connections.values.toList(), gameEvents, isEmpty)
+            DisconnectPlan(connections.toMap(), gameEvents, isEmpty)
         }
         // I/O outside the lock — avoids holding the mutex during sends.
-        if (plan.targets.isNotEmpty()) {
-            broadcast(PlayerLeft(playerId), plan.targets)
-            plan.events.forEach { broadcast(GameUpdate(it), plan.targets) }
+        if (plan.recipients.isNotEmpty()) {
+            broadcast(PlayerLeft(playerId), plan.recipients.values.toList())
+            plan.events.forEach { broadcastRedacted(it, plan.recipients) }
         }
         if (plan.isEmpty) {
             cancelAutoStart()
@@ -168,10 +182,10 @@ class GameSession(
             if (state != null || connections.size < minPlayers) return
             val fresh = startState()
             state = fresh
-            fresh to connections.values.toList()
+            fresh to connections.toMap()
         }
-        val (gameState, targets) = started
-        broadcast(GameStarted(gameState), targets)
+        val (gameState, recipients) = started
+        sendStartedTo(recipients, gameState)
     }
 
     // Runs one player action through the engine and broadcasts the outcome.
@@ -184,26 +198,39 @@ class GameSession(
                 ActionPlan.Rejected(connections[playerId], rejection)
             } else {
                 state = result.state
-                ActionPlan.Applied(connections.values.toList(), result.events)
+                ActionPlan.Applied(connections.toMap(), result.events)
             }
         }
         when (plan) {
             is ActionPlan.Rejected ->
                 plan.actor?.let { send(it, ActionRejected(plan.reason)) }
             is ActionPlan.Applied ->
-                plan.events.forEach { broadcast(GameUpdate(it), plan.targets) }
+                plan.events.forEach { broadcastRedacted(it, plan.recipients) }
         }
     }
 
+    // Broadcasts a domain event per recipient, each through GameEvent.redactedFor so
+    // nobody sees another player's hidden detail (e.g. a robber steal's resource).
+    private suspend fun broadcastRedacted(
+        event: GameEvent,
+        recipients: Map<String, DefaultWebSocketSession>,
+    ) {
+        recipients.forEach { (pid, ws) -> send(ws, GameUpdate(event.redactedFor(PlayerId(pid)))) }
+    }
+
+    // What connecting resulted in, decided under the lock and acted on outside it.
+    private enum class Outcome { WAITING, STARTED, RECONNECTED }
+
     private class ConnectPlan(
-        val self: DefaultWebSocketSession,
-        val others: List<DefaultWebSocketSession>,
+        val selfId: String,
+        // playerId -> socket snapshot, so GameStarted can be redacted per recipient.
+        val recipients: Map<String, DefaultWebSocketSession>,
         val state: GameState?,
-        val justStarted: Boolean,
+        val outcome: Outcome,
     )
 
     private class DisconnectPlan(
-        val targets: List<DefaultWebSocketSession>,
+        val recipients: Map<String, DefaultWebSocketSession>,
         val events: List<GameEvent>,
         val isEmpty: Boolean,
     )
@@ -211,7 +238,7 @@ class GameSession(
     private sealed interface ActionPlan {
         data class Rejected(val actor: DefaultWebSocketSession?, val reason: String) : ActionPlan
         data class Applied(
-            val targets: List<DefaultWebSocketSession>,
+            val recipients: Map<String, DefaultWebSocketSession>,
             val events: List<GameEvent>,
         ) : ActionPlan
     }

@@ -60,10 +60,12 @@ data class CityUpgraded(val building: Building) : GameEvent
 @SerialName("RobberMoved")
 data class RobberMoved(val hex: Axial) : GameEvent
 
-// The robber move stole one [resource] from [from], handed to [by].
+// The robber move stole one [resource] from [from], handed to [by]. The stolen
+// card's type is HIDDEN information: only [from] and [by] learn it. For everyone
+// else [resource] is null (they still learn a card moved, so counts stay right).
 @Serializable
 @SerialName("ResourceStolen")
-data class ResourceStolen(val from: PlayerId, val by: PlayerId, val resource: Resource) : GameEvent
+data class ResourceStolen(val from: PlayerId, val by: PlayerId, val resource: Resource?) : GameEvent
 
 // A player discarded [cards] for a 7. Clients subtract them from that hand; the
 // accompanying PhaseChanged carries the updated discard/robber phase.
@@ -120,3 +122,15 @@ data object TradeOffersCleared : GameEvent
 @Serializable
 @SerialName("TradeCancelled")
 data class TradeCancelled(val offerId: Int) : GameEvent
+
+// The per-recipient projection of an event, mirroring GameState.redactedFor: the
+// transport seam for hidden information in the *event stream*. Most events are
+// public and returned unchanged; only those carrying a secret override this.
+// Returns the version [viewer] is allowed to see (never null — everyone learns
+// that *something* happened, just not always the secret detail).
+fun GameEvent.redactedFor(viewer: PlayerId): GameEvent = when (this) {
+    // The stolen card's type is known only to the thief and the victim; third
+    // parties see the theft but not which resource changed hands.
+    is ResourceStolen -> if (viewer == by || viewer == from) this else copy(resource = null)
+    else -> this
+}

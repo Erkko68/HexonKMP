@@ -36,6 +36,7 @@ import eric.bitria.hexonkmp.core.game.event.TradeProposed
 import eric.bitria.hexonkmp.core.game.event.TradeResponded
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
 import eric.bitria.hexonkmp.core.game.model.Building
+import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.GameState
 import eric.bitria.hexonkmp.core.game.model.Placement
@@ -101,10 +102,19 @@ class CatanGameEngine(
             board = BoardGenerator.generate(config, boardSeed),
             phase = GamePhase.Setup(order = order, index = 0, awaiting = Placement.SETTLEMENT),
             currentPlayerIndex = order.first(),
+            devDeck = shuffledDevDeck(),
             rngSeed = boardSeed,
         )
         // No dice in setup — the first roll happens when Play begins.
     }
+
+    // The shuffled development-card draw pile, deterministic from the board seed
+    // (kept distinct from board generation so the two don't correlate). Cards are
+    // expanded from the config's per-type counts.
+    private fun shuffledDevDeck(): List<DevCard> =
+        config.rules.devCardDeck
+            .flatMap { (card, count) -> List(count) { card } }
+            .shuffled(Random(boardSeed * 31 + 17))
 
     override fun reduce(state: GameState, actor: PlayerId, action: GameAction): GameResult {
         // A couple of actions are taken by non-current players: responding to a

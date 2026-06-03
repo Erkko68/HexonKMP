@@ -1,5 +1,6 @@
 package eric.bitria.hexonkmp.core.game.config
 
+import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import kotlinx.serialization.Serializable
@@ -17,6 +18,9 @@ data class RuleConfig(
     val victoryPointsToWin: Int = 10,
     val buildCosts: Map<Buildable, Map<Resource, Int>>,
     val pieceLimits: Map<Buildable, Int>,
+    // The development-card deck composition: how many of each card type to shuffle
+    // into the draw pile. Data, so a variant just lists different counts.
+    val devCardDeck: Map<DevCard, Int> = emptyMap(),
     // How many identical resources the bank takes for one of any other resource
     // (classic Catan = 4:1; ports lower this, added later).
     val bankTradeRatio: Int = 4,

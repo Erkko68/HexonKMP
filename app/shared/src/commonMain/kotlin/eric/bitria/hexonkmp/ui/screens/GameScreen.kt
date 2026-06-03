@@ -245,17 +245,30 @@ private fun InGameContent(
                 )
             }
             // One chip per player in seat order: outlined for the current player,
-            // dimmed/struck-through for anyone who has left.
+            // dimmed/struck-through for anyone who has left. Below each, the public
+            // resource-card count (the only hand info opponents may see — exact
+            // cards are hidden; see GameState.redactedFor).
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 state.state.players.forEach { p ->
-                    PlayerCard(
-                        player = p,
-                        players = state.state.players,
-                        me = state.myPlayerId,
-                        current = p == state.state.currentPlayer,
-                        present = p in state.state.present,
-                        size = 40,
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    ) {
+                        PlayerCard(
+                            player = p,
+                            players = state.state.players,
+                            me = state.myPlayerId,
+                            current = p == state.state.currentPlayer,
+                            present = p in state.state.present,
+                            size = 40,
+                        )
+                        val cards = state.state.resourceCounts[p] ?: state.state.handOf(p).total
+                        Text(
+                            "🂠 $cards",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }

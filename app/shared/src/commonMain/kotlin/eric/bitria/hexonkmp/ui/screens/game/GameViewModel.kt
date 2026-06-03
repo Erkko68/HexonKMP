@@ -359,7 +359,7 @@ class GameViewModel(
                 turn = e.turn,
             )
             is DiceRolled -> s.state.copy(lastRoll = e.total)
-            is ResourcesProduced -> s.state.copy(hands = s.state.hands.merge(e.gains))
+            is ResourcesProduced -> s.state.applyResourceDeltas(e.gains)
             is PhaseChanged -> s.state.copy(phase = e.phase)
             is BuildingPlaced -> s.state.copy(buildings = s.state.buildings + e.building)
                 // In Play, building costs resources (Setup placement is free) — mirror
@@ -370,10 +370,7 @@ class GameViewModel(
             is CityUpgraded -> s.state.copy(
                 buildings = s.state.buildings.map { if (it.vertex == e.building.vertex) e.building else it },
             ).spend(e.building.owner, Buildable.CITY)
-            is BankTraded -> s.state.copy(
-                hands = s.state.hands.merge(mapOf(e.player to e.received))
-                    .merge(mapOf(e.player to (ResourceCount() - e.given))),
-            )
+            is BankTraded -> s.state.applyResourceDeltas(mapOf(e.player to (e.received - e.given)))
             // --- Player-to-player trades (mirror the server's pending-offer state) ---
             is TradeProposed -> s.state.copy(pendingTrades = s.state.pendingTrades + e.offer)
             is TradeResponded -> s.state.copy(
@@ -381,34 +378,29 @@ class GameViewModel(
                     if (it.id == e.offerId) it.copy(responses = it.responses + (e.player to e.accepted)) else it
                 },
             )
-            is TradeFinalized -> s.state.copy(
-                // Proposer -give +receive; partner the reverse. Finalizing clears all offers.
-                hands = s.state.hands
-                    .merge(mapOf(e.proposer to e.receive)).merge(mapOf(e.proposer to (ResourceCount() - e.give)))
-                    .merge(mapOf(e.partner to e.give)).merge(mapOf(e.partner to (ResourceCount() - e.receive))),
-                pendingTrades = emptyList(),
-            )
+            is TradeFinalized -> s.state.applyResourceDeltas(
+                // Proposer -give +receive; partner the reverse.
+                mapOf(e.proposer to (e.receive - e.give), e.partner to (e.give - e.receive)),
+            ).copy(pendingTrades = emptyList()) // finalizing clears all offers
             is TradeOffersCleared -> s.state.copy(pendingTrades = emptyList())
             is TradeCancelled -> s.state.copy(
                 pendingTrades = s.state.pendingTrades.filterNot { it.id == e.offerId },
             )
-            is ResourcesDiscarded -> s.state.copy(
-                hands = s.state.hands.merge(mapOf(e.player to (ResourceCount() - e.cards))),
-            )
+            is ResourcesDiscarded -> s.state.applyResourceDeltas(mapOf(e.player to (ResourceCount() - e.cards)))
             is GameEnded -> s.state.copy(phase = GamePhase.Finished(e.winner))
             is RobberMoved -> s.state.copy(board = s.state.board.copy(robber = e.hex))
-            is ResourceStolen -> s.state.copy(
-                hands = s.state.hands
-                    .merge(mapOf(e.by to ResourceCount.of(e.resource to 1)))
-                    .merge(mapOf(e.from to (ResourceCount() - ResourceCount.of(e.resource to 1)))),
-            )
+            // The stolen card's type is known only to thief/victim; for everyone else
+            // [resource] is null and we move counts only (no exact hand to update).
+            is ResourceStolen -> e.resource?.let { res ->
+                s.state.applyResourceDeltas(
+                    mapOf(e.by to ResourceCount.of(res to 1), e.from to (ResourceCount() - ResourceCount.of(res to 1))),
+                )
+            } ?: s.state.adjustCounts(mapOf(e.by to 1, e.from to -1))
         }
 
-    // Deducts a buildable's cost from the owner's hand (the Play-phase build price).
-    private fun GameState.spend(player: PlayerId, buildable: Buildable): GameState {
-        val cost = config.rules.cost(buildable)
-        return copy(hands = hands.merge(mapOf(player to (ResourceCount() - cost))))
-    }
+    // Deducts a buildable's cost from the owner (the Play-phase build price).
+    private fun GameState.spend(player: PlayerId, buildable: Buildable): GameState =
+        applyResourceDeltas(mapOf(player to (ResourceCount() - config.rules.cost(buildable))))
 
     private val Building.Kind.buildable: Buildable
         get() = when (this) {
@@ -416,14 +408,22 @@ class GameViewModel(
             Building.Kind.CITY -> Buildable.CITY
         }
 
-    // Adds each player's gains onto their current hand.
-    private fun Map<PlayerId, ResourceCount>.merge(
-        gains: Map<PlayerId, ResourceCount>,
-    ): Map<PlayerId, ResourceCount> {
-        val result = toMutableMap()
-        for ((player, gain) in gains) {
-            result[player] = (result[player] ?: ResourceCount()) + gain
-        }
-        return result
+    // Applies per-player resource deltas to the local state. Hidden information:
+    // we only ever keep OUR OWN exact hand; for everyone we keep the public
+    // resourceCounts in sync. Opponents' exact hands are never reconstructed (the
+    // server doesn't send them), so the UI shows their count only.
+    private fun GameState.applyResourceDeltas(deltas: Map<PlayerId, ResourceCount>): GameState {
+        val me = myPlayerId
+        val newHands = if (me != null && deltas.containsKey(me))
+            hands + (me to (handOf(me) + deltas.getValue(me))) else hands
+        return copy(hands = newHands).adjustCounts(deltas.mapValues { it.value.total })
+    }
+
+    // Adjusts only the public resource-card counts (used for hidden steals, where
+    // a card changes hands but third parties don't learn its type).
+    private fun GameState.adjustCounts(deltas: Map<PlayerId, Int>): GameState {
+        val counts = resourceCounts.toMutableMap()
+        for ((player, d) in deltas) counts[player] = (counts[player] ?: 0) + d
+        return copy(resourceCounts = counts)
     }
 }

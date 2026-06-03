@@ -1,5 +1,6 @@
 package eric.bitria.hexonkmp.core.game.config
 
+import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Terrain
 import eric.bitria.hexonkmp.core.game.model.board.hexagonalLayout
@@ -38,6 +39,14 @@ val ClassicCatan: ScenarioConfig = ScenarioConfig(
             Buildable.ROAD to 15,
             Buildable.SETTLEMENT to 5,
             Buildable.CITY to 4,
+        ),
+        // Classic 25-card deck: 14 knights, 5 victory points, 2 each progress card.
+        devCardDeck = mapOf(
+            DevCard.KNIGHT to 14,
+            DevCard.VICTORY_POINT to 5,
+            DevCard.ROAD_BUILDING to 2,
+            DevCard.YEAR_OF_PLENTY to 2,
+            DevCard.MONOPOLY to 2,
         ),
     ),
 )
