@@ -115,6 +115,14 @@ fun CatanBoardScene(
         Res.readBytes("files/materials/board_color.filamat")
     }
 
+    // White override applied to the number-token glTF renderables. Created here — at the same
+    // scope as numberAssets and BEFORE them — so it is destroyed AFTER the assets that own those
+    // renderables. Destroying a MaterialInstance still referenced by a live Renderable is a fatal
+    // Filament precondition (crashes web/iOS on teardown).
+    val whiteNumber = solid?.let { mat ->
+        rememberMaterialInstance(mat, engine = engine).apply { setParameter("baseColor", 1f, 1f, 1f) }
+    }
+
     // Number-token models, indexed 0..12 (a tile's token is its index). Loaded
     // once and shared; each tile places its own instance. The fixed range keeps
     // these composable call sites stable across recompositions.
@@ -203,10 +211,7 @@ fun CatanBoardScene(
             // One shared white material instance overrides whatever the glb shipped
             // with. The model's pivot is centered, so it drops straight on the hex
             // center; it was exported flat, so identity rotation lies it on the board.
-            val whiteNumber = rememberMaterialInstance(solidMat, engine = engine).apply {
-                setParameter("baseColor", 1f, 1f, 1f)
-            }
-            state.board.tiles.forEach { tile ->
+            if (whiteNumber != null) state.board.tiles.forEach { tile ->
                 val token = tile.token ?: return@forEach
                 val asset = numberAssets.getOrNull(token) ?: return@forEach
                 val c = HexMath.center(tile.hex, HEX_SIZE)
