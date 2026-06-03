@@ -3,6 +3,7 @@ package eric.bitria.hexonkmp.core.game.event
 import eric.bitria.hexonkmp.core.game.model.Building
 import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.PlayerId
+import eric.bitria.hexonkmp.core.game.model.Redactable
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.Road
 import eric.bitria.hexonkmp.core.game.model.TradeOffer
@@ -15,7 +16,19 @@ import kotlinx.serialization.Serializable
 // describe *what changed*, with no knowledge of how they reach a client (the
 // server wraps them in a transport envelope before broadcasting).
 @Serializable
-sealed interface GameEvent
+sealed interface GameEvent : Redactable<GameEvent> {
+    // The per-recipient projection of an event, mirroring GameState.redactedFor:
+    // the transport seam for hidden information in the *event stream*. Most events
+    // are public and returned unchanged; only those carrying a secret override the
+    // behaviour below. Never null — everyone learns that *something* happened, just
+    // not always the secret detail.
+    override fun redactedFor(viewer: PlayerId): GameEvent = when (this) {
+        // The stolen card's type is known only to the thief and the victim; third
+        // parties see the theft but not which resource changed hands.
+        is ResourceStolen -> if (viewer == by || viewer == from) this else copy(resource = null)
+        else -> this
+    }
+}
 
 @Serializable
 @SerialName("TurnChanged")
@@ -122,15 +135,3 @@ data object TradeOffersCleared : GameEvent
 @Serializable
 @SerialName("TradeCancelled")
 data class TradeCancelled(val offerId: Int) : GameEvent
-
-// The per-recipient projection of an event, mirroring GameState.redactedFor: the
-// transport seam for hidden information in the *event stream*. Most events are
-// public and returned unchanged; only those carrying a secret override this.
-// Returns the version [viewer] is allowed to see (never null — everyone learns
-// that *something* happened, just not always the secret detail).
-fun GameEvent.redactedFor(viewer: PlayerId): GameEvent = when (this) {
-    // The stolen card's type is known only to the thief and the victim; third
-    // parties see the theft but not which resource changed hands.
-    is ResourceStolen -> if (viewer == by || viewer == from) this else copy(resource = null)
-    else -> this
-}

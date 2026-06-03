@@ -47,7 +47,7 @@ data class GameState(
     // Advances on each random draw so reduce() stays a pure function while dice
     // are effectively random. Seeded from the board seed at creation.
     val rngSeed: Long = 0L,
-) {
+) : Redactable<GameState> {
     val currentPlayer: PlayerId get() = players[currentPlayerIndex]
 
     fun handOf(player: PlayerId): ResourceCount = hands[player] ?: ResourceCount()
@@ -67,7 +67,7 @@ data class GameState(
     // resource cards — while preserving the public facts (each player's dev-card
     // count, resource-card count, and the deck size). The viewer keeps full
     // visibility of their own cards.
-    fun redactedFor(viewer: PlayerId): GameState = copy(
+    override fun redactedFor(viewer: PlayerId): GameState = copy(
         devDeck = emptyList(),
         devCards = devCards.filterKeys { it == viewer },
         boughtThisTurn = boughtThisTurn.filterKeys { it == viewer },

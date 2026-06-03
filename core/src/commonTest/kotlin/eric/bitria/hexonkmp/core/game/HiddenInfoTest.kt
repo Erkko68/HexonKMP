@@ -3,7 +3,6 @@ package eric.bitria.hexonkmp.core.game
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.ResourceStolen
-import eric.bitria.hexonkmp.core.game.event.redactedFor
 import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount

@@ -57,19 +57,11 @@ import kotlin.random.Random
 // The pure game engine. Every rule lives behind reduce(); it has no concept of
 // sockets, coroutines, or connected players. Same code runs on the server (as
 // the source of truth) and on the client (to pre-validate before sending).
-interface GameEngine {
-    fun initialState(players: List<PlayerId>): GameState
-
-    // (state, who acted, what they did) -> result. Must be a pure function:
-    // no I/O, no shared mutable state, deterministic.
-    fun reduce(state: GameState, actor: PlayerId, action: GameAction): GameResult
-
-    // Presence changes. A player leaving while it is their turn must hand the
-    // turn to the next present player, otherwise the game stalls. A player
-    // rejoining is simply marked present again — the turn order is unchanged.
-    fun playerLeft(state: GameState, playerId: PlayerId): GameResult
-    fun playerJoined(state: GameState, playerId: PlayerId): GameResult
-
+//
+// Extends SessionEngine (the transport-facing slice) and adds the Catan-specific
+// legal-move/affordability queries the client UI uses. The server depends on the
+// narrower SessionEngine; only the client needs the full GameEngine.
+interface GameEngine : SessionEngine {
     // Pure legal-move queries — what `player` may place right now. The UI uses
     // these to offer valid placements (and could highlight them on a board).
     fun legalSettlements(state: GameState, player: PlayerId): Set<Vertex>

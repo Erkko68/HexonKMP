@@ -4,9 +4,8 @@ import eric.bitria.hexonkmp.core.game.action.GameAction
 import eric.bitria.hexonkmp.core.game.config.ClassicCatan
 import eric.bitria.hexonkmp.core.game.config.ScenarioConfig
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
-import eric.bitria.hexonkmp.core.game.engine.GameEngine
+import eric.bitria.hexonkmp.core.game.engine.SessionEngine
 import eric.bitria.hexonkmp.core.game.event.GameEvent
-import eric.bitria.hexonkmp.core.game.event.redactedFor
 import eric.bitria.hexonkmp.core.game.model.GameState
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.protocol.ActionRejected
@@ -41,7 +40,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class GameSession(
     val gameId: String,
     private val config: ScenarioConfig = ClassicCatan,
-    private val engine: GameEngine = CatanGameEngine(config),
+    private val engine: SessionEngine = CatanGameEngine(config),
     // Scope for the lobby auto-start countdown; the timer outlives any single
     // connect() call, so it can't live on the request coroutine.
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
