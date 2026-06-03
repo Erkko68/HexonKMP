@@ -22,6 +22,38 @@ fun reduce(state: GameState, actor: PlayerId, action: GameAction): GameResult
 
 Everything Catan lives behind `reduce`. Everything network lives in front of it.
 
+### The transport is generic over the game
+
+The separation is enforced by types, not just convention: the **entire transport
+stack is generic over a game's State `S`, Action `A`, and Event `E`**. The server
+session, matchmaking, protocol envelope, and codec name only `S/A/E` — never
+Catan. Catan is one *wiring* of these generics, assembled in the server's DI.
+
+```kotlin
+interface GameEngine<S, A, E> {                 // transport-facing, game-agnostic
+    fun initialState(players: List<PlayerId>): S
+    fun reduce(state: S, actor: PlayerId, action: A): GameResult<S, E>
+    fun playerLeft(state: S, playerId: PlayerId): GameResult<S, E>
+    fun playerJoined(state: S, playerId: PlayerId): GameResult<S, E>
+}
+
+// Catan binds the generics and adds the legal-move queries the client UI uses:
+interface CatanEngine : GameEngine<GameState, GameAction, GameEvent> {
+    fun legalSettlements(state: GameState, player: PlayerId): Set<Vertex>
+    fun legalRoads(state: GameState, player: PlayerId): Set<Edge>
+    fun legalCities(state: GameState, player: PlayerId): Set<Vertex>
+    fun canAfford(state: GameState, player: PlayerId, buildable: Buildable): Boolean
+}
+class CatanGameEngine(config: ScenarioConfig = ClassicCatan, …) : CatanEngine
+```
+
+The generic contracts each live in their own file (`engine/GameEngine.kt`,
+`engine/GameResult.kt`, `model/Redactable.kt`, `protocol/GameCodec.kt`,
+`protocol/ServerEvent.kt`) — they are *the main architecture*. The Catan
+implementations (`CatanEngine`, `CatanGameEngine`, `CatanCodec`) are separate.
+To host a different game you provide a new engine + codec and reuse everything
+else; see *Hosting another game* below.
+
 ## Modules
 
 ```
@@ -51,30 +83,32 @@ flowchart LR
         Repo --> GC[GameClient]
     end
 
-    subgraph Core [core - shared]
-        Engine[GameEngine.reduce]
-        Wire[Wire encode/decode]
-        Protocol[ServerEvent / GameAction]
+    subgraph Core [core - shared, generic over S/A/E]
+        Engine["GameEngine&lt;S,A,E&gt;.reduce (CatanGameEngine)"]
+        Codec["GameCodec&lt;S,A,E&gt; (CatanCodec)"]
+        Protocol["ServerEvent&lt;S,E&gt; / GameAction"]
     end
 
-    subgraph Server [server]
+    subgraph Server [server, generic over S/A/E]
         Routes[GameRoutes ws loop]
-        Session[GameSession]
-        SessRepo[GameSessionRepository]
+        Session["GameSession&lt;S,A,E&gt;"]
+        SessRepo["GameSessionRepository&lt;S,A,E&gt;"]
     end
 
     GC <-->|WebSocket JSON| Routes
     Routes --> Session
     Session --> Engine
     Session --> SessRepo
-    GC -.uses.-> Wire
-    Session -.uses.-> Wire
+    GC -.uses.-> Codec
+    Session -.uses.-> Codec
     VM -.knows.-> Protocol
 ```
 
 The client and server only ever exchange JSON-encoded `GameAction` (client →
-server) and `ServerEvent` (server → client). `Wire` is the single place that
-(de)serializes them, so the format is defined once.
+server) and `ServerEvent` (server → client). `GameCodec` is the single
+(de)serialization seam (Catan's impl is `CatanCodec`); the server's `GameRoutes`
+loop just forwards raw frames — `GameSession` decodes them via its codec, so the
+route layer is fully game-agnostic.
 
 ## The two message sets
 
@@ -98,15 +132,22 @@ data class FinalizeTrade(val offerId: Int, val partner: PlayerId) : GameAction
 data class CancelTrade(val offerId: Int) : GameAction          // proposer withdraws one offer
 ```
 
-### `ServerEvent` (server → client) — `core/protocol/`
-The transport envelope. Split by phase:
+### `ServerEvent<S, E>` (server → client) — `core/protocol/`
+The transport envelope, **generic over the game** (`out S, out E`). Declaration-
+site variance lets the agnostic lifecycle messages be `ServerEvent<Nothing,
+Nothing>` so they carry no phantom type params; only the two payload-carrying
+variants are game-specific (`GameStarted<out S>`, `GameUpdate<out E>`). Split by
+phase:
 
 | Phase        | Events                                              |
 |--------------|-----------------------------------------------------|
-| Lobby        | `WaitingForPlayers(connected, needed)`, `GameStarted(state)` |
+| Lobby        | `WaitingForPlayers(connected, needed)`, `GameStarted(state: S)` |
 | Presence     | `PlayerJoined(playerId)`, `PlayerLeft(playerId)`    |
-| Game updates | `GameUpdate(event)` wrapping a `GameEvent`, `ActionRejected(reason)` |
+| Game updates | `GameUpdate(event: E)` wrapping a `GameEvent`, `ActionRejected(reason)` |
 | Client-local | `ConnectionFailed(reason)` (never sent over the wire)|
+
+The snapshot in `GameStarted` and each `GameUpdate` are shipped **per recipient,
+redacted** — see *Hidden information* below.
 
 `GameAction` variants so far: `EndTurn`, `PlaceSettlement(vertex)`,
 `PlaceRoad(edge)`, `UpgradeCity(vertex)`, `MoveRobber(hex)`,
@@ -127,7 +168,7 @@ data class BuildingPlaced(val building: Building) : GameEvent
 data class RoadPlaced(val road: Road) : GameEvent
 data class CityUpgraded(val building: Building) : GameEvent   // the resulting city
 data class RobberMoved(val hex: Axial) : GameEvent
-data class ResourceStolen(val from: PlayerId, val by: PlayerId, val resource: Resource) : GameEvent
+data class ResourceStolen(val from: PlayerId, val by: PlayerId, val resource: Resource?) : GameEvent  // resource null when redacted (hidden from third parties)
 data class ResourcesDiscarded(val player: PlayerId, val cards: ResourceCount) : GameEvent
 data class GameEnded(val winner: PlayerId) : GameEvent
 data class BankTraded(val player: PlayerId, val given: ResourceCount, val received: ResourceCount) : GameEvent
@@ -146,17 +187,16 @@ data class TradeCancelled(val offerId: Int) : GameEvent  // proposer withdrew on
 
 ## The engine (pure, testable) — `core/game/engine/`
 
-```kotlin
-interface GameEngine {
-    fun initialState(players: List<PlayerId>): GameState
-    fun reduce(state: GameState, actor: PlayerId, action: GameAction): GameResult
-}
+The engine contract is the generic `GameEngine<S, A, E>` shown earlier; Catan
+implements it via `CatanEngine` (`CatanGameEngine`). The result is generic too:
 
-data class GameResult(
-    val state: GameState,              // new state (== old if rejected)
-    val events: List<GameEvent> = [],  // what to broadcast on success
-    val rejection: String? = null,     // why it failed (sent only to the actor)
+```kotlin
+data class GameResult<out S, out E>(
+    val state: S,                 // new state (== old if rejected)
+    val events: List<E> = [],     // what to broadcast on success
+    val rejection: String? = null, // why it failed (sent only to the actor)
 )
+// CatanGameEngine uses a private alias: typealias CatanResult = GameResult<GameState, GameEvent>
 ```
 
 `reduce` is a **pure function**: no I/O, no shared mutable state, deterministic.
@@ -263,6 +303,12 @@ stateDiagram-v2
   resources as a starting hand.
 - **`Play`** begins automatically when the draft finishes (`PhaseChanged(Play)`),
   and the first player's turn opens with the usual auto-roll.
+- **Leavers during setup don't stall or get skipped.** If a player leaves mid-
+  draft, the engine auto-places a random *legal* settlement + road for them
+  (granting second-round resources) — both for the current leaver and for any
+  already-left player when their draft slot comes up. Invariant: the draft only
+  ever comes to rest on a *present* player (or transitions to `Play`), so a leaver
+  can never hold setup state hostage.
 
 **Full placement validation lives in the engine:**
 - Settlement (setup): the vertex must be empty *and* the distance rule holds (no
@@ -331,17 +377,73 @@ sequenceDiagram
   for the proposer's turn. The proposer can also withdraw a single offer with
   `CancelTrade` (`TradeCancelled`).
 
+## Hidden information (per-recipient redaction)
+
+Some state is secret: a player's **dev-card types**, their exact **resource
+hand**, the **dev-card deck order**, and the **type of a card stolen by the
+robber**. Opponents may only see *counts*. This is enforced at the transport seam,
+mirroring the engine/transport split: the engine always works on full truth; the
+server redacts **per recipient** just before sending.
+
+The capability is one interface:
+
+```kotlin
+interface Redactable<out T> { fun redactedFor(viewer: PlayerId): T }
+// GameState : Redactable<GameState>,  GameEvent : Redactable<GameEvent>
+```
+
+- `GameState.redactedFor(viewer)` strips the deck and every *other* player's dev
+  cards and resource hands, while filling public projection fields
+  (`devCardCounts`, `resourceCounts`, `devDeckSize`). Those projections are
+  populated **only** by redaction and are never read by the engine.
+- `GameEvent.redactedFor(viewer)` passes most events through unchanged; the one
+  exception is `ResourceStolen`, whose `resource` is nulled for anyone but the
+  thief and victim (counts still move, so third parties stay consistent).
+
+`GameSession` applies these per recipient: it snapshots `connections` (playerId →
+socket) under the lock, then sends each player their own redacted `GameStarted`
+snapshot and their own redacted `GameUpdate` events. `GameCodec` carries the
+typed `ServerEvent<S, E>` over the wire (the wire format is unchanged — a typed
+payload serializes identically). The client keeps only **its own** exact hand and
+maintains everyone's public `resourceCounts` from the event stream
+(`applyResourceDeltas` / `adjustCounts` for hidden steals); opponents' exact
+hands are never reconstructed.
+
+> Production, bank/player trades, and discards are public in Catan, so those
+> events carry typed amounts; only the steal's card type is genuinely secret.
+
 ## Server responsibilities — `server/`
 
+All three are **generic over `S/A/E`** and name no game type:
+
 - **`GameRoutes`** — HTTP `POST /game` (matchmaking) and the WebSocket loop. The
-  loop is *pure transport*: decode a frame into a `GameAction`, hand it to the
-  session, repeat. No rules here.
-- **`GameSession`** — owns the connections **and** the authoritative `GameState`,
-  but contains **no rules**. It calls the engine and broadcasts the result. All
+  loop is *pure transport*: forward each raw text frame to
+  `session.handleAction(playerId, text)` (the session decodes it via its codec).
+  It holds the repository as `GameSessionRepository<*, *, *>`.
+- **`GameSession<S, A, E>`** — owns the connections **and** the authoritative
+  state `S`, but contains **no rules**. It calls the engine, redacts per recipient
+  (`S : Redactable<S>`, `E : Redactable<E>`), and broadcasts via the codec. All
   state mutation happens under a `Mutex`; the actual socket sends happen *outside*
-  the lock (snapshot recipients inside, send outside).
-- **`GameSessionRepository`** — matchmaking: find-or-create a session, map
-  `playerId → gameId` so a returning player rejoins the session they left.
+  the lock (snapshot recipients inside, send outside). Matchmaking limits
+  (`minPlayers`, `maxPlayers`, `autoStartDelaySeconds`) are constructor params, so
+  the session reads no Catan config.
+- **`GameSessionRepository<S, A, E>`** — matchmaking: find-or-create a session,
+  map `playerId → gameId` so a returning player rejoins the session they left.
+  `InMemoryGameSessionRepository` builds sessions through an injected
+  `newSession` factory, so it too is game-agnostic.
+
+**The one place that names Catan** is the server's `AppModule` (Koin): it binds
+`CatanGameEngine` + `CatanCodec` + `ClassicCatan`'s match limits into the
+`newSession` factory and registers a
+`GameSessionRepository<GameState, GameAction, GameEvent>`.
+
+### Matchmaking & auto-start
+
+The room holds up to `maxPlayers`. Once `minPlayers` are connected, the session
+arms an `autoStartDelaySeconds` countdown (config-driven) and then starts with
+whoever is connected; filling to `maxPlayers` starts instantly and cancels the
+timer, and dropping back below `minPlayers` in the lobby cancels it. The countdown
+runs on a session-owned `CoroutineScope`, cancelled when the room empties.
 
 ### Connection lifecycle
 
@@ -351,7 +453,7 @@ stateDiagram-v2
     Idle --> Connecting: joinGame()
     Connecting --> Waiting: POST /game ok, ws open
     Waiting --> Waiting: WaitingForPlayers (count)
-    Waiting --> InGame: GameStarted (room full / rejoin)
+    Waiting --> InGame: GameStarted (room full / auto-start timer / rejoin)
     InGame --> InGame: GameUpdate / PlayerJoined / PlayerLeft
     Connecting --> Error: timeout / failure
     InGame --> Idle: leave
@@ -367,13 +469,15 @@ end the game for the others.
 ## Client responsibilities — `app/shared/`
 
 - **`GameClient`** — opens the WebSocket, pumps outbound `GameAction`s, decodes
-  inbound `ServerEvent`s via `Wire`.
+  inbound `ServerEvent`s via `CatanCodec` (the Catan `GameCodec`).
 - **`GameRepository`** — owns the connection coroutine, exposes a `Flow` of
-  events, turns connection failures into a `ConnectionFailed` event so the UI can
-  always leave its loading state.
-- **`GameViewModel`** — folds `ServerEvent`s into a `GameUiState`. Applies each
-  `GameUpdate` to its local copy of `GameState` (this is where the shared engine
-  can later be reused for optimistic updates).
+  `CatanServerEvent` (`= ServerEvent<GameState, GameEvent>`), turns connection
+  failures into a `ConnectionFailed` event so the UI can always leave its loading
+  state.
+- **`GameViewModel`** — folds events into a `GameUiState`. Applies each
+  `GameUpdate` to its local copy of `GameState`, keeping our own hand exact and
+  opponents' public counts in sync. Holds a `CatanEngine` for the legal-move
+  queries that drive build affordances.
 - **`GameScreen`** — renders the state; the "End Turn" button is enabled only on
   `isMyTurn`.
 
@@ -428,6 +532,21 @@ To add a mode: author a new `ScenarioConfig` (different `hexLayout`,
 `terrainBag`, `numberTokens`, and/or `RuleConfig`) and pass it to
 `CatanGameEngine(config = ...)`. Done — no engine edits.
 
+### Two axes of extensibility
+
+These are different levers, and it's worth keeping them straight:
+
+| Want | Provide | Reuses |
+|------|---------|--------|
+| A Catan **variant** (map/expansion/rules) | a new `ScenarioConfig` value | the same `GameState`, engine, transport |
+| A **different game** entirely | new `S`/`A`/`E` types + a `GameEngine<S,A,E>` + a `GameCodec<S,A,E>` (and `S`/`E` implement `Redactable`) | the whole transport: `GameSession`, repository, routes, protocol envelope, matchmaking |
+
+For a non-Catan game, the only server change is the DI wiring (bind the new
+engine + codec into the `newSession` factory); `GameSession`, the repository, and
+`GameRoutes` are already generic and untouched. The Catan pieces
+(`CatanEngine` / `CatanGameEngine` / `CatanCodec`) are the reference
+implementation of that contract.
+
 ## Adding a new Catan action (the workflow)
 
 This is the loop you'll repeat as the game grows:
@@ -447,18 +566,23 @@ changes — `GameUpdate` already carries any `GameEvent`.
 
 ## What is intentionally NOT here yet
 
-- Remaining Catan domain: dev cards, and longest-road / largest-army (which feed
-  victory points — currently VP counts only built settlements/cities).
+- Dev-card **gameplay**: the secrecy seam, `DevCard` deck (in `RuleConfig`), and
+  hidden-hand state exist, but buying/playing cards (Knight, Road Building, Year
+  of Plenty, Monopoly, VP) is the next vertical slice — along with largest-army /
+  longest-road, which also feed victory points (VP currently counts only built
+  settlements/cities).
 - Persistence (state is in-memory; a server restart loses games).
 - Auth (the `playerId` from the query string is trusted as-is).
 - Server-side reconnect of game state validation beyond the slot mapping.
 
-*Built this far:* hex board + generation, resources/hands, setup draft,
-auto-roll + production, settlement/road building with costs and connectivity
-(incl. opponent-building road blocking), city upgrades, the robber on a 7
-(discard-half + move + auto-steal, robbed tile blocked), bank trades, and
-player-to-player trades (end to end), and the victory-point win condition (the
-engine ends the game on `GameEnded` → `GamePhase.Finished(winner)`; the client
-shows a winner overlay).
+*Built this far:* hex board + generation, resources/hands, setup draft (with
+random auto-placement for leavers), auto-roll + production, settlement/road
+building with costs and connectivity (incl. opponent-building road blocking),
+city upgrades, the robber on a 7 (discard-half + move + auto-steal, robbed tile
+blocked), bank trades, player-to-player trades (end to end), the victory-point
+win condition (`GameEnded` → `GamePhase.Finished(winner)` + winner overlay),
+config-driven matchmaking with an auto-start countdown, a per-recipient
+hidden-information seam (dev cards + resource hands shown as counts), and a fully
+**generic transport** (`S/A/E`) with Catan as one wiring.
 
 These build on top of the seam above without reshaping it.

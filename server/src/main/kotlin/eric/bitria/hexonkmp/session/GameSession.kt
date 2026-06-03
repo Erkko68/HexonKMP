@@ -1,21 +1,16 @@
 package eric.bitria.hexonkmp.session
 
-import eric.bitria.hexonkmp.core.game.action.GameAction
-import eric.bitria.hexonkmp.core.game.config.ClassicCatan
-import eric.bitria.hexonkmp.core.game.config.ScenarioConfig
-import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
-import eric.bitria.hexonkmp.core.game.engine.SessionEngine
-import eric.bitria.hexonkmp.core.game.event.GameEvent
-import eric.bitria.hexonkmp.core.game.model.GameState
+import eric.bitria.hexonkmp.core.game.engine.GameEngine
 import eric.bitria.hexonkmp.core.game.model.PlayerId
+import eric.bitria.hexonkmp.core.game.model.Redactable
 import eric.bitria.hexonkmp.core.protocol.ActionRejected
+import eric.bitria.hexonkmp.core.protocol.GameCodec
 import eric.bitria.hexonkmp.core.protocol.GameStarted
 import eric.bitria.hexonkmp.core.protocol.GameUpdate
 import eric.bitria.hexonkmp.core.protocol.PlayerJoined
 import eric.bitria.hexonkmp.core.protocol.PlayerLeft
 import eric.bitria.hexonkmp.core.protocol.ServerEvent
 import eric.bitria.hexonkmp.core.protocol.WaitingForPlayers
-import eric.bitria.hexonkmp.core.protocol.Wire
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.CoroutineScope
@@ -30,26 +25,30 @@ import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration.Companion.milliseconds
 
 // Owns connections AND the authoritative game state, but contains NO game rules:
-// it delegates every decision to the pure GameEngine and only handles transport
-// (who's connected, what to broadcast). All game logic lives in the engine.
+// it delegates every decision to a pure GameEngine and only handles transport
+// (who's connected, what to broadcast). Generic over a game's state [S], action
+// [A], and event [E] — it hosts ANY turn-based game, not just Catan. The state
+// and events must be Redactable so the session can ship per-recipient projections
+// that hide other players' secrets. (De)serialization is delegated to a GameCodec.
 //
-// Matchmaking is driven entirely by the scenario's RuleConfig: the room holds up
-// to `maxPlayers`, and once `minPlayers` are connected it waits up to
-// `autoStartDelaySeconds` for more before starting automatically (or starts
+// Matchmaking is configured per game (the ints below): the room holds up to
+// [maxPlayers], and once [minPlayers] are connected it waits up to
+// [autoStartDelaySeconds] for more before starting automatically (or starts
 // instantly the moment the room fills).
-class GameSession(
+class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
     val gameId: String,
-    private val config: ScenarioConfig = ClassicCatan,
-    private val engine: SessionEngine = CatanGameEngine(config),
+    private val engine: GameEngine<S, A, E>,
+    private val codec: GameCodec<S, A, E>,
+    private val minPlayers: Int,
+    private val maxPlayers: Int,
+    autoStartDelaySeconds: Int,
     // Scope for the lobby auto-start countdown; the timer outlives any single
     // connect() call, so it can't live on the request coroutine.
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     // Called after the last player leaves so the repository can clean up.
     private val onEmpty: suspend (gameId: String) -> Unit = {},
 ) {
-    private val minPlayers = config.rules.minPlayers
-    private val maxPlayers = config.rules.maxPlayers
-    private val autoStartDelayMs = config.rules.autoStartDelaySeconds.toLong() * 1000L
+    private val autoStartDelayMs = autoStartDelaySeconds.toLong() * 1000L
 
     private val mutex = Mutex()
     // LinkedHashSet: preserves join order, which becomes the turn order.
@@ -57,7 +56,7 @@ class GameSession(
     private val connections = mutableMapOf<String, DefaultWebSocketSession>()
     // Non-null once the game starts; it then runs for the rest of the session even
     // if players later drop below minPlayers.
-    private var state: GameState? = null
+    private var state: S? = null
     // The pending auto-start countdown, if the lobby has reached minPlayers but
     // isn't full yet. Cancelled if the room fills or drops below minPlayers.
     private var autoStartJob: Job? = null
@@ -94,7 +93,7 @@ class GameSession(
                 }
             }
             // Snapshot the connections so per-recipient redaction happens outside the
-            // lock; GameStarted must be redacted per player (hidden dev cards).
+            // lock; GameStarted must be redacted per player (hidden information).
             ConnectPlan(selfId = playerId, recipients = connections.toMap(), state = state, outcome = outcome)
         }
 
@@ -116,8 +115,8 @@ class GameSession(
     }
 
     // Sends each recipient a GameStarted snapshot redacted from their viewpoint, so
-    // nobody sees another player's hidden dev cards (or the deck order).
-    private suspend fun sendStartedTo(recipients: Map<String, DefaultWebSocketSession>, gameState: GameState) {
+    // nobody sees another player's hidden information.
+    private suspend fun sendStartedTo(recipients: Map<String, DefaultWebSocketSession>, gameState: S) {
         recipients.forEach { (pid, ws) -> send(ws, GameStarted(gameState.redactedFor(PlayerId(pid)))) }
     }
 
@@ -155,7 +154,7 @@ class GameSession(
 
     // The game's initial state, seeded with the currently-connected players in
     // join order (reservations that never connected are left out).
-    private fun startState(): GameState =
+    private fun startState(): S =
         engine.initialState(reservations.filter { it in connections }.map { PlayerId(it) })
 
     // Arms the lobby countdown if one isn't already running. Called under the lock;
@@ -187,8 +186,11 @@ class GameSession(
         sendStartedTo(recipients, gameState)
     }
 
-    // Runs one player action through the engine and broadcasts the outcome.
-    suspend fun handleAction(playerId: String, action: GameAction) {
+    // Runs one player action through the engine and broadcasts the outcome. The
+    // action arrives as raw text and is decoded by the game's codec here, so the
+    // route layer stays fully game-agnostic. Malformed actions are ignored.
+    suspend fun handleAction(playerId: String, actionText: String) {
+        val action = runCatching { codec.decodeAction(actionText) }.getOrNull() ?: return
         val plan = mutex.withLock {
             val current = state ?: return  // action before the game started: ignore
             val result = engine.reduce(current, PlayerId(playerId), action)
@@ -208,45 +210,42 @@ class GameSession(
         }
     }
 
-    // Broadcasts a domain event per recipient, each through GameEvent.redactedFor so
-    // nobody sees another player's hidden detail (e.g. a robber steal's resource).
-    private suspend fun broadcastRedacted(
-        event: GameEvent,
-        recipients: Map<String, DefaultWebSocketSession>,
-    ) {
+    // Broadcasts a domain event per recipient, each through redactedFor so nobody
+    // sees another player's hidden detail (e.g. a robber steal's resource).
+    private suspend fun broadcastRedacted(event: E, recipients: Map<String, DefaultWebSocketSession>) {
         recipients.forEach { (pid, ws) -> send(ws, GameUpdate(event.redactedFor(PlayerId(pid)))) }
     }
 
     // What connecting resulted in, decided under the lock and acted on outside it.
     private enum class Outcome { WAITING, STARTED, RECONNECTED }
 
-    private class ConnectPlan(
+    private inner class ConnectPlan(
         val selfId: String,
         // playerId -> socket snapshot, so GameStarted can be redacted per recipient.
         val recipients: Map<String, DefaultWebSocketSession>,
-        val state: GameState?,
+        val state: S?,
         val outcome: Outcome,
     )
 
-    private class DisconnectPlan(
+    private inner class DisconnectPlan(
         val recipients: Map<String, DefaultWebSocketSession>,
-        val events: List<GameEvent>,
+        val events: List<E>,
         val isEmpty: Boolean,
     )
 
-    private sealed interface ActionPlan {
-        data class Rejected(val actor: DefaultWebSocketSession?, val reason: String) : ActionPlan
-        data class Applied(
+    private sealed interface ActionPlan<out Ev> {
+        data class Rejected(val actor: DefaultWebSocketSession?, val reason: String) : ActionPlan<Nothing>
+        data class Applied<Ev>(
             val recipients: Map<String, DefaultWebSocketSession>,
-            val events: List<GameEvent>,
-        ) : ActionPlan
+            val events: List<Ev>,
+        ) : ActionPlan<Ev>
     }
 
-    private suspend fun send(target: DefaultWebSocketSession, event: ServerEvent) =
-        target.send(Frame.Text(Wire.encode(event)))
+    private suspend fun send(target: DefaultWebSocketSession, event: ServerEvent<S, E>) =
+        target.send(Frame.Text(codec.encodeServerEvent(event)))
 
-    private suspend fun broadcast(event: ServerEvent, targets: List<DefaultWebSocketSession>) {
-        val text = Wire.encode(event)
+    private suspend fun broadcast(event: ServerEvent<S, E>, targets: List<DefaultWebSocketSession>) {
+        val text = codec.encodeServerEvent(event)
         targets.forEach { it.send(Frame.Text(text)) }
     }
 }

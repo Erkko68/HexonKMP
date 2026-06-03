@@ -4,7 +4,7 @@ import eric.bitria.hexonkmp.core.game.action.DiscardResources
 import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.MoveRobber
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
-import eric.bitria.hexonkmp.core.game.engine.GameEngine
+import eric.bitria.hexonkmp.core.game.engine.CatanEngine
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.model.Building
@@ -20,7 +20,7 @@ import kotlin.test.assertTrue
 
 // Submit a discard for the first present player who still owes one (drives the
 // 7 discard phase forward in turn-loop tests).
-private fun GameEngine.resolveOneDiscard(state: GameState): GameState {
+private fun CatanEngine.resolveOneDiscard(state: GameState): GameState {
     val pending = (state.phase as GamePhase.Discard).pending
     val (player, count) = pending.entries.first { it.key in state.present }
     var cards = ResourceCount()

@@ -2,7 +2,6 @@ package eric.bitria.hexonkmp.routes
 
 import eric.bitria.hexonkmp.core.protocol.JoinGameRequest
 import eric.bitria.hexonkmp.core.protocol.JoinGameResponse
-import eric.bitria.hexonkmp.core.protocol.Wire
 import eric.bitria.hexonkmp.repository.GameSessionRepository
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -13,7 +12,7 @@ import io.ktor.websocket.*
 import org.koin.ktor.ext.inject
 
 fun Application.gameRoutes() {
-    val sessions by inject<GameSessionRepository>()
+    val sessions by inject<GameSessionRepository<*, *, *>>()
 
     routing {
         // POST /game — client sends its stable playerId; server finds or creates a game slot.
@@ -38,12 +37,12 @@ fun Application.gameRoutes() {
             }
 
             try {
-                // Decode client actions and hand them to the session; all game
-                // logic lives behind the engine, this loop is pure transport.
+                // Forward raw client action frames to the session, which decodes
+                // them with its game codec; this loop is pure transport and knows
+                // nothing about the game or its action types.
                 for (frame in incoming) {
                     if (frame is Frame.Text) {
-                        runCatching { Wire.decodeAction(frame.readText()) }
-                            .onSuccess { session.handleAction(playerId, it) }
+                        session.handleAction(playerId, frame.readText())
                     }
                 }
             } finally {

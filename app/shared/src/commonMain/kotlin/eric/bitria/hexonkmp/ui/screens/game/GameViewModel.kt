@@ -14,12 +14,13 @@ import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
 import eric.bitria.hexonkmp.core.game.action.UpgradeCity
 import eric.bitria.hexonkmp.core.game.action.ProposeTrade
 import eric.bitria.hexonkmp.core.game.action.RespondTrade
+import eric.bitria.hexonkmp.core.game.engine.CatanEngine
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
-import eric.bitria.hexonkmp.core.game.engine.GameEngine
 import eric.bitria.hexonkmp.core.game.event.BuildingPlaced
 import eric.bitria.hexonkmp.core.game.event.CityUpgraded
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.GameEnded
+import eric.bitria.hexonkmp.core.game.event.GameEvent
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
 import eric.bitria.hexonkmp.core.game.event.RoadPlaced
@@ -45,12 +46,12 @@ import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.core.protocol.ActionRejected
+import eric.bitria.hexonkmp.core.protocol.CatanServerEvent
 import eric.bitria.hexonkmp.core.protocol.ConnectionFailed
 import eric.bitria.hexonkmp.core.protocol.GameStarted
 import eric.bitria.hexonkmp.core.protocol.GameUpdate
 import eric.bitria.hexonkmp.core.protocol.PlayerJoined
 import eric.bitria.hexonkmp.core.protocol.PlayerLeft
-import eric.bitria.hexonkmp.core.protocol.ServerEvent
 import eric.bitria.hexonkmp.core.protocol.WaitingForPlayers
 import eric.bitria.hexonkmp.data.repository.GameRepository
 import eric.bitria.hexonkmp.data.storage.DevicePreferences
@@ -86,7 +87,7 @@ class GameViewModel(
     // The same pure engine the server runs — used here only to query *legal*
     // placements so the UI can offer them (board config travels in GameState, so
     // a default-config instance is fine for read-only queries).
-    private val engine: GameEngine = CatanGameEngine()
+    private val engine: CatanEngine = CatanGameEngine()
 
     init {
         viewModelScope.launch {
@@ -314,7 +315,7 @@ class GameViewModel(
         repository.disconnect()
     }
 
-    private fun handleServerEvent(event: ServerEvent) {
+    private fun handleServerEvent(event: CatanServerEvent) {
         when (event) {
             // --- Lobby phase ---
             is WaitingForPlayers -> _state.update { s ->
@@ -352,7 +353,7 @@ class GameViewModel(
         }
     }
 
-    private fun applyEvent(s: GameUiState.InGame, update: GameUpdate) =
+    private fun applyEvent(s: GameUiState.InGame, update: GameUpdate<GameEvent>) =
         when (val e = update.event) {
             is TurnChanged -> s.state.copy(
                 currentPlayerIndex = s.state.players.indexOf(e.currentPlayer),

@@ -1,18 +1,26 @@
 package eric.bitria.hexonkmp.repository
 
+import eric.bitria.hexonkmp.core.game.model.Redactable
 import eric.bitria.hexonkmp.session.GameSession
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-class InMemoryGameSessionRepository : GameSessionRepository {
-    private val sessions = ConcurrentHashMap<String, GameSession>()
+// Game-agnostic matchmaking: it creates sessions through an injected factory
+// (which knows the concrete game — its engine, codec, and match config) and never
+// names a game type itself.
+class InMemoryGameSessionRepository<S : Redactable<S>, A, E : Redactable<E>>(
+    // (gameId, onEmpty) -> a fresh session for this game. onEmpty lets the session
+    // tell the repository to clean up when its last player leaves.
+    private val newSession: (gameId: String, onEmpty: suspend (gameId: String) -> Unit) -> GameSession<S, A, E>,
+) : GameSessionRepository<S, A, E> {
+    private val sessions = ConcurrentHashMap<String, GameSession<S, A, E>>()
     private val playerIndex = ConcurrentHashMap<String, String>() // playerId → gameId
     private val mutex = Mutex()
-    private var openSession: GameSession? = null
+    private var openSession: GameSession<S, A, E>? = null
 
-    override suspend fun findOrJoin(playerId: String): GameSession = mutex.withLock {
+    override suspend fun findOrJoin(playerId: String): GameSession<S, A, E> = mutex.withLock {
         // Reconnect: player already mapped to a session that still exists — put
         // them back into it, re-reserving the slot freed when they disconnected.
         playerIndex[playerId]?.let { gameId -> sessions[gameId] }
@@ -23,7 +31,7 @@ class InMemoryGameSessionRepository : GameSessionRepository {
 
         // New slot: find the open session or create one
         val session = openSession?.takeIf { it.hasAvailableSlot() }
-            ?: GameSession(gameId = UUID.randomUUID().toString(), onEmpty = ::removeSession)
+            ?: newSession(UUID.randomUUID().toString(), ::removeSession)
                 .also { sessions[it.gameId] = it }
 
         session.reserveSlot(playerId)
@@ -32,7 +40,7 @@ class InMemoryGameSessionRepository : GameSessionRepository {
         session
     }
 
-    override fun get(gameId: String): GameSession? = sessions[gameId]
+    override fun get(gameId: String): GameSession<S, A, E>? = sessions[gameId]
 
     private suspend fun removeSession(gameId: String) = mutex.withLock {
         sessions.remove(gameId)

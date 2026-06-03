@@ -2,9 +2,9 @@ package eric.bitria.hexonkmp.data.repository
 
 import eric.bitria.hexonkmp.client.GameClient
 import eric.bitria.hexonkmp.core.game.action.GameAction
+import eric.bitria.hexonkmp.core.protocol.CatanServerEvent
 import eric.bitria.hexonkmp.core.protocol.ConnectionFailed
 import eric.bitria.hexonkmp.core.protocol.JoinGameResponse
-import eric.bitria.hexonkmp.core.protocol.ServerEvent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,8 +18,8 @@ import kotlinx.coroutines.launch
 class GameRepositoryImpl(private val client: GameClient) : GameRepository {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    private val _events = MutableSharedFlow<ServerEvent>(extraBufferCapacity = 16)
-    override val events: Flow<ServerEvent> = _events.asSharedFlow()
+    private val _events = MutableSharedFlow<CatanServerEvent>(extraBufferCapacity = 16)
+    override val events: Flow<CatanServerEvent> = _events.asSharedFlow()
 
     // Outbound actions are buffered here and drained by the active connection.
     private val _outgoing = MutableSharedFlow<GameAction>(extraBufferCapacity = 16)
