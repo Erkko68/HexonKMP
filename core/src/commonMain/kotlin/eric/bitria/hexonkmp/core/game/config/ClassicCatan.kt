@@ -23,6 +23,7 @@ val ClassicCatan: ScenarioConfig = ScenarioConfig(
     rules = RuleConfig(
         minPlayers = 2, // dev-friendly; classic is 3
         maxPlayers = 4,
+        autoStartDelaySeconds = 10,
         victoryPointsToWin = 10,
         buildCosts = mapOf(
             Buildable.ROAD to mapOf(Resource.BRICK to 1, Resource.LUMBER to 1),

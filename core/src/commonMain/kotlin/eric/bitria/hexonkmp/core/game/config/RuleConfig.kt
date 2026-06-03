@@ -22,6 +22,10 @@ data class RuleConfig(
     val bankTradeRatio: Int = 4,
     // On a 7, players holding MORE than this many cards discard half (floor).
     val robberDiscardThreshold: Int = 7,
+    // Matchmaking: once a lobby reaches [minPlayers] but isn't yet full, how long
+    // to keep waiting for more players before starting the game automatically. The
+    // game starts immediately if [maxPlayers] is reached first.
+    val autoStartDelaySeconds: Int = 30,
 ) {
     // The cost of a buildable as a ResourceCount (empty if free/undefined).
     fun cost(buildable: Buildable): ResourceCount =
