@@ -33,7 +33,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import eric.bitria.hexonkmp.core.game.action.BankSwap
 import eric.bitria.hexonkmp.core.game.model.GamePhase
+import eric.bitria.hexonkmp.core.game.model.PlayerId
+import eric.bitria.hexonkmp.core.game.model.ResourceCount
+import eric.bitria.hexonkmp.core.game.model.board.Axial
+import eric.bitria.hexonkmp.core.game.model.board.Edge
+import eric.bitria.hexonkmp.core.game.model.board.Resource
+import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.ui.board.CatanBoardScene
 import eric.bitria.hexonkmp.ui.components.TradeSheet
 import eric.bitria.hexonkmp.ui.components.BuildCard
@@ -169,32 +176,32 @@ private fun InGameContent(
     canBuildSettlement: Boolean,
     canBuildRoad: Boolean,
     canBuildCity: Boolean,
-    ghostSettlements: List<eric.bitria.hexonkmp.core.game.model.board.Vertex>,
-    ghostRoads: List<eric.bitria.hexonkmp.core.game.model.board.Edge>,
-    ghostCities: List<eric.bitria.hexonkmp.core.game.model.board.Vertex>,
-    robberTargets: List<eric.bitria.hexonkmp.core.game.model.board.Axial>,
+    ghostSettlements: List<Vertex>,
+    ghostRoads: List<Edge>,
+    ghostCities: List<Vertex>,
+    robberTargets: List<Axial>,
     bankRatio: Int,
     myVictoryPoints: Int,
     discardRequired: Int,
-    discardSelected: eric.bitria.hexonkmp.core.game.model.ResourceCount,
-    onCycleDiscard: (eric.bitria.hexonkmp.core.game.model.board.Resource) -> Unit,
+    discardSelected: ResourceCount,
+    onCycleDiscard: (Resource) -> Unit,
     onClearDiscard: () -> Unit,
     onSubmitDiscard: () -> Unit,
     onToggleSettlement: () -> Unit,
     onToggleRoad: () -> Unit,
     onToggleCity: () -> Unit,
-    onPickVertex: (eric.bitria.hexonkmp.core.game.model.board.Vertex) -> Unit,
-    onPickEdge: (eric.bitria.hexonkmp.core.game.model.board.Edge) -> Unit,
-    onPickHex: (eric.bitria.hexonkmp.core.game.model.board.Axial) -> Unit,
-    onBankTrade: (List<eric.bitria.hexonkmp.core.game.action.BankSwap>) -> Unit,
-    proposeGive: eric.bitria.hexonkmp.core.game.model.ResourceCount,
-    proposeReceive: eric.bitria.hexonkmp.core.game.model.ResourceCount,
-    onCycleGive: (eric.bitria.hexonkmp.core.game.model.board.Resource) -> Unit,
-    onCycleReceive: (eric.bitria.hexonkmp.core.game.model.board.Resource) -> Unit,
+    onPickVertex: (Vertex) -> Unit,
+    onPickEdge: (Edge) -> Unit,
+    onPickHex: (Axial) -> Unit,
+    onBankTrade: (List<BankSwap>) -> Unit,
+    proposeGive: ResourceCount,
+    proposeReceive: ResourceCount,
+    onCycleGive: (Resource) -> Unit,
+    onCycleReceive: (Resource) -> Unit,
     onClearPropose: () -> Unit,
     onSubmitPropose: () -> Unit,
     onRespondTrade: (Int, Boolean) -> Unit,
-    onFinalizeTrade: (Int, eric.bitria.hexonkmp.core.game.model.PlayerId) -> Unit,
+    onFinalizeTrade: (Int, PlayerId) -> Unit,
     onCancelTrade: (Int) -> Unit,
     onEndTurn: () -> Unit,
     onReturnToMenu: () -> Unit,
@@ -232,7 +239,10 @@ private fun InGameContent(
                     statusLabel = if (state.isMyTurn) "Your turn" else "Waiting for opponent",
                     isMyTurn = state.isMyTurn,
                 )
-                VictoryPointBadge(points = myVictoryPoints)
+                VictoryPointBadge(
+                    points = myVictoryPoints,
+                    goal = state.state.config.rules.victoryPointsToWin,
+                )
             }
             // One chip per player in seat order: outlined for the current player,
             // dimmed/struck-through for anyone who has left.
@@ -382,8 +392,9 @@ private fun InGameContent(
 }
 
 // Compact victory-point count for the top-left HUD, beside the phase card.
+// Shows progress toward the win goal, e.g. "3/10".
 @Composable
-private fun VictoryPointBadge(points: Int) {
+private fun VictoryPointBadge(points: Int, goal: Int) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -396,7 +407,7 @@ private fun VictoryPointBadge(points: Int) {
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             Icon(Icons.Filled.Star, contentDescription = "Victory points", modifier = Modifier.height(18.dp))
-            Text("$points", style = MaterialTheme.typography.titleMedium)
+            Text("$points / $goal", style = MaterialTheme.typography.titleMedium)
         }
     }
 }

@@ -5,6 +5,7 @@ import eric.bitria.hexonkmp.core.game.config.ClassicCatan
 import eric.bitria.hexonkmp.core.game.config.ScenarioConfig
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
 import eric.bitria.hexonkmp.core.game.engine.GameEngine
+import eric.bitria.hexonkmp.core.game.event.GameEvent
 import eric.bitria.hexonkmp.core.game.model.GameState
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.protocol.ActionRejected
@@ -26,6 +27,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.time.Duration.Companion.milliseconds
 
 // Owns connections AND the authoritative game state, but contains NO game rules:
 // it delegates every decision to the pure GameEngine and only handles transport
@@ -148,7 +150,7 @@ class GameSession(
     private fun armAutoStart() {
         if (autoStartJob != null) return
         autoStartJob = scope.launch {
-            delay(autoStartDelayMs)
+            delay(autoStartDelayMs.milliseconds)
             autoStart()
         }
     }
@@ -202,7 +204,7 @@ class GameSession(
 
     private class DisconnectPlan(
         val targets: List<DefaultWebSocketSession>,
-        val events: List<eric.bitria.hexonkmp.core.game.event.GameEvent>,
+        val events: List<GameEvent>,
         val isEmpty: Boolean,
     )
 
@@ -210,7 +212,7 @@ class GameSession(
         data class Rejected(val actor: DefaultWebSocketSession?, val reason: String) : ActionPlan
         data class Applied(
             val targets: List<DefaultWebSocketSession>,
-            val events: List<eric.bitria.hexonkmp.core.game.event.GameEvent>,
+            val events: List<GameEvent>,
         ) : ActionPlan
     }
 
