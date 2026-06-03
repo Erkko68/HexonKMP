@@ -7,10 +7,16 @@ plugins {
 }
 
 kotlin {
+    jvmToolchain(22)
+
     iosArm64()
     iosSimulatorArm64()
 
-    jvm()
+    jvm {
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_22
+        }
+    }
 
     js {
         browser()

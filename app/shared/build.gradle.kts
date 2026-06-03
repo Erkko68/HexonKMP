@@ -9,6 +9,8 @@ plugins {
 }
 
 kotlin {
+    jvmToolchain(22)
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -19,7 +21,12 @@ kotlin {
         }
     }
 
-    jvm()
+    jvm {
+        // Ensure JVM target is compatible with FFM (Java 22+)
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_22
+        }
+    }
 
     js {
         browser()
@@ -52,7 +59,7 @@ kotlin {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
-            implementation(compose.materialIconsExtended)
+            implementation(libs.material.icons.extended)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.uiToolingPreview)
