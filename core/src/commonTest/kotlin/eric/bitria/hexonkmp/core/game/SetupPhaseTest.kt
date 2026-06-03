@@ -108,6 +108,59 @@ class SetupPhaseTest {
     }
 
     @Test
+    fun leavingDuringSetupAutoPlacesPiecesAndAdvancesToPresentPlayer() {
+        // Alice is current at the very start (awaiting her first settlement).
+        // When she leaves, the engine places a settlement + road for her at random
+        // instead of skipping, then hands the draft to the next present player.
+        val result = engine.playerLeft(start, alice)
+        val state = result.state
+        assertEquals(setOf(bob), state.present)
+        // Alice got a board presence anyway.
+        assertEquals(1, state.buildings.count { it.owner == alice })
+        assertEquals(1, state.roads.count { it.owner == alice })
+        // The draft now rests on a PRESENT player — it never deadlocks on the leaver.
+        assertTrue(state.phase is GamePhase.Setup)
+        assertEquals(bob, state.currentPlayer)
+        assertTrue(bob in state.present)
+    }
+
+    @Test
+    fun leavingMidStepDuringSetupPlacesOnlyTheOwedRoad() {
+        // Alice places her settlement (now awaiting her road), then leaves. Only the
+        // connecting road should be auto-placed — no orphan settlement left behind.
+        val v = engine.legalSettlements(start, alice).first()
+        val awaitingRoad = engine.reduce(start, alice, PlaceSettlement(v)).state
+        val result = engine.playerLeft(awaitingRoad, alice)
+        val state = result.state
+        assertEquals(1, state.buildings.count { it.owner == alice })
+        assertEquals(1, state.roads.count { it.owner == alice })
+        assertEquals(bob, state.currentPlayer)
+    }
+
+    @Test
+    fun setupCompletesWithoutDeadlockWhenAPlayerLeaves() {
+        // Alice leaves at the start; bob plays out the rest by hand. The engine
+        // auto-fills Alice's remaining draft slot, so setup still reaches Play with
+        // a full board (4 settlements, 4 roads) and never stalls on the leaver.
+        var state = engine.playerLeft(start, alice).state
+        var guard = 0
+        while (state.phase is GamePhase.Setup) {
+            assertTrue(guard++ < 100)
+            val current = state.currentPlayer
+            assertTrue(current in state.present) // only present players ever act
+            val vertex = engine.legalSettlements(state, current).first()
+            state = engine.reduce(state, current, PlaceSettlement(vertex)).state
+            val edge = engine.legalRoads(state, current).first()
+            state = engine.reduce(state, current, PlaceRoad(edge)).state
+        }
+        assertEquals(GamePhase.Play, state.phase)
+        assertEquals(4, state.buildings.size)
+        assertEquals(4, state.roads.size)
+        // Alice's auto-placed second-round settlement granted her starting resources.
+        assertTrue(state.handOf(alice).total > 0)
+    }
+
+    @Test
     fun setupCompletesIntoPlayAndRollsOnce() {
         val play = engine.completeSetup(start)
         assertEquals(GamePhase.Play, play.phase)

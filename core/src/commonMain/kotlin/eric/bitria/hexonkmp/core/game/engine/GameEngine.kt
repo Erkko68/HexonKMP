@@ -473,22 +473,40 @@ class CatanGameEngine(
         return GameResult(advance.state, events = listOf(RoadPlaced(road)) + advance.events)
     }
 
-    // Moves the draft to the next present player's placement, or starts Play when
-    // the snake is exhausted.
+    // Moves the draft to the next placement, or starts Play when the snake is
+    // exhausted. Any slot belonging to an absent player is filled in for them with
+    // a random legal settlement + road (rather than skipped) so the leaver still
+    // gets a board presence and their second-round starting resources — important
+    // if they later rejoin. DEADLOCK GUARD: the draft only ever comes to rest on a
+    // *present* player (or transitions to Play); it never stops held by a leaver,
+    // which would stall setup with nobody able to act.
     private fun advanceSetup(state: GameState, setup: GamePhase.Setup): GameResult {
+        var s = state
+        val events = mutableListOf<eric.bitria.hexonkmp.core.game.event.GameEvent>()
         var i = setup.index + 1
-        while (i < setup.order.size && state.players[setup.order[i]] !in state.present) i++
-        if (i >= setup.order.size) return startPlay(state)
+        while (i < setup.order.size) {
+            val player = s.players[setup.order[i]]
+            if (player in s.present) break
+            // Absent player's turn in the draft: auto-place randomly for them.
+            val slotPhase = setup.copy(index = i, awaiting = Placement.SETTLEMENT, lastSettlement = null)
+            val filled = autoPlaceSetupSlot(s.copy(phase = slotPhase), slotPhase, player)
+            s = filled.state
+            events += filled.events
+            i++
+        }
+        if (i >= setup.order.size) {
+            val play = startPlay(s)
+            return GameResult(play.state, events + play.events)
+        }
 
         val nextPhase = setup.copy(index = i, awaiting = Placement.SETTLEMENT, lastSettlement = null)
-        val moved = state.copy(
+        val moved = s.copy(
             phase = nextPhase,
             currentPlayerIndex = setup.order[i],
         )
-        return GameResult(
-            moved,
-            events = listOf(PhaseChanged(nextPhase), TurnChanged(moved.currentPlayer, moved.turn)),
-        )
+        events += PhaseChanged(nextPhase)
+        events += TurnChanged(moved.currentPlayer, moved.turn)
+        return GameResult(moved, events)
     }
 
     // Setup is over: switch to Play and begin the first present player's turn
@@ -547,8 +565,14 @@ class CatanGameEngine(
         // The current player left — keep the game moving.
         return when (val phase = base.phase) {
             is GamePhase.Play -> advanceTurn(base)
-            // Skip the leaver's remaining setup placement(s).
-            is GamePhase.Setup -> skipSetup(base, phase)
+            // Auto-place the leaver's remaining setup piece(s) at random instead of
+            // skipping, then advance the draft. advanceSetup never comes to rest on
+            // an absent player, so this can't deadlock with the leaver holding state.
+            is GamePhase.Setup -> {
+                val filled = autoPlaceSetupSlot(base, phase, playerId)
+                val advanced = advanceSetup(filled.state, phase)
+                GameResult(advanced.state, filled.events + advanced.events)
+            }
             // Left mid-robber-move: just move on (robber stays put).
             is GamePhase.Robber -> advanceTurn(base.copy(phase = GamePhase.Play))
             // Handled above, but the when must stay exhaustive.
@@ -659,19 +683,54 @@ class CatanGameEngine(
         return total
     }
 
-    private fun skipSetup(state: GameState, setup: GamePhase.Setup): GameResult {
-        var i = setup.index
-        while (i < setup.order.size && state.players[setup.order[i]] !in state.present) i++
-        if (i >= setup.order.size) return startPlay(state)
-        val nextPhase = setup.copy(index = i, awaiting = Placement.SETTLEMENT, lastSettlement = null)
-        val moved = state.copy(
-            phase = nextPhase,
-            currentPlayerIndex = setup.order[i],
-        )
-        return GameResult(
-            moved,
-            events = listOf(PhaseChanged(nextPhase), TurnChanged(moved.currentPlayer, moved.turn)),
-        )
+    // Fills in the placement(s) still owed for [setup]'s current slot on behalf of
+    // [player] (who has left), picking uniformly at random among the legal spots.
+    // Honours the sub-phase: if a settlement was already placed (awaiting ROAD) we
+    // only add the connecting road; otherwise we place a settlement first (granting
+    // second-round resources, like a normal placement) and then its road. Pure:
+    // randomness is seeded from state.rngSeed, which is advanced. If no legal spot
+    // exists for a piece (not possible on a standard board) we simply omit it
+    // rather than fail, so the draft can never deadlock on the leaver.
+    private fun autoPlaceSetupSlot(
+        state: GameState,
+        setup: GamePhase.Setup,
+        player: PlayerId,
+    ): GameResult {
+        var s = state
+        var phase = setup
+        val events = mutableListOf<eric.bitria.hexonkmp.core.game.event.GameEvent>()
+        val rng = Random(s.rngSeed)
+
+        if (phase.awaiting == Placement.SETTLEMENT) {
+            val spots = s.board.vertices().filter { settlementRejection(s, it) == null }
+            if (spots.isNotEmpty()) {
+                val vertex = spots[rng.nextInt(spots.size)]
+                val building = Building(player, vertex, Building.Kind.SETTLEMENT)
+                phase = phase.copy(awaiting = Placement.ROAD, lastSettlement = vertex)
+                s = s.copy(buildings = s.buildings + building, phase = phase)
+                events += BuildingPlaced(building)
+                events += PhaseChanged(phase)
+                // Second-round settlements grant their adjacent tiles' resources.
+                if (phase.isSecondRound) {
+                    val gain = startingResources(s, vertex)
+                    if (!gain.isEmpty) {
+                        s = s.copy(hands = addGain(s.hands, player, gain))
+                        events += ResourcesProduced(mapOf(player to gain))
+                    }
+                }
+            }
+        }
+
+        val edges = s.board.edges().filter { roadRejection(s, phase, it) == null }
+        if (edges.isNotEmpty()) {
+            val edge = edges[rng.nextInt(edges.size)]
+            val road = Road(player, edge)
+            s = s.copy(roads = s.roads + road)
+            events += RoadPlaced(road)
+        }
+
+        s = s.copy(rngSeed = rng.nextLong())
+        return GameResult(s, events)
     }
 
     // --- Play: turn rotation + automatic roll ---
