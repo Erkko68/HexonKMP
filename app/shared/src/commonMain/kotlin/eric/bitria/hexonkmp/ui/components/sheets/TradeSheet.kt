@@ -1,5 +1,7 @@
 package eric.bitria.hexonkmp.ui.components.sheets
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -80,7 +82,12 @@ fun TradeSheet(
                 Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Bank") })
                 Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Players") })
             }
-            Column(modifier = Modifier.padding(horizontal = Spacing.md)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.md)
+                    .verticalScroll(rememberScrollState())
+            ) {
                 when (tab) {
                     0 -> BankTab(ratio, hand, onBankTrade)
                     else -> PlayersTab(
@@ -96,7 +103,7 @@ fun TradeSheet(
 }
 
 @Composable
-private fun BankTab(
+internal fun BankTab(
     ratio: Int,
     hand: ResourceCount,
     onConfirm: (List<BankSwap>) -> Unit,
@@ -141,6 +148,7 @@ private fun BankTab(
                     count = hand[r] - queued[r],
                     selected = give == r,
                     enabled = canGive(r),
+                    size = 40.dp,
                     onClick = { give = r; if (get == r) get = null },
                 )
             }
@@ -153,6 +161,7 @@ private fun BankTab(
                     resource = r,
                     selected = get == r,
                     enabled = r != give,
+                    size = 40.dp,
                     onClick = { get = r },
                 )
             }
@@ -180,7 +189,7 @@ private fun BankTab(
 }
 
 @Composable
-private fun PlayersTab(
+internal fun PlayersTab(
     me: PlayerId,
     isMyTurn: Boolean,
     playerColor: (PlayerId) -> Color,
@@ -243,6 +252,7 @@ private fun ProposeForm(
                     count = give[r].takeIf { it > 0 },
                     selected = give[r] > 0,
                     enabled = hand[r] > 0 && receive[r] == 0,
+                    size = 40.dp,
                     onClick = { onCycleGive(r) },
                 )
             }
@@ -256,6 +266,7 @@ private fun ProposeForm(
                     count = receive[r].takeIf { it > 0 },
                     selected = receive[r] > 0,
                     enabled = give[r] == 0,
+                    size = 40.dp,
                     onClick = { onCycleReceive(r) },
                 )
             }
