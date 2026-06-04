@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import eric.bitria.hexonkmp.ui.components.hud.PlayerToken
 import eric.bitria.hexonkmp.ui.theme.Spacing
+import eric.bitria.hexonkmp.ui.theme.Tokens
 
 // Full-screen game-over overlay. [color] and [label] are the winner's resolved
 // player visuals; [youWon] drives the headline copy.
@@ -42,7 +43,7 @@ fun WinnerDialog(
                     style = MaterialTheme.typography.headlineSmall,
                     textAlign = TextAlign.Center,
                 )
-                PlayerToken(color, label, size = 64)
+                PlayerToken(color, label, size = Tokens.tokenLg)
                 Text(
                     "$label reached the goal",
                     style = MaterialTheme.typography.bodyMedium,

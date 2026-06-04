@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Resource
-import eric.bitria.hexonkmp.ui.components.cards.ResourceToken
+import eric.bitria.hexonkmp.ui.components.cards.ResourceCard
 import eric.bitria.hexonkmp.ui.theme.Spacing
 
 // Forced "discard half" sheet shown after a 7 when you're over the hand limit.
@@ -59,7 +59,7 @@ fun DiscardSheet(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
             ) {
                 Resource.entries.forEach { r ->
-                    ResourceToken(
+                    ResourceCard(
                         resource = r,
                         count = selected[r].takeIf { it > 0 },
                         selected = selected[r] > 0,

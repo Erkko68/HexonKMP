@@ -295,40 +295,59 @@ class GameViewModel(
         repository.sendAction(MoveRobber(hex))
     }
 
-    // Everything the HUD needs about placement, computed from a SINGLE pass over
-    // the board's legal moves: which build cards to enable, and the ghost markers
-    // to draw for the armed mode. Surfaced through the [buildOptions] flow so the
-    // whole-board legal-move scans run once per state change, off composition.
-    data class BuildOptions(
-        val canSettlement: Boolean,
-        val canRoad: Boolean,
-        val canCity: Boolean,
-        // Whether the buy-dev-card button is enabled (Play phase, affordable, deck
-        // not empty).
-        val canBuyDevCard: Boolean,
-        val ghostSettlements: List<Vertex>,
-        val ghostRoads: List<Edge>,
-        val ghostCities: List<Vertex>,
-        // Tiles the current player may move the robber to (Robber phase only).
-        val robberTargets: List<Axial>,
-    ) {
-        companion object {
-            val NONE = BuildOptions(false, false, false, false, emptyList(), emptyList(), emptyList(), emptyList())
-        }
-    }
-
+    // Compute all action affordances from a single pass over game state.
+    // This is the single source of truth for what the UI may show or enable — the
+    // Screen never reads GamePhase or state fields directly for these decisions.
     private fun computeBuildOptions(s: GameUiState.InGame): BuildOptions {
-        if (!s.isMyTurn) return BuildOptions.NONE
-        if (s.state.phase is GamePhase.Robber) {
-            val targets = s.state.board.tiles.map { it.hex }.filter { it != s.state.board.robber }
-            return BuildOptions.NONE.copy(robberTargets = targets)
+        val me = s.myPlayerId
+        val phase = s.state.phase
+
+        // Trade & badges: valid regardless of whose turn it is (opponents respond).
+        val hasIncomingOffer = s.state.pendingTrades.any { it.proposer != me }
+        val canTrade = phase is GamePhase.Play && (s.isMyTurn || hasIncomingOffer)
+        val tradeBadge = if (s.isMyTurn) {
+            s.state.pendingTrades.any { it.accepters.isNotEmpty() }
+        } else {
+            s.state.pendingTrades.any { it.proposer != me && me !in it.responses }
         }
-        val settlements = engine.legalSettlements(s.state, s.myPlayerId)
-        val roads = engine.legalRoads(s.state, s.myPlayerId)
-        val cities = engine.legalCities(s.state, s.myPlayerId)
-        val canBuyDev = s.state.phase is GamePhase.Play &&
+
+        // End Turn: only visible in Play, only enabled on the local player's turn.
+        val showEndTurn = phase is GamePhase.Play
+        val canEndTurn = s.isMyTurn && showEndTurn
+
+        if (!s.isMyTurn) return BuildOptions(
+            canTrade = canTrade,
+            tradeBadge = tradeBadge,
+            showEndTurn = showEndTurn,
+            canEndTurn = canEndTurn,
+        )
+
+        // Robber phase: local player must move the robber; no building or buying.
+        if (phase is GamePhase.Robber) {
+            val targets = s.state.board.tiles.map { it.hex }.filter { it != s.state.board.robber }
+            return BuildOptions(
+                robberTargets = targets,
+                canTrade = canTrade,
+                tradeBadge = tradeBadge,
+                showEndTurn = showEndTurn,
+                canEndTurn = canEndTurn,
+            )
+        }
+
+        // My turn, non-Robber: compute full set of placement / purchase affordances.
+        val settlements = engine.legalSettlements(s.state, me)
+        val roads = engine.legalRoads(s.state, me)
+        val cities = engine.legalCities(s.state, me)
+        val canBuyDev = phase is GamePhase.Play &&
             s.state.devDeckSize > 0 &&
-            engine.canAfford(s.state, s.myPlayerId, Buildable.DEV_CARD)
+            engine.canAfford(s.state, me, Buildable.DEV_CARD)
+
+        // Dev card playability: Play phase, one per turn, and the card must be in
+        // the playable hand (not boughtThisTurn). Only implemented cards are included.
+        val playableDevCards = if (phase is GamePhase.Play && !s.state.devCardPlayed) {
+            s.state.devCards[me].orEmpty().filter { it == DevCard.KNIGHT }.toSet()
+        } else emptySet()
+
         return BuildOptions(
             canSettlement = settlements.isNotEmpty(),
             canRoad = roads.isNotEmpty(),
@@ -338,6 +357,11 @@ class GameViewModel(
             ghostRoads = if (s.buildMode == BuildMode.ROAD) roads.toList() else emptyList(),
             ghostCities = if (s.buildMode == BuildMode.CITY) cities.toList() else emptyList(),
             robberTargets = emptyList(),
+            canTrade = canTrade,
+            tradeBadge = tradeBadge,
+            showEndTurn = showEndTurn,
+            canEndTurn = canEndTurn,
+            playableDevCards = playableDevCards,
         )
     }
 

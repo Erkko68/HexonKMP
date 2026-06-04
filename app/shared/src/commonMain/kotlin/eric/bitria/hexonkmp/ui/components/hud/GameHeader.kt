@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Timer
@@ -24,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import eric.bitria.hexonkmp.ui.theme.Shapes
 import eric.bitria.hexonkmp.ui.theme.Spacing
 
 // The top header bar. Left: the app name. Center: a rounded pill with the current
@@ -96,7 +96,7 @@ fun GameHeader(
 private fun PhasePill(phaseLabel: String, turnLabel: String, timeLabel: String, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(percent = 50),
+        shape = Shapes.pill,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
     ) {

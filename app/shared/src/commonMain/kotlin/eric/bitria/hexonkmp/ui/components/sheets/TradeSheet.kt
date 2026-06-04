@@ -41,8 +41,9 @@ import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.TradeOffer
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.ui.components.hud.PlayerToken
-import eric.bitria.hexonkmp.ui.components.cards.ResourceToken
+import eric.bitria.hexonkmp.ui.components.cards.ResourceCard
 import eric.bitria.hexonkmp.ui.theme.Spacing
+import eric.bitria.hexonkmp.ui.theme.Tokens
 
 // The trade sheet — a bottom sheet with two tabs: Bank and Players.
 // [playerColor] resolves a PlayerId to its seat color for avatar rendering.
@@ -123,9 +124,9 @@ private fun BankTab(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
             ) {
-                ResourceToken(swap.give, count = ratio, size = 44)
+                ResourceCard(swap.give, count = ratio, size = Tokens.tokenMd)
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "for")
-                ResourceToken(swap.get, count = 1, size = 44)
+                ResourceCard(swap.get, count = 1, size = Tokens.tokenMd)
                 IconButton(onClick = { swaps.removeAt(i) }) {
                     Icon(Icons.Filled.Close, contentDescription = "remove")
                 }
@@ -135,7 +136,7 @@ private fun BankTab(
         Text("Give", style = MaterialTheme.typography.labelMedium)
         TokenRow {
             Resource.entries.forEach { r ->
-                ResourceToken(
+                ResourceCard(
                     resource = r,
                     count = hand[r] - queued[r],
                     selected = give == r,
@@ -148,7 +149,7 @@ private fun BankTab(
         Text("Receive", style = MaterialTheme.typography.labelMedium)
         TokenRow {
             Resource.entries.forEach { r ->
-                ResourceToken(
+                ResourceCard(
                     resource = r,
                     selected = get == r,
                     enabled = r != give,
@@ -237,7 +238,7 @@ private fun ProposeForm(
         Text("You give", style = MaterialTheme.typography.labelMedium)
         TokenRow {
             Resource.entries.forEach { r ->
-                ResourceToken(
+                ResourceCard(
                     resource = r,
                     count = give[r].takeIf { it > 0 },
                     selected = give[r] > 0,
@@ -250,7 +251,7 @@ private fun ProposeForm(
         Text("You want", style = MaterialTheme.typography.labelMedium)
         TokenRow {
             Resource.entries.forEach { r ->
-                ResourceToken(
+                ResourceCard(
                     resource = r,
                     count = receive[r].takeIf { it > 0 },
                     selected = receive[r] > 0,
@@ -298,7 +299,7 @@ private fun ProposerOfferCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
                     ) {
-                        PlayerToken(playerColor(player), "Player", size = 36)
+                        PlayerToken(playerColor(player), "Player", size = Tokens.tokenSm)
                         if (accepted) {
                             Button(onClick = { onFinalize(offer.id, player) }) { Text("Trade") }
                         } else {
@@ -330,7 +331,7 @@ private fun IncomingOfferCard(
         ) {
             OfferLine(
                 offer.give, offer.receive,
-                leading = { PlayerToken(playerColor(offer.proposer), "Proposer", size = 40) },
+                leading = { PlayerToken(playerColor(offer.proposer), "Proposer", size = Tokens.tokenMd) },
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Button(
@@ -382,7 +383,7 @@ private fun OfferLine(
 @Composable
 private fun ResourceBundle(rc: ResourceCount) {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Resource.entries.filter { rc[it] > 0 }.forEach { r -> ResourceToken(r, count = rc[r], size = 48) }
+        Resource.entries.filter { rc[it] > 0 }.forEach { r -> ResourceCard(r, count = rc[r]) }
     }
 }
 
