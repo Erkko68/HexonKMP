@@ -2,7 +2,6 @@ package eric.bitria.hexonkmp.core.game.config
 
 import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.PortKind
-import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Terrain
 import eric.bitria.hexonkmp.core.game.model.board.hexagonalLayout
