@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -19,9 +20,8 @@ import eric.bitria.hexonkmp.ui.theme.Shapes
 import eric.bitria.hexonkmp.ui.theme.Tokens
 
 // A unified fixed-size square action button. Covers all action contexts:
-//   primary = false, selected = false → build action (surfaceVariant, inactive)
-//   primary = false, selected = true  → build action (primary, build mode armed)
-//   primary = true                    → primary action (End Turn, always primary)
+//   selected = false → build action (surfaceVariant, inactive)
+//   selected = true  → build action (primary, build mode armed)
 // [badge] draws a notification dot in the top-right corner (trade alerts).
 @Composable
 fun ActionCard(
@@ -30,21 +30,20 @@ fun ActionCard(
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    primary: Boolean = false,
     selected: Boolean = false,
     badge: Boolean = false,
+    colors: CardColors = CardDefaults.cardColors(
+        containerColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+    ),
 ) {
-    val filled = primary || selected
-    val containerColor = if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-    val contentColor   = if (filled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-
     Box(modifier = modifier.size(Tokens.tokenMd)) {
         Card(
             onClick = onClick,
             enabled = enabled,
             modifier = Modifier.fillMaxSize(),
             shape = Shapes.card,
-            colors = CardDefaults.cardColors(containerColor = containerColor, contentColor = contentColor),
+            colors = colors,
         ) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Icon(icon, contentDescription = label, modifier = Modifier.fillMaxSize(0.6f))

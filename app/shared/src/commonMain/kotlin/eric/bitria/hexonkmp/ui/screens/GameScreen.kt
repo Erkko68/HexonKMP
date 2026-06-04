@@ -43,9 +43,10 @@ import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
+import androidx.compose.material3.CardDefaults
 import eric.bitria.hexonkmp.ui.board.CatanBoardScene
 import eric.bitria.hexonkmp.ui.components.cards.ActionBar
-import eric.bitria.hexonkmp.ui.components.cards.ActionItem
+import eric.bitria.hexonkmp.ui.components.cards.ActionCard
 import eric.bitria.hexonkmp.ui.components.cards.DevelopmentBar
 import eric.bitria.hexonkmp.ui.components.cards.ResourceBar
 import eric.bitria.hexonkmp.ui.components.hud.GameHeader
@@ -55,7 +56,6 @@ import eric.bitria.hexonkmp.ui.components.sheets.DiscardSheet
 import eric.bitria.hexonkmp.ui.components.sheets.TradeSheet
 import eric.bitria.hexonkmp.ui.components.sheets.WinnerDialog
 import eric.bitria.hexonkmp.ui.screens.game.BuildMode
-import eric.bitria.hexonkmp.ui.screens.game.BuildOptions
 import eric.bitria.hexonkmp.ui.screens.game.GameUiState
 import eric.bitria.hexonkmp.ui.screens.game.GameViewModel
 import eric.bitria.hexonkmp.ui.theme.DevCardPalette
@@ -67,9 +67,6 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val opts by viewModel.buildOptions.collectAsStateWithLifecycle()
-    val proposeDraft by viewModel.proposeDraft.collectAsStateWithLifecycle()
-    val discardDraft by viewModel.discardDraft.collectAsStateWithLifecycle()
 
     Box(Modifier.fillMaxSize()) {
         when (val s = state) {
@@ -80,13 +77,11 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                 InGameContent(
                     state = s,
                     engine = engine,
-                    opts = opts,
                     bankRatio = viewModel.bankTradeRatio(s),
                     victoryPointsOf = { viewModel.victoryPoints(s, it) },
                     onBuyDevCard = viewModel::buyDevCard,
                     onPlayDevCard = viewModel::playDevCard,
                     discardRequired = viewModel.discardOwed(s),
-                    discardSelected = discardDraft,
                     onCycleDiscard = viewModel::cycleDiscard,
                     onClearDiscard = viewModel::clearDiscardDraft,
                     onSubmitDiscard = viewModel::submitDiscard,
@@ -97,8 +92,6 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                     onPickEdge = viewModel::pickEdge,
                     onPickHex = viewModel::pickHex,
                     onBankTrade = viewModel::bankTrade,
-                    proposeGive = proposeDraft.give,
-                    proposeReceive = proposeDraft.receive,
                     onCycleGive = viewModel::cycleGive,
                     onCycleReceive = viewModel::cycleReceive,
                     onClearPropose = viewModel::clearProposeDraft,
@@ -172,13 +165,11 @@ private fun WaitingContent(state: GameUiState.Waiting) {
 private fun InGameContent(
     state: GameUiState.InGame,
     engine: Engine,
-    opts: BuildOptions,
     bankRatio: Int,
     victoryPointsOf: (PlayerId) -> Int,
     onBuyDevCard: () -> Unit,
     onPlayDevCard: (DevCard) -> Unit,
     discardRequired: Int,
-    discardSelected: ResourceCount,
     onCycleDiscard: (Resource) -> Unit,
     onClearDiscard: () -> Unit,
     onSubmitDiscard: () -> Unit,
@@ -189,8 +180,6 @@ private fun InGameContent(
     onPickEdge: (Edge) -> Unit,
     onPickHex: (Axial) -> Unit,
     onBankTrade: (List<BankSwap>) -> Unit,
-    proposeGive: ResourceCount,
-    proposeReceive: ResourceCount,
     onCycleGive: (Resource) -> Unit,
     onCycleReceive: (Resource) -> Unit,
     onClearPropose: () -> Unit,
@@ -206,6 +195,7 @@ private fun InGameContent(
 
     val me = state.myPlayerId
     val players = state.state.players
+    val opts = state.buildOptions
 
     Box(Modifier.fillMaxSize()) {
         CatanBoardScene(
@@ -270,18 +260,55 @@ private fun InGameContent(
 
         // --- Action bar: build, buy, trade, end turn ---
         // All enabled/visible flags come from opts — no game-phase checks here.
-        val actions = buildList {
-            add(ActionItem(Icons.Filled.Home, "Settlement", opts.canSettlement, state.buildMode == BuildMode.SETTLEMENT) { onToggleSettlement() })
-            add(ActionItem(Icons.Filled.AddRoad, "Road", opts.canRoad, state.buildMode == BuildMode.ROAD) { onToggleRoad() })
-            add(ActionItem(Icons.Filled.LocationCity, "City", opts.canCity, state.buildMode == BuildMode.CITY) { onToggleCity() })
-            add(ActionItem(Icons.Filled.Style, "Buy dev card", opts.canBuyDevCard) { onBuyDevCard() })
-            add(ActionItem(Icons.Filled.SwapHoriz, "Trade", opts.canTrade, showTradeSheet, opts.tradeBadge) { showTradeSheet = true })
-            add(ActionItem(Icons.Filled.SkipNext, "End turn", opts.canEndTurn, primary = true) { onEndTurn() })
-        }
         ActionBar(
-            actions = actions,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.md),
-        )
+        ) {
+            ActionCard(
+                icon = Icons.Filled.Home,
+                label = "Settlement",
+                enabled = opts.canSettlement,
+                selected = state.buildMode == BuildMode.SETTLEMENT,
+                onClick = onToggleSettlement
+            )
+            ActionCard(
+                icon = Icons.Filled.AddRoad,
+                label = "Road",
+                enabled = opts.canRoad,
+                selected = state.buildMode == BuildMode.ROAD,
+                onClick = onToggleRoad
+            )
+            ActionCard(
+                icon = Icons.Filled.LocationCity,
+                label = "City",
+                enabled = opts.canCity,
+                selected = state.buildMode == BuildMode.CITY,
+                onClick = onToggleCity
+            )
+            ActionCard(
+                icon = Icons.Filled.Style,
+                label = "Buy dev card",
+                enabled = opts.canBuyDevCard,
+                onClick = onBuyDevCard
+            )
+            ActionCard(
+                icon = Icons.Filled.SwapHoriz,
+                label = "Trade",
+                enabled = opts.canTrade,
+                selected = showTradeSheet,
+                badge = opts.tradeBadge,
+                onClick = { showTradeSheet = true }
+            )
+            ActionCard(
+                icon = Icons.Filled.SkipNext,
+                label = "End turn",
+                enabled = opts.canEndTurn,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                onClick = onEndTurn
+            )
+        }
 
         if (showTradeSheet) {
             TradeSheet(
@@ -291,8 +318,8 @@ private fun InGameContent(
                 isMyTurn = state.isMyTurn,
                 playerColor = { PlayerPalette.color(it, players) },
                 offers = state.state.pendingTrades,
-                proposeGive = proposeGive,
-                proposeReceive = proposeReceive,
+                proposeGive = state.proposeDraft.give,
+                proposeReceive = state.proposeDraft.receive,
                 onBankTrade = { swaps ->
                     onBankTrade(swaps)
                     showTradeSheet = false
@@ -312,7 +339,7 @@ private fun InGameContent(
             DiscardSheet(
                 required = discardRequired,
                 hand = state.state.handOf(me),
-                selected = discardSelected,
+                selected = state.discardDraft,
                 onCycle = onCycleDiscard,
                 onClear = onClearDiscard,
                 onSubmit = onSubmitDiscard,

@@ -80,14 +80,6 @@ class GameViewModel(
     private val _state = MutableStateFlow<GameUiState>(GameUiState.Idle)
     val state: StateFlow<GameUiState> = _state.asStateFlow()
 
-    // Derived placement options (which build cards to enable, ghost markers to
-    // draw). Computed once per state change — including buildMode toggles, which
-    // are part of the state — off the UI/composition, so the legal-move board
-    // scans never run during recomposition.
-    val buildOptions: StateFlow<BuildOptions> =
-        _state.map { (it as? GameUiState.InGame)?.let(::computeBuildOptions) ?: BuildOptions.NONE }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, BuildOptions.NONE)
-
     private var myPlayerId: PlayerId? = null
 
     // The same pure engine the server runs — used here only to query *legal*
@@ -171,40 +163,48 @@ class GameViewModel(
 
     // --- Player-to-player trades ---
 
-    data class ProposeDraft(
-        val give: ResourceCount = ResourceCount(),
-        val receive: ResourceCount = ResourceCount(),
-    )
-
-    private val _proposeDraft = MutableStateFlow(ProposeDraft())
-    val proposeDraft: StateFlow<ProposeDraft> = _proposeDraft.asStateFlow()
-
     // Tap-to-cycle the give side: +1 up to what you hold, wrapping to 0. A
     // resource already on the "want" side can't also be given.
     fun cycleGive(resource: Resource) {
-        val hand = (_state.value as? GameUiState.InGame)?.state?.handOf(myPlayerId ?: return) ?: return
-        _proposeDraft.update { d ->
-            if (d.receive[resource] > 0) d else d.copy(give = d.give.cycle(resource, hand[resource]))
+        _state.update { s ->
+            if (s !is GameUiState.InGame) s
+            else {
+                val hand = s.state.handOf(myPlayerId ?: return)
+                val d = s.proposeDraft
+                if (d.receive[resource] > 0) s
+                else s.updated(proposeDraft = d.copy(give = d.give.cycle(resource, hand[resource])))
+            }
         }
     }
 
     // Tap-to-cycle the want side (cap arbitrary). Can't request what you're giving.
     fun cycleReceive(resource: Resource) {
-        _proposeDraft.update { d ->
-            if (d.give[resource] > 0) d else d.copy(receive = d.receive.cycle(resource, MAX_RECEIVE))
+        _state.update { s ->
+            if (s !is GameUiState.InGame) s
+            else {
+                val d = s.proposeDraft
+                if (d.give[resource] > 0) s
+                else s.updated(proposeDraft = d.copy(receive = d.receive.cycle(resource, MAX_RECEIVE)))
+            }
         }
     }
 
-    fun clearProposeDraft() { _proposeDraft.value = ProposeDraft() }
+    fun clearProposeDraft() {
+        _state.update { s ->
+            if (s is GameUiState.InGame) s.updated(proposeDraft = ProposeDraft()) else s
+        }
+    }
 
     // Send the drafted offer to all opponents (current player only), then reset
     // the draft. The engine re-validates; the sheet stays open to finalize a reply.
     fun submitProposal() {
         val s = _state.value as? GameUiState.InGame ?: return
-        val draft = _proposeDraft.value
+        val draft = s.proposeDraft
         if (!s.isMyTurn || draft.give.isEmpty || draft.receive.isEmpty) return
         repository.sendAction(ProposeTrade(draft.give, draft.receive))
-        _proposeDraft.value = ProposeDraft()
+        _state.update { current ->
+            if (current is GameUiState.InGame) current.updated(proposeDraft = ProposeDraft()) else current
+        }
     }
 
     // +1 a single resource's count up to [max], wrapping back to 0.
@@ -219,24 +219,31 @@ class GameViewModel(
     fun discardOwed(s: GameUiState.InGame): Int =
         (s.state.phase as? GamePhase.Discard)?.pending?.get(s.myPlayerId) ?: 0
 
-    // The in-progress discard selection, its own flow like the propose draft.
-    private val _discardDraft = MutableStateFlow(ResourceCount())
-    val discardDraft: StateFlow<ResourceCount> = _discardDraft.asStateFlow()
-
     fun cycleDiscard(resource: Resource) {
-        val hand = (_state.value as? GameUiState.InGame)?.state?.handOf(myPlayerId ?: return) ?: return
-        _discardDraft.update { it.cycle(resource, hand[resource]) }
+        _state.update { s ->
+            if (s !is GameUiState.InGame) s
+            else {
+                val hand = s.state.handOf(myPlayerId ?: return)
+                s.updated(discardDraft = s.discardDraft.cycle(resource, hand[resource]))
+            }
+        }
     }
 
-    fun clearDiscardDraft() { _discardDraft.value = ResourceCount() }
+    fun clearDiscardDraft() {
+        _state.update { s ->
+            if (s is GameUiState.InGame) s.updated(discardDraft = ResourceCount()) else s
+        }
+    }
 
     // Submit the discard once it matches the owed count, then reset the draft.
     fun submitDiscard() {
         val s = _state.value as? GameUiState.InGame ?: return
-        val draft = _discardDraft.value
+        val draft = s.discardDraft
         if (draft.total != discardOwed(s)) return
         repository.sendAction(DiscardResources(draft))
-        _discardDraft.value = ResourceCount()
+        _state.update { current ->
+            if (current is GameUiState.InGame) current.updated(discardDraft = ResourceCount()) else current
+        }
     }
 
     // Accept or decline an opponent's pending offer (allowed off-turn).
@@ -265,7 +272,7 @@ class GameViewModel(
     fun toggleBuildMode(mode: BuildMode) {
         _state.update { s ->
             if (s !is GameUiState.InGame || !s.isMyTurn) s
-            else s.copy(buildMode = if (s.buildMode == mode) BuildMode.NONE else mode)
+            else s.updated(buildMode = if (s.buildMode == mode) BuildMode.NONE else mode)
         }
     }
 
@@ -278,14 +285,18 @@ class GameViewModel(
             BuildMode.CITY -> repository.sendAction(UpgradeCity(vertex))
             else -> return
         }
-        _state.update { (it as? GameUiState.InGame)?.copy(buildMode = BuildMode.NONE) ?: it }
+        _state.update { current ->
+            if (current is GameUiState.InGame) current.updated(buildMode = BuildMode.NONE) else current
+        }
     }
 
     fun pickEdge(edge: Edge) {
         val s = _state.value as? GameUiState.InGame ?: return
         if (s.buildMode != BuildMode.ROAD) return
         repository.sendAction(PlaceRoad(edge))
-        _state.update { (it as? GameUiState.InGame)?.copy(buildMode = BuildMode.NONE) ?: it }
+        _state.update { current ->
+            if (current is GameUiState.InGame) current.updated(buildMode = BuildMode.NONE) else current
+        }
     }
 
     // Tap a tile during the Robber phase to relocate the robber there.
@@ -365,6 +376,23 @@ class GameViewModel(
         )
     }
 
+    private fun GameUiState.InGame.updated(
+        state: GameState = this.state,
+        buildMode: BuildMode = this.buildMode,
+        notice: String? = this.notice,
+        proposeDraft: ProposeDraft = this.proposeDraft,
+        discardDraft: ResourceCount = this.discardDraft,
+    ): GameUiState.InGame {
+        val next = copy(
+            state = state,
+            buildMode = buildMode,
+            notice = notice,
+            proposeDraft = proposeDraft,
+            discardDraft = discardDraft
+        )
+        return next.copy(buildOptions = computeBuildOptions(next))
+    }
+
     fun retryJoinGame() {
         _state.value = GameUiState.Idle
         joinGame()
@@ -391,24 +419,24 @@ class GameViewModel(
                 // Fired when the room fills, or on reconnect into a running game.
                 val me = myPlayerId
                 if (s is GameUiState.Waiting && me != null) {
-                    GameUiState.InGame(gameId = s.gameId, state = event.state, myPlayerId = me)
+                    GameUiState.InGame(gameId = s.gameId, state = event.state, myPlayerId = me).updated()
                 } else s
             }
             // --- Presence: Catan-style, players coming and going don't end the
             // game for the others — just surface a notice. ---
             is PlayerJoined -> _state.update { s ->
-                if (s is GameUiState.InGame) s.copy(notice = "Player ${event.playerId} joined") else s
+                if (s is GameUiState.InGame) s.updated(notice = "Player ${event.playerId} joined") else s
             }
             is PlayerLeft -> _state.update { s ->
-                if (s is GameUiState.InGame) s.copy(notice = "Player ${event.playerId} left") else s
+                if (s is GameUiState.InGame) s.updated(notice = "Player ${event.playerId} left") else s
             }
             // --- Game updates: apply the domain event to the local state copy. ---
             is GameUpdate -> _state.update { s ->
-                if (s is GameUiState.InGame) s.copy(state = applyEvent(s, event)) else s
+                if (s is GameUiState.InGame) s.updated(state = applyEvent(s, event)) else s
             }
             // --- Action feedback (only the acting player receives this) ---
             is ActionRejected -> _state.update { s ->
-                if (s is GameUiState.InGame) s.copy(notice = event.reason) else s
+                if (s is GameUiState.InGame) s.updated(notice = event.reason) else s
             }
             // --- Client-local ---
             is ConnectionFailed -> {

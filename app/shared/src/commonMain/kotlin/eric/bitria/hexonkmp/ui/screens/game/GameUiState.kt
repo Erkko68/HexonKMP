@@ -3,6 +3,7 @@ package eric.bitria.hexonkmp.ui.screens.game
 import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.GameState
 import eric.bitria.hexonkmp.core.game.model.PlayerId
+import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
@@ -40,6 +41,11 @@ data class BuildOptions(
     }
 }
 
+data class ProposeDraft(
+    val give: ResourceCount = ResourceCount(),
+    val receive: ResourceCount = ResourceCount(),
+)
+
 sealed class GameUiState {
     data object Idle : GameUiState()
     data object Connecting : GameUiState()
@@ -50,6 +56,9 @@ sealed class GameUiState {
         val myPlayerId: PlayerId,
         val buildMode: BuildMode = BuildMode.NONE,
         val notice: String? = null,
+        val buildOptions: BuildOptions = BuildOptions.NONE,
+        val proposeDraft: ProposeDraft = ProposeDraft(),
+        val discardDraft: ResourceCount = ResourceCount(),
     ) : GameUiState() {
         val isMyTurn: Boolean get() = state.currentPlayer == myPlayerId
     }
