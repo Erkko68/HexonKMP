@@ -1,6 +1,7 @@
 package eric.bitria.hexonkmp.ui.board
 
 import eric.bitria.hexonkmp.core.game.model.PlayerId
+import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Terrain
 import io.github.erkko68.filament.compose.scene.Color
 
@@ -15,6 +16,17 @@ object ResourceColors {
         Terrain.FIELDS -> Color(0.90f, 0.76f, 0.28f)    // grain — wheat gold
         Terrain.MOUNTAINS -> Color(0.45f, 0.48f, 0.52f) // ore — grey
         Terrain.DESERT -> Color(0.85f, 0.78f, 0.55f)    // sand
+    }
+
+    // The color of a port marker: the discounted resource's terrain color, or the
+    // desert/sand color for a generic (any-resource) port.
+    fun forResource(resource: Resource?): Color = when (resource) {
+        Resource.LUMBER -> forTerrain(Terrain.FOREST)
+        Resource.BRICK -> forTerrain(Terrain.HILLS)
+        Resource.WOOL -> forTerrain(Terrain.PASTURE)
+        Resource.GRAIN -> forTerrain(Terrain.FIELDS)
+        Resource.ORE -> forTerrain(Terrain.MOUNTAINS)
+        null -> forTerrain(Terrain.DESERT)
     }
 
     // Stable per-player color for buildings/roads, by seat order.

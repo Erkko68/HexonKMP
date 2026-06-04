@@ -46,11 +46,21 @@ private const val BUILDING_Y = 0.15f
 private const val ROAD_Y = 0.06f
 private const val ROBBER_Y = 0.25f
 private const val ROBBER_HEIGHT = 0.5f
+// Shift the robber off the tile center so it doesn't sit on top of the number token.
+private const val ROBBER_X_OFFSET = -0.32f
+
+// Port markers: a small wooden-plank rectangle at a harbor vertex, colored by its
+// resource. Sits low so it intersects the tile surface (like a dock on the coast).
+private const val PORT_Y = 0.04f
+private val PORT_SIZE = Scale(0.34f, 0.12f, 0.22f)
 
 // Number tokens (glb models, exported flat from Blender) sit just above the tile
 // at its center. Scale/height are eyeballed for a ~1-unit hex — tweak to taste.
 private const val NUMBER_Y = 0.08f
 private const val NUMBER_SCALE = 0.8f
+
+// Catan colors the most-frequent tokens (6 and 8) red, the rest black.
+private fun isRedToken(token: Int): Boolean = token == 6 || token == 8
 
 private val RAD_TO_DEG = 180f / kotlin.math.PI.toFloat()
 
@@ -116,12 +126,16 @@ fun CatanBoardScene(
         Res.readBytes("files/materials/board_color.filamat")
     }
 
-    // White override applied to the number-token glTF renderables. Created here — at the same
-    // scope as numberAssets and BEFORE them — so it is destroyed AFTER the assets that own those
-    // renderables. Destroying a MaterialInstance still referenced by a live Renderable is a fatal
+    // Color overrides applied to the number-token glTF renderables (black for most
+    // tokens, red for 6 & 8). Created here — at the same scope as numberAssets and
+    // BEFORE them — so they are destroyed AFTER the assets that own those renderables.
+    // Destroying a MaterialInstance still referenced by a live Renderable is a fatal
     // Filament precondition (crashes web/iOS on teardown).
-    val whiteNumber = solid?.let { mat ->
-        rememberMaterialInstance(mat, engine = engine).apply { setParameter("baseColor", 1f, 1f, 1f) }
+    val blackNumber = solid?.let { mat ->
+        rememberMaterialInstance(mat, engine = engine).apply { setParameter("baseColor", 0.08f, 0.08f, 0.08f) }
+    }
+    val redNumber = solid?.let { mat ->
+        rememberMaterialInstance(mat, engine = engine).apply { setParameter("baseColor", 0.74f, 0.11f, 0.11f) }
     }
 
     // Number-token models, indexed 0..12 (a tile's token is its index). Loaded
@@ -194,7 +208,8 @@ fun CatanBoardScene(
                 )
             }
 
-            // The robber: a dark cylinder on its current tile.
+            // The robber: a dark cylinder on its current tile, nudged to the side so
+            // it doesn't cover the tile's number token.
             state.board.robber?.let { robberHex ->
                 val c = HexMath.center(robberHex, HEX_SIZE)
                 val inst = rememberMaterialInstance(solidMat, engine = engine).apply {
@@ -202,19 +217,20 @@ fun CatanBoardScene(
                 }
                 Cylinder(
                     material = inst,
-                    position = Position(c.x, ROBBER_Y, c.z),
+                    position = Position(c.x + ROBBER_X_OFFSET, ROBBER_Y, c.z),
                     radius = 0.16f,
                     height = ROBBER_HEIGHT,
                 )
             }
 
-            // Number tokens: a white glb model centered on each non-desert tile.
-            // One shared white material instance overrides whatever the glb shipped
-            // with. The model's pivot is centered, so it drops straight on the hex
-            // center; it was exported flat, so identity rotation lies it on the board.
-            if (whiteNumber != null) state.board.tiles.forEach { tile ->
+            // Number tokens: a glb model centered on each non-desert tile, recolored
+            // black (or red for 6 & 8) by overriding the glb's shipped material. The
+            // model's pivot is centered, so it drops straight on the hex center; it
+            // was exported flat, so identity rotation lies it on the board.
+            if (blackNumber != null && redNumber != null) state.board.tiles.forEach { tile ->
                 val token = tile.token ?: return@forEach
                 val asset = numberAssets.getOrNull(token) ?: return@forEach
+                val numberMat = if (isRedToken(token)) redNumber else blackNumber
                 val c = HexMath.center(tile.hex, HEX_SIZE)
                 GltfInstance(
                     asset = asset,
@@ -227,7 +243,7 @@ fun CatanBoardScene(
                             if (!rm.hasComponent(entity)) return@forEach
                             val ri = rm.getInstance(entity)
                             for (p in 0 until rm.getPrimitiveCount(ri)) {
-                                rm.setMaterialInstanceAt(ri, p, whiteNumber)
+                                rm.setMaterialInstanceAt(ri, p, numberMat)
                             }
                         }
                     },
@@ -263,6 +279,22 @@ fun CatanBoardScene(
                         Quaternion.fromAxisAngle(Direction(0f, 1f, 0f), angle * RAD_TO_DEG)
                     },
                     scale = Scale(0.5f, 0.08f, 0.12f),
+                )
+            }
+
+            // Ports (harbors): a wooden-plank rectangle at each harbor vertex, colored
+            // by the discounted resource (generic ports use the desert/sand color).
+            // Sunk low so it intersects the tile surface like a dock.
+            state.config.ports.forEach { port ->
+                val p = HexMath.vertexCenter(port.vertex, HEX_SIZE)
+                val color = ResourceColors.forResource(port.resource)
+                val inst = rememberMaterialInstance(solidMat, engine = engine).apply {
+                    setParameter("baseColor", color.x, color.y, color.z)
+                }
+                Cube(
+                    material = inst,
+                    position = Position(p.x, PORT_Y, p.z),
+                    scale = PORT_SIZE,
                 )
             }
 
