@@ -1,4 +1,4 @@
-package eric.bitria.hexonkmp.ui.components
+package eric.bitria.hexonkmp.ui.components.hud
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size

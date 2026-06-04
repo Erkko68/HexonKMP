@@ -1,4 +1,4 @@
-package eric.bitria.hexonkmp.ui.components
+package eric.bitria.hexonkmp.ui.components.sheets
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,9 +17,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Resource
+import eric.bitria.hexonkmp.ui.components.cards.ResourceToken
 import eric.bitria.hexonkmp.ui.theme.Spacing
 
 // Forced "discard half" sheet shown after a 7 when you're over the hand limit.

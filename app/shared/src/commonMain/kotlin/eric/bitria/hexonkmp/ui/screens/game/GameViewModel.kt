@@ -148,10 +148,18 @@ class GameViewModel(
         if (s.isMyTurn) repository.sendAction(BuyDevCard)
     }
 
-    // Send: play a Knight (moves the robber, counts toward Largest Army).
-    fun playKnight() {
+    // Dispatch a dev card play. The caller (confirm dialog) already verified the
+    // card is in the player's hand and that canPlay conditions are met.
+    fun playDevCard(card: DevCard) {
         val s = _state.value as? GameUiState.InGame ?: return
-        if (s.isMyTurn) repository.sendAction(PlayKnight)
+        if (!s.isMyTurn) return
+        when (card) {
+            DevCard.KNIGHT -> repository.sendAction(PlayKnight)
+            DevCard.VICTORY_POINT -> Unit // can't be played
+            DevCard.ROAD_BUILDING -> Unit // TODO
+            DevCard.YEAR_OF_PLENTY -> Unit // TODO
+            DevCard.MONOPOLY -> Unit // TODO
+        }
     }
 
     // Send one atomic bank trade bundling all the chosen swaps.

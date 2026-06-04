@@ -1,4 +1,4 @@
-package eric.bitria.hexonkmp.ui.components
+package eric.bitria.hexonkmp.ui.components.sheets
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import eric.bitria.hexonkmp.core.game.action.BankSwap
@@ -39,11 +40,12 @@ import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.TradeOffer
 import eric.bitria.hexonkmp.core.game.model.board.Resource
+import eric.bitria.hexonkmp.ui.components.hud.PlayerToken
+import eric.bitria.hexonkmp.ui.components.cards.ResourceToken
 import eric.bitria.hexonkmp.ui.theme.Spacing
 
-// The trade sheet — a mobile-friendly bottom sheet with two tabs: Bank and
-// Players. Bank trades require it to be your turn; the Players tab lets the
-// current player propose offers and lets opponents respond to incoming ones.
+// The trade sheet — a bottom sheet with two tabs: Bank and Players.
+// [playerColor] resolves a PlayerId to its seat color for avatar rendering.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TradeSheet(
@@ -51,7 +53,7 @@ fun TradeSheet(
     hand: ResourceCount,
     me: PlayerId,
     isMyTurn: Boolean,
-    players: List<PlayerId>,
+    playerColor: (PlayerId) -> Color,
     offers: List<TradeOffer>,
     proposeGive: ResourceCount,
     proposeReceive: ResourceCount,
@@ -65,7 +67,6 @@ fun TradeSheet(
     onCancelTrade: (Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    // Opponents open the sheet only to respond, so land them on the Players tab.
     var tab by remember { mutableIntStateOf(if (isMyTurn) 0 else 1) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -82,7 +83,7 @@ fun TradeSheet(
                 when (tab) {
                     0 -> BankTab(ratio, hand, onBankTrade)
                     else -> PlayersTab(
-                        me, isMyTurn, players, hand, offers,
+                        me, isMyTurn, playerColor, hand, offers,
                         proposeGive, proposeReceive,
                         onCycleGive, onCycleReceive, onClearPropose, onSubmitPropose,
                         onRespondTrade, onFinalizeTrade, onCancelTrade,
@@ -103,7 +104,6 @@ private fun BankTab(
     var give by remember { mutableStateOf<Resource?>(null) }
     var get by remember { mutableStateOf<Resource?>(null) }
 
-    // Resources still affordable after the gives already queued.
     val queued = remember(swaps.size) {
         var rc = ResourceCount()
         swaps.forEach { rc += ResourceCount.of(it.give to ratio) }
@@ -117,7 +117,6 @@ private fun BankTab(
     ) {
         Text("Trade $ratio : 1 with the bank", style = MaterialTheme.typography.titleSmall)
 
-        // Queued swaps as token -> token rows.
         swaps.forEachIndexed { i, swap ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -133,8 +132,6 @@ private fun BankTab(
             }
         }
 
-        // Give picker: every resource, showing what's still spendable after the
-        // queued swaps; dimmed/disabled when no longer enough to trade.
         Text("Give", style = MaterialTheme.typography.labelMedium)
         TokenRow {
             Resource.entries.forEach { r ->
@@ -148,7 +145,6 @@ private fun BankTab(
             }
         }
 
-        // Get picker: any resource other than the chosen give.
         Text("Receive", style = MaterialTheme.typography.labelMedium)
         TokenRow {
             Resource.entries.forEach { r ->
@@ -182,13 +178,11 @@ private fun BankTab(
     }
 }
 
-// --- Players tab: propose (current player) + respond/finalize ---
-
 @Composable
 private fun PlayersTab(
     me: PlayerId,
     isMyTurn: Boolean,
-    players: List<PlayerId>,
+    playerColor: (PlayerId) -> Color,
     hand: ResourceCount,
     offers: List<TradeOffer>,
     proposeGive: ResourceCount,
@@ -203,11 +197,11 @@ private fun PlayersTab(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         if (isMyTurn) {
-            // Offers sit on top, newest first, so a freshly-sent offer appears
-            // right above the form that created it.
             if (offers.isNotEmpty()) {
                 Text("Your offers", style = MaterialTheme.typography.labelMedium)
-                offers.asReversed().forEach { offer -> ProposerOfferCard(offer, players, me, onFinalize, onCancel) }
+                offers.asReversed().forEach { offer ->
+                    ProposerOfferCard(offer, playerColor, onFinalize, onCancel)
+                }
             }
             ProposeForm(hand, proposeGive, proposeReceive, onCycleGive, onCycleReceive, onClearPropose, onSubmitPropose)
         } else {
@@ -216,15 +210,14 @@ private fun PlayersTab(
                 Placeholder("No offers right now")
             } else {
                 Text("Offers for you", style = MaterialTheme.typography.labelMedium)
-                incoming.asReversed().forEach { offer -> IncomingOfferCard(offer, me, players, hand, onRespond) }
+                incoming.asReversed().forEach { offer ->
+                    IncomingOfferCard(offer, me, playerColor, hand, onRespond)
+                }
             }
         }
     }
 }
 
-// Stateless form: the give/receive draft lives in the ViewModel; this just
-// renders it and forwards taps. Keeping the selection in the VM means it isn't
-// lost on recomposition and stays consistent with the rest of the trade flow.
 @Composable
 private fun ProposeForm(
     hand: ResourceCount,
@@ -248,7 +241,6 @@ private fun ProposeForm(
                     resource = r,
                     count = give[r].takeIf { it > 0 },
                     selected = give[r] > 0,
-                    // Only resources you hold, and not already on the "want" side.
                     enabled = hand[r] > 0 && receive[r] == 0,
                     onClick = { onCycleGive(r) },
                 )
@@ -262,32 +254,25 @@ private fun ProposeForm(
                     resource = r,
                     count = receive[r].takeIf { it > 0 },
                     selected = receive[r] > 0,
-                    enabled = give[r] == 0, // can't ask for what you're also giving
+                    enabled = give[r] == 0,
                     onClick = { onCycleReceive(r) },
                 )
             }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            OutlinedButton(
-                onClick = onClear,
-                enabled = !give.isEmpty || !receive.isEmpty,
-            ) { Text("Clear") }
-            Button(
-                onClick = onSubmit,
-                enabled = !give.isEmpty && !receive.isEmpty,
-            ) { Text("Send offer") }
+            OutlinedButton(onClick = onClear, enabled = !give.isEmpty || !receive.isEmpty) { Text("Clear") }
+            Button(onClick = onSubmit, enabled = !give.isEmpty && !receive.isEmpty) { Text("Send offer") }
         }
     }
 }
 
-// Proposer's view of one of their offers: shows responses, with a Trade button
-// per player who accepted.
+// Proposer's view of one of their live offers. Responders are iterated from the
+// offer's response map directly (insertion order = arrival order).
 @Composable
 private fun ProposerOfferCard(
     offer: TradeOffer,
-    players: List<PlayerId>,
-    me: PlayerId,
+    playerColor: (PlayerId) -> Color,
     onFinalize: (Int, PlayerId) -> Unit,
     onCancel: (Int) -> Unit,
 ) {
@@ -296,8 +281,6 @@ private fun ProposerOfferCard(
             modifier = Modifier.fillMaxWidth().padding(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            // Offer centered in the row; the X sits on the right, balanced by an
-            // equal-width spacer on the left so the resources stay truly centered.
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(48.dp))
                 OfferLine(offer.give, offer.receive, modifier = Modifier.weight(1f))
@@ -306,20 +289,17 @@ private fun ProposerOfferCard(
                 }
             }
             HorizontalDivider()
-            val responders = players.filter { it in offer.responses }
-            if (responders.isEmpty()) {
+            if (offer.responses.isEmpty()) {
                 StatusText("Waiting for responses…")
             } else {
-                // One centered row per responder: the player + a button. Accepted
-                // shows a live "Trade" (finalize) button; declined a disabled one.
-                responders.forEach { player ->
+                offer.responses.forEach { (player, accepted) ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
                     ) {
-                        PlayerCard(player, players, me, size = 36)
-                        if (offer.responses[player] == true) {
+                        PlayerToken(playerColor(player), "Player", size = 36)
+                        if (accepted) {
                             Button(onClick = { onFinalize(offer.id, player) }) { Text("Trade") }
                         } else {
                             Button(onClick = {}, enabled = false) { Text("Declined") }
@@ -331,13 +311,12 @@ private fun ProposerOfferCard(
     }
 }
 
-// Opponent's view of an incoming offer. The offer is described from the
-// proposer's side (gives -> wants); accepting means you provide what they want.
+// Opponent's view of an incoming offer.
 @Composable
 private fun IncomingOfferCard(
     offer: TradeOffer,
     me: PlayerId,
-    players: List<PlayerId>,
+    playerColor: (PlayerId) -> Color,
     hand: ResourceCount,
     onRespond: (Int, Boolean) -> Unit,
 ) {
@@ -349,8 +328,10 @@ private fun IncomingOfferCard(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // [Player]: [give] -> [receive], centered.
-            OfferLine(offer.give, offer.receive, leading = { PlayerCard(offer.proposer, players, me, size = 40) })
+            OfferLine(
+                offer.give, offer.receive,
+                leading = { PlayerToken(playerColor(offer.proposer), "Proposer", size = 40) },
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Button(
                     onClick = { onRespond(offer.id, true) },
@@ -376,9 +357,6 @@ private fun StatusText(text: String, error: Boolean = false) {
     )
 }
 
-// A "give -> receive" line of resource bundles, centered within its width. An
-// optional [leading] slot (e.g. a player card) is shown before a ":" separator,
-// giving the "[Player]: [give] -> [receive]" form.
 @Composable
 private fun OfferLine(
     give: ResourceCount,

@@ -1,4 +1,4 @@
-package eric.bitria.hexonkmp.ui.components
+package eric.bitria.hexonkmp.ui.components.cards
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

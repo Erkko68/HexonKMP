@@ -1,4 +1,4 @@
-package eric.bitria.hexonkmp.ui.components
+package eric.bitria.hexonkmp.ui.components.cards
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

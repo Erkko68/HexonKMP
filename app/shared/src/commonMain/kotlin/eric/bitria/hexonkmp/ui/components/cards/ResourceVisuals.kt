@@ -1,4 +1,4 @@
-package eric.bitria.hexonkmp.ui.components
+package eric.bitria.hexonkmp.ui.components.cards
 
 import androidx.compose.ui.graphics.Color
 import eric.bitria.hexonkmp.core.game.model.board.Resource

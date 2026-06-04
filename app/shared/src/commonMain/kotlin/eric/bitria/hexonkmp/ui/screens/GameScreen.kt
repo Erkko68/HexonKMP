@@ -3,23 +3,17 @@ package eric.bitria.hexonkmp.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddRoad
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LocationCity
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Style
-import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,15 +38,18 @@ import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.ui.board.CatanBoardScene
-import eric.bitria.hexonkmp.ui.components.TradeSheet
-import eric.bitria.hexonkmp.ui.components.BuildCard
-import eric.bitria.hexonkmp.ui.components.DevCardHand
-import eric.bitria.hexonkmp.ui.components.DiscardSheet
-import eric.bitria.hexonkmp.ui.components.PlayerCard
-import eric.bitria.hexonkmp.ui.components.ResourceCards
-import eric.bitria.hexonkmp.ui.components.RollBadge
-import eric.bitria.hexonkmp.ui.components.TurnIndicator
-import eric.bitria.hexonkmp.ui.components.WinnerDialog
+import eric.bitria.hexonkmp.ui.components.hud.ActionButton
+import eric.bitria.hexonkmp.ui.components.cards.BuildingCards
+import eric.bitria.hexonkmp.ui.components.cards.DevCardVisuals
+import eric.bitria.hexonkmp.ui.components.cards.DevelopmentCards
+import eric.bitria.hexonkmp.ui.components.sheets.DiscardSheet
+import eric.bitria.hexonkmp.ui.components.hud.GameHeader
+import eric.bitria.hexonkmp.ui.components.hud.PlayerPanel
+import eric.bitria.hexonkmp.ui.components.hud.PlayerVisuals
+import eric.bitria.hexonkmp.ui.components.cards.ResourceCards
+import eric.bitria.hexonkmp.ui.components.hud.RollBadge
+import eric.bitria.hexonkmp.ui.components.sheets.TradeSheet
+import eric.bitria.hexonkmp.ui.components.sheets.WinnerDialog
 import eric.bitria.hexonkmp.ui.screens.game.BuildMode
 import eric.bitria.hexonkmp.ui.screens.game.GameUiState
 import eric.bitria.hexonkmp.ui.screens.game.GameViewModel
@@ -63,11 +60,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    // Derived placement options come from the ViewModel as their own flow, so the
-    // expensive legal-move scans run once per state change, not in composition.
     val opts by viewModel.buildOptions.collectAsStateWithLifecycle()
-    // The propose-trade draft is VM-owned too (its own flow), so building an offer
-    // doesn't disturb the game state or re-run the legal-move scans.
     val proposeDraft by viewModel.proposeDraft.collectAsStateWithLifecycle()
     val discardDraft by viewModel.discardDraft.collectAsStateWithLifecycle()
 
@@ -88,10 +81,10 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                     ghostCities = opts.ghostCities,
                     robberTargets = opts.robberTargets,
                     bankRatio = viewModel.bankTradeRatio(s),
-                    myVictoryPoints = viewModel.victoryPoints(s, s.myPlayerId),
+                    victoryPointsOf = { viewModel.victoryPoints(s, it) },
                     canBuyDevCard = opts.canBuyDevCard,
                     onBuyDevCard = viewModel::buyDevCard,
-                    onPlayKnight = viewModel::playKnight,
+                    onPlayDevCard = viewModel::playDevCard,
                     discardRequired = viewModel.discardOwed(s),
                     discardSelected = discardDraft,
                     onCycleDiscard = viewModel::cycleDiscard,
@@ -120,7 +113,7 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
             is GameUiState.Error -> ErrorContent(s.message, onRetry = viewModel::retryJoinGame)
         }
 
-        if (state is GameUiState.Waiting || state is GameUiState.InGame) {
+        if (state is GameUiState.Waiting) {
             TextButton(
                 onClick = viewModel::leaveGame,
                 modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),
@@ -187,10 +180,10 @@ private fun InGameContent(
     ghostCities: List<Vertex>,
     robberTargets: List<Axial>,
     bankRatio: Int,
-    myVictoryPoints: Int,
+    victoryPointsOf: (PlayerId) -> Int,
     canBuyDevCard: Boolean,
     onBuyDevCard: () -> Unit,
-    onPlayKnight: () -> Unit,
+    onPlayDevCard: (DevCard) -> Unit,
     discardRequired: Int,
     discardSelected: ResourceCount,
     onCycleDiscard: (Resource) -> Unit,
@@ -215,15 +208,18 @@ private fun InGameContent(
     onEndTurn: () -> Unit,
     onReturnToMenu: () -> Unit,
 ) {
-    val setup = state.state.phase as? GamePhase.Setup
     var showTradeSheet by remember { mutableStateOf(false) }
+    var confirmPlay by remember { mutableStateOf<DevCard?>(null) }
+
+    val me = state.myPlayerId
+    val players = state.state.players
+
     Box(Modifier.fillMaxSize()) {
-        // The 3D board fills the screen; HUD + cards overlay on top.
         CatanBoardScene(
             state = state.state,
             engine = engine,
             modifier = Modifier.fillMaxSize(),
-            me = state.myPlayerId,
+            me = me,
             ghostSettlements = ghostSettlements,
             ghostRoads = ghostRoads,
             ghostCities = ghostCities,
@@ -233,61 +229,40 @@ private fun InGameContent(
             onPickHex = onPickHex,
         )
 
-        // --- Turn indicator + player chips, top-left ---
-        Column(
-            modifier = Modifier.align(Alignment.TopStart).padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            // Phase card + your victory-point count beside it.
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        // --- Top bar + player panels (left edge) ---
+        Column(modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth()) {
+            GameHeader(
+                phaseLabel = phaseLabel(state.state.phase),
+                turnLabel = PlayerVisuals.label(state.state.currentPlayer, players, me),
+                timeLabel = "00:00",
+                victoryPoints = victoryPointsOf(me),
+                victoryGoal = state.state.config.rules.victoryPointsToWin,
+                onLeave = onReturnToMenu,
+            )
+            Column(
+                modifier = Modifier.padding(top = Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
-                TurnIndicator(
-                    phaseLabel = if (setup != null) "Setup" else "Turn ${state.state.turn}",
-                    statusLabel = if (state.isMyTurn) "Your turn" else "Waiting for opponent",
-                    isMyTurn = state.isMyTurn,
-                )
-                VictoryPointBadge(
-                    points = myVictoryPoints,
-                    goal = state.state.config.rules.victoryPointsToWin,
-                )
-            }
-            // One chip per player in seat order: outlined for the current player,
-            // dimmed/struck-through for anyone who has left. Below each, the public
-            // resource-card count (the only hand info opponents may see — exact
-            // cards are hidden; see GameState.redactedFor).
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                state.state.players.forEach { p ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    ) {
-                        PlayerCard(
-                            player = p,
-                            players = state.state.players,
-                            me = state.myPlayerId,
-                            current = p == state.state.currentPlayer,
-                            present = p in state.state.present,
-                            size = 40,
-                        )
-                        val cards = state.state.resourceCounts[p] ?: state.state.handOf(p).total
-                        Text(
-                            "🂠 $cards",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                players.forEach { p ->
+                    PlayerPanel(
+                        color = PlayerVisuals.color(p, players),
+                        label = PlayerVisuals.label(p, players, me),
+                        resourceCount = state.state.resourceCounts[p] ?: state.state.handOf(p).total,
+                        devCardCount = state.state.devCardCounts[p] ?: state.state.devCardCountOf(p),
+                        victoryPoints = victoryPointsOf(p),
+                        isCurrentTurn = p == state.state.currentPlayer,
+                        present = p in state.state.present,
+                    )
                 }
             }
         }
 
-        // --- Dice roll badge, top-center (prominent) ---
+        // --- Dice roll badge ---
         state.state.lastRoll?.let { roll ->
-            RollBadge(roll, modifier = Modifier.align(Alignment.TopCenter).padding(top = Spacing.md))
+            RollBadge(roll, modifier = Modifier.align(Alignment.TopCenter).padding(top = 96.dp))
         }
 
-        // --- Robber prompt / transient notice, just below the roll badge ---
+        // --- Robber prompt / transient notice ---
         val robberPrompt = (state.state.phase is GamePhase.Robber && state.isMyTurn)
         val notice = if (robberPrompt) "Move the robber — tap a tile" else state.notice
         notice?.let {
@@ -295,72 +270,44 @@ private fun InGameContent(
                 it,
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (robberPrompt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 72.dp),
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 152.dp),
             )
         }
 
-        // --- Build cards (icon-only), bottom-center. Tapping arms a build mode
-        // (highlighted) which shows ghost markers on the board; tap to place. ---
-        Row(
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            BuildCard(
-                icon = Icons.Filled.Home,
-                label = "Settlement",
-                enabled = canBuildSettlement,
-                selected = state.buildMode == BuildMode.SETTLEMENT,
-                onClick = onToggleSettlement,
-            )
-            BuildCard(
-                icon = Icons.Filled.AddRoad,
-                label = "Road",
-                enabled = canBuildRoad,
-                selected = state.buildMode == BuildMode.ROAD,
-                onClick = onToggleRoad,
-            )
-            BuildCard(
-                icon = Icons.Filled.LocationCity,
-                label = "City",
-                enabled = canBuildCity,
-                selected = state.buildMode == BuildMode.CITY,
-                onClick = onToggleCity,
-            )
-            // Buy a development card (drawn server-side, hidden from opponents).
-            BuildCard(
-                icon = Icons.Filled.Style,
-                label = "Buy development card",
-                enabled = canBuyDevCard,
-                onClick = onBuyDevCard,
-            )
-            // Trade is available during your Play turn (not setup) to propose/bank-
-            // trade, or whenever another player has an offer waiting for your reply.
-            val me = state.myPlayerId
-            val hasIncomingOffer = state.state.pendingTrades.any { it.proposer != me }
-            // Notification dot: proposer sees it when someone accepts one of their
-            // offers; opponents see it for an offer they haven't responded to yet.
-            val tradeBadge = if (state.isMyTurn) {
-                state.state.pendingTrades.any { it.accepters.isNotEmpty() }
-            } else {
-                state.state.pendingTrades.any { it.proposer != me && me !in it.responses }
-            }
-            BuildCard(
-                icon = Icons.Filled.SwapHoriz,
-                label = "Trade",
-                enabled = (state.isMyTurn && setup == null) || hasIncomingOffer,
-                selected = showTradeSheet,
-                badge = tradeBadge,
-                onClick = { showTradeSheet = true },
-            )
+        // --- Build / buy / trade action bar ---
+        val hasIncomingOffer = state.state.pendingTrades.any { it.proposer != me }
+        val tradeBadge = if (state.isMyTurn) {
+            state.state.pendingTrades.any { it.accepters.isNotEmpty() }
+        } else {
+            state.state.pendingTrades.any { it.proposer != me && me !in it.responses }
         }
+        val canTrade = state.state.phase is GamePhase.Play && (state.isMyTurn || hasIncomingOffer)
+        BuildingCards(
+            canSettlement = canBuildSettlement,
+            settlementSelected = state.buildMode == BuildMode.SETTLEMENT,
+            canRoad = canBuildRoad,
+            roadSelected = state.buildMode == BuildMode.ROAD,
+            canCity = canBuildCity,
+            citySelected = state.buildMode == BuildMode.CITY,
+            canBuyDevCard = canBuyDevCard,
+            canTrade = canTrade,
+            tradeSelected = showTradeSheet,
+            tradeBadge = tradeBadge,
+            onSettlement = onToggleSettlement,
+            onRoad = onToggleRoad,
+            onCity = onToggleCity,
+            onBuyDevCard = onBuyDevCard,
+            onTrade = { showTradeSheet = true },
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.md),
+        )
 
         if (showTradeSheet) {
             TradeSheet(
                 ratio = bankRatio,
-                hand = state.state.handOf(state.myPlayerId),
-                me = state.myPlayerId,
+                hand = state.state.handOf(me),
+                me = me,
                 isMyTurn = state.isMyTurn,
-                players = state.state.players,
+                playerColor = { PlayerVisuals.color(it, players) },
                 offers = state.state.pendingTrades,
                 proposeGive = proposeGive,
                 proposeReceive = proposeReceive,
@@ -379,12 +326,10 @@ private fun InGameContent(
             )
         }
 
-        // Forced discard sheet (a 7 put you over the hand limit). Shown until you
-        // discard; can't be dismissed.
         if (discardRequired > 0) {
             DiscardSheet(
                 required = discardRequired,
-                hand = state.state.handOf(state.myPlayerId),
+                hand = state.state.handOf(me),
                 selected = discardSelected,
                 onCycle = onCycleDiscard,
                 onClear = onClearDiscard,
@@ -392,68 +337,79 @@ private fun InGameContent(
             )
         }
 
-        // --- Dev cards (above the resource cards) + resource cards, bottom-left ---
+        // --- Dev cards + resource cards, bottom-left ---
         Column(
             modifier = Modifier.align(Alignment.BottomStart).padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            val me = state.myPlayerId
             val playable = state.state.devCards[me].orEmpty()
             val held = playable + state.state.boughtThisTurn[me].orEmpty()
-            // Knights are playable only on your Play turn, once per turn, and not the
-            // ones bought this turn (those live in boughtThisTurn, excluded here).
             val canPlay = state.isMyTurn &&
                 state.state.phase is GamePhase.Play &&
                 !state.state.devCardPlayed
-            DevCardHand(
+            // Currently only Knights are implemented; extend the set as other cards are wired up.
+            val playableCards = if (canPlay) playable.filter { it == DevCard.KNIGHT }.toSet() else emptySet()
+            DevelopmentCards(
                 cards = held.groupingBy { it }.eachCount(),
-                playableKnights = if (canPlay) playable.count { it == DevCard.KNIGHT } else 0,
-                onPlayKnight = onPlayKnight,
+                playable = playableCards,
+                onPlay = { confirmPlay = it },
             )
-            ResourceCards(hand = state.state.handOf(state.myPlayerId))
+            ResourceCards(hand = state.state.handOf(me))
         }
 
-        // --- End Turn, bottom-right (Play phase only — hidden during setup and
-        // while a robber move is owed). ---
+        // --- Confirm dialog before spending a dev card ---
+        confirmPlay?.let { card ->
+            AlertDialog(
+                onDismissRequest = { confirmPlay = null },
+                title = { Text("Play ${DevCardVisuals.label(card)}?") },
+                text = { Text(devCardPrompt(card)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        confirmPlay = null
+                        onPlayDevCard(card)
+                    }) { Text("Play") }
+                },
+                dismissButton = { TextButton(onClick = { confirmPlay = null }) { Text("Cancel") } },
+            )
+        }
+
+        // --- End Turn button, bottom-right (Play phase only) ---
         if (state.state.phase is GamePhase.Play) {
-            Button(
-                onClick = onEndTurn,
+            ActionButton(
+                icon = Icons.Filled.SkipNext,
+                label = "End turn",
                 enabled = state.isMyTurn,
+                onClick = onEndTurn,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.md),
-            ) { Text("End Turn") }
+            )
         }
 
-        // --- Game over: winner overlay on top of everything. ---
+        // --- Winner overlay ---
         (state.state.phase as? GamePhase.Finished)?.let { finished ->
             WinnerDialog(
-                winner = finished.winner,
-                players = state.state.players,
-                me = state.myPlayerId,
+                color = PlayerVisuals.color(finished.winner, players),
+                label = PlayerVisuals.label(finished.winner, players, me),
+                youWon = finished.winner == me,
                 onReturnToMenu = onReturnToMenu,
             )
         }
     }
 }
 
-// Compact victory-point count for the top-left HUD, beside the phase card.
-// Shows progress toward the win goal, e.g. "3/10".
-@Composable
-private fun VictoryPointBadge(points: Int, goal: Int) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        ),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Icon(Icons.Filled.Star, contentDescription = "Victory points", modifier = Modifier.height(18.dp))
-            Text("$points / $goal", style = MaterialTheme.typography.titleMedium)
-        }
-    }
+private fun phaseLabel(phase: GamePhase): String = when (phase) {
+    is GamePhase.Setup -> "Setup"
+    GamePhase.Play -> "Play"
+    is GamePhase.Discard -> "Discard"
+    GamePhase.Robber -> "Robber"
+    is GamePhase.Finished -> "Finished"
+}
+
+private fun devCardPrompt(card: DevCard): String = when (card) {
+    DevCard.KNIGHT -> "Move the robber and steal a card. Counts toward Largest Army."
+    DevCard.ROAD_BUILDING -> "Place two roads for free."
+    DevCard.YEAR_OF_PLENTY -> "Take any two resources from the bank."
+    DevCard.MONOPOLY -> "Name a resource; every other player gives you all of theirs."
+    DevCard.VICTORY_POINT -> "A hidden victory point — it can't be played."
 }
 
 @Composable
