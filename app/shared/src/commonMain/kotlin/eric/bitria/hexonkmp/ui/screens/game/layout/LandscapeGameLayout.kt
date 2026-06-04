@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,7 +42,7 @@ import eric.bitria.hexonkmp.ui.components.cards.DevelopmentBar
 import eric.bitria.hexonkmp.ui.components.cards.ResourceBar
 import eric.bitria.hexonkmp.ui.components.hud.LandscapeGameHeader
 import eric.bitria.hexonkmp.ui.components.hud.LandscapePlayerPanel
-import eric.bitria.hexonkmp.ui.components.hud.RollBadge
+import eric.bitria.hexonkmp.ui.components.hud.NoticeChip
 import eric.bitria.hexonkmp.ui.components.sheets.DiscardSheet
 import eric.bitria.hexonkmp.ui.components.sheets.TradeSidePanel
 import eric.bitria.hexonkmp.ui.components.sheets.WinnerDialog
@@ -116,6 +115,7 @@ fun LandscapeGameLayout(
             LandscapeGameHeader(
                 phaseLabel = phaseLabel(state.state.phase),
                 timeLabel = "00:00",
+                lastRoll = state.state.lastRoll,
                 victoryPoints = victoryPointsOf(me),
                 victoryGoal = state.state.config.rules.victoryPointsToWin,
                 onLeave = onReturnToMenu,
@@ -146,29 +146,18 @@ fun LandscapeGameLayout(
                     }
                 }
 
-                // Dice roll badge & Robber prompt / transient notice (top center)
-                Column(
-                    modifier = Modifier.align(Alignment.TopCenter),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    state.state.lastRoll?.let { roll ->
-                        RollBadge(roll, modifier = Modifier.padding(top = Spacing.sm))
-                    }
-                    val robberPrompt = opts.robberTargets.isNotEmpty()
-                    val roadBuildingPhase = state.state.phase as? GamePhase.RoadBuilding
-                    val notice = when {
-                        roadBuildingPhase != null -> "Place ${roadBuildingPhase.roadsLeft} free road(s) — tap a spot"
-                        robberPrompt -> "Move the robber — tap a tile"
-                        else -> state.notice
-                    }
-                    notice?.let {
-                        Text(
-                            it,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (robberPrompt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(top = Spacing.sm),
-                        )
-                    }
+                // Contextual notice chip (top center)
+                val roadBuildingPhase = state.state.phase as? GamePhase.RoadBuilding
+                val notice = when {
+                    roadBuildingPhase != null -> "Place ${roadBuildingPhase.roadsLeft} free road(s) — tap a spot"
+                    opts.robberTargets.isNotEmpty() -> "Move the robber — tap a tile"
+                    else -> state.notice
+                }
+                notice?.let {
+                    NoticeChip(
+                        text = it,
+                        modifier = Modifier.align(Alignment.TopCenter).padding(top = Spacing.sm),
+                    )
                 }
 
                 // Dev cards + resource bar (bottom-left)

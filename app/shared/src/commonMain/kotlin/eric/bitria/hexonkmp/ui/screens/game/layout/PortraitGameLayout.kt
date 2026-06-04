@@ -50,8 +50,8 @@ import eric.bitria.hexonkmp.ui.components.cards.ActionCard
 import eric.bitria.hexonkmp.ui.components.cards.DevelopmentBar
 import eric.bitria.hexonkmp.ui.components.cards.ResourceBar
 import eric.bitria.hexonkmp.ui.components.hud.PortraitPlayerPanel
+import eric.bitria.hexonkmp.ui.components.hud.NoticeChip
 import eric.bitria.hexonkmp.ui.components.hud.PortraitGameHeader
-import eric.bitria.hexonkmp.ui.components.hud.RollBadge
 import eric.bitria.hexonkmp.ui.components.sheets.DiscardSheet
 import eric.bitria.hexonkmp.ui.components.sheets.TradeSheet
 import eric.bitria.hexonkmp.ui.components.sheets.devcards.KnightSheet
@@ -157,19 +157,16 @@ fun PortraitGameLayout(
         }
 
 
-        // --- Robber / Road Building prompt / transient notice ---
-        val robberPrompt = opts.robberTargets.isNotEmpty()
+        // --- Contextual notice chip ---
         val roadBuildingPhase = state.state.phase as? GamePhase.RoadBuilding
         val notice = when {
             roadBuildingPhase != null -> "Place ${roadBuildingPhase.roadsLeft} free road(s) — tap a spot"
-            robberPrompt -> "Move the robber — tap a tile"
+            opts.robberTargets.isNotEmpty() -> "Move the robber — tap a tile"
             else -> state.notice
         }
         notice?.let {
-            Text(
-                it,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (robberPrompt) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+            NoticeChip(
+                text = it,
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 152.dp),
             )
         }
