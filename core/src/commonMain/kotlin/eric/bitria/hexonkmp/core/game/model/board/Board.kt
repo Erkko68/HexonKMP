@@ -1,5 +1,6 @@
 package eric.bitria.hexonkmp.core.game.model.board
 
+import eric.bitria.hexonkmp.core.game.model.Port
 import kotlinx.serialization.Serializable
 
 // One hex tile: its position, terrain, and number token (null on the desert).
@@ -11,13 +12,14 @@ data class Tile(
     val token: Int? = null,
 )
 
-// The generated board: the concrete tiles plus the robber's position. This is
-// authoritative state and is serialized to clients. Vertices and edges are not
-// stored — they're pure functions of the tiles, derived on demand.
+// The generated board: the concrete tiles, the robber's position, and the placed
+// harbors. This is authoritative state and is serialized to clients. Vertices and
+// edges are not stored — they're pure functions of the tiles, derived on demand.
 @Serializable
 data class Board(
     val tiles: List<Tile>,
     val robber: Axial?,
+    val ports: List<Port> = emptyList(),
 ) {
     private val tileByHex: Map<Axial, Tile> get() = tiles.associateBy { it.hex }
 

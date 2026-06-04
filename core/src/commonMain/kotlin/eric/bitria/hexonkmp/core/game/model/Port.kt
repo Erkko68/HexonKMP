@@ -1,20 +1,25 @@
 package eric.bitria.hexonkmp.core.game.model
 
+import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
-import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import kotlinx.serialization.Serializable
 
-// A harbor: a single vertex that, when a player owns a building on it, lowers
-// their bank-trade ratio. [resource] null means a generic port (the lower ratio
-// applies to every resource); otherwise it's a specific port (the ratio applies
-// only when giving that resource). [ratio] is how many of the give-resource the
-// bank takes for one of any other (classic: 3 for generic, 2 for specific).
-//
-// One entry per vertex: a physical harbor touches two coastline vertices, so it
-// appears as two Port rows sharing the same [resource] and [ratio].
+// A harbor placed on a coastline [edge]: a player with a building on EITHER of the
+// edge's two vertices gets the discount. [resource] null = generic port (lowers
+// every resource's ratio); otherwise specific (lowers only that resource). [ratio]
+// is how many of the give-resource the bank takes for one of any other (classic:
+// 3 for generic, 2 for specific).
 @Serializable
 data class Port(
-    val vertex: Vertex,
+    val edge: Edge,
+    val resource: Resource?,
+    val ratio: Int,
+)
+
+// A harbor "recipe" without a position — the multiset a scenario wants placed (like
+// terrainBag / numberTokens). BoardGenerator shuffles these onto coastline edges.
+@Serializable
+data class PortKind(
     val resource: Resource?,
     val ratio: Int,
 )

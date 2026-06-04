@@ -187,14 +187,15 @@ class CatanGameEngine(
     }
 
     // The player's best (lowest) bank ratio per resource: the base ratio lowered by
-    // any port whose vertex carries one of the player's buildings. A generic port
-    // (resource == null) lowers every resource; a specific port lowers only its own.
+    // any harbor with one of the player's buildings on EITHER of its edge's vertices.
+    // A generic port (resource == null) lowers every resource; a specific port lowers
+    // only its own.
     override fun bankRates(state: GameState, player: PlayerId): Map<Resource, Int> {
         val base = state.config.rules.bankTradeRatio
         val rates = Resource.entries.associateWith { base }.toMutableMap()
         val owned = state.buildings.filter { it.owner == player }.map { it.vertex }.toSet()
-        for (port in state.config.ports) {
-            if (port.vertex !in owned) continue
+        for (port in state.board.ports) {
+            if (port.edge.endpoints().none { it in owned }) continue
             if (port.resource == null) {
                 for (res in Resource.entries) rates[res] = minOf(rates.getValue(res), port.ratio)
             } else {

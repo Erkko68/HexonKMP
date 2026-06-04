@@ -1,22 +1,32 @@
 package eric.bitria.hexonkmp.core.game.config
 
 import eric.bitria.hexonkmp.core.game.model.DevCard
-import eric.bitria.hexonkmp.core.game.model.Port
+import eric.bitria.hexonkmp.core.game.model.PortKind
 import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Terrain
-import eric.bitria.hexonkmp.core.game.model.board.cornerVertex
 import eric.bitria.hexonkmp.core.game.model.board.hexagonalLayout
 
-// The 19-hex classic board layout, shared by the tiles and the port placement.
-private val classicLayout: List<Axial> = hexagonalLayout(radius = 2)
+// The classic 9 harbors: four generic 3:1 ports plus one 2:1 port per resource.
+// Position-less — BoardGenerator shuffles them onto random coastline edges.
+private val classicPortBag: List<PortKind> = listOf(
+    PortKind(resource = null, ratio = 3),
+    PortKind(resource = null, ratio = 3),
+    PortKind(resource = null, ratio = 3),
+    PortKind(resource = null, ratio = 3),
+    PortKind(Resource.LUMBER, 2),
+    PortKind(Resource.BRICK, 2),
+    PortKind(Resource.WOOL, 2),
+    PortKind(Resource.GRAIN, 2),
+    PortKind(Resource.ORE, 2),
+)
 
 // The standard 3–4 player Catan game, expressed entirely as data. This is the
 // reference example of a "game mode": nothing here is special-cased in the
 // engine — a variant would be another value just like this one.
 val ClassicCatan: ScenarioConfig = ScenarioConfig(
     name = "Classic Catan",
-    hexLayout = classicLayout, // 19 hexes
+    hexLayout = hexagonalLayout(radius = 2), // 19 hexes
     terrainBag = buildList {
         repeat(4) { add(Terrain.FOREST) }    // lumber
         repeat(4) { add(Terrain.PASTURE) }   // wool
@@ -55,37 +65,5 @@ val ClassicCatan: ScenarioConfig = ScenarioConfig(
             DevCard.MONOPOLY to 2,
         ),
     ),
-    ports = classicPorts(classicLayout),
+    portBag = classicPortBag,
 )
-
-// The classic harbor multiset: four generic 3:1 ports plus one 2:1 port per
-// resource. PROVISIONAL placement — each is dropped on a single coastline vertex,
-// spread deterministically around the perimeter. The authentic two-vertex harbor
-// positions land with the board's harbor rendering; the engine treats whatever
-// vertices appear here as the ports, so only this data changes.
-private fun classicPorts(layout: List<Axial>): List<Port> {
-    val board = layout.toSet()
-    // A coastline vertex: a corner touching at least one board hex and open sea.
-    val perimeter = buildSet {
-        for (hex in layout) for (k in 0..5) {
-            val v = cornerVertex(hex, k)
-            if (v.hexes.any { it in board } && v.hexes.any { it !in board }) add(v)
-        }
-    }.sortedWith(
-        compareBy(
-            { it.hexes[0].q }, { it.hexes[0].r },
-            { it.hexes[1].q }, { it.hexes[1].r },
-            { it.hexes[2].q }, { it.hexes[2].r },
-        ),
-    )
-    if (perimeter.isEmpty()) return emptyList()
-    val kinds: List<Pair<Resource?, Int>> = listOf(
-        null to 3, null to 3, null to 3, null to 3,
-        Resource.LUMBER to 2, Resource.BRICK to 2, Resource.WOOL to 2,
-        Resource.GRAIN to 2, Resource.ORE to 2,
-    )
-    val step = (perimeter.size / kinds.size).coerceAtLeast(1)
-    return kinds.mapIndexed { i, (resource, ratio) ->
-        Port(perimeter[(i * step) % perimeter.size], resource, ratio)
-    }
-}

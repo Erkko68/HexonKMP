@@ -7,8 +7,10 @@ import eric.bitria.hexonkmp.core.game.event.BankTraded
 import eric.bitria.hexonkmp.core.game.model.GameState
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
+import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
-import eric.bitria.hexonkmp.core.game.model.board.Vertex
+import eric.bitria.hexonkmp.core.game.model.board.endpoints
+import eric.bitria.hexonkmp.core.game.model.board.incidentEdges
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -22,8 +24,17 @@ class BankTradeTest {
     private val play = engine.completeSetup(engine.initialState(listOf(alice, bob)))
     private val ratio = play.config.rules.bankTradeRatio
 
-    // A vertex the current player owns a building on (for port tests).
-    private val ownedVertex: Vertex = play.buildings.first { it.owner == play.currentPlayer }.vertex
+    // A coastline edge with one endpoint on the current player's building (a harbor
+    // there is reachable), and an edge reaching none of their buildings.
+    private val ownedPortEdge: Edge =
+        play.buildings.first { it.owner == play.currentPlayer }.vertex.incidentEdges().first()
+    private val unownedPortEdge: Edge = run {
+        val mine = play.buildings.filter { it.owner == play.currentPlayer }.map { it.vertex }.toSet()
+        play.board.edges().first { e -> e.endpoints().none { it in mine } }
+    }
+
+    // Puts [ports] on the board (harbors are board state, placed by BoardGenerator).
+    private fun GameState.withPorts(vararg ports: Port) = copy(board = board.copy(ports = ports.toList()))
 
     // Gives the current player [hand] and trades it for [receive] at the bank.
     private fun trade(give: ResourceCount, receive: ResourceCount, state: GameState = play) =
@@ -111,7 +122,7 @@ class BankTradeTest {
 
     @Test
     fun genericPortLowersEveryRatio() {
-        val withPort = play.copy(config = play.config.copy(ports = listOf(Port(ownedVertex, resource = null, ratio = 3))))
+        val withPort = play.withPorts(Port(ownedPortEdge, resource = null, ratio = 3))
         val rates = engine.bankRates(withPort, withPort.currentPlayer)
         assertEquals(Resource.entries.associateWith { 3 }, rates)
         // 3 ore -> 1 brick is now valid (would be 4:1 without the port).
@@ -120,7 +131,7 @@ class BankTradeTest {
 
     @Test
     fun specificPortLowersOnlyItsResource() {
-        val withPort = play.copy(config = play.config.copy(ports = listOf(Port(ownedVertex, resource = Resource.ORE, ratio = 2))))
+        val withPort = play.withPorts(Port(ownedPortEdge, resource = Resource.ORE, ratio = 2))
         val rates = engine.bankRates(withPort, withPort.currentPlayer)
         assertEquals(2, rates[Resource.ORE])
         assertEquals(ratio, rates[Resource.WOOL])
@@ -130,9 +141,19 @@ class BankTradeTest {
     }
 
     @Test
-    fun portOnUnownedVertexDoesNotApply() {
-        val foreign = play.buildings.first { it.owner != play.currentPlayer }.vertex
-        val withPort = play.copy(config = play.config.copy(ports = listOf(Port(foreign, resource = null, ratio = 2))))
+    fun portReachesEitherEndpointOfItsEdge() {
+        // The port sits on an edge; a building on either endpoint grants it.
+        val withPort = play.withPorts(Port(ownedPortEdge, resource = null, ratio = 3))
+        val ownsAnEndpoint = ownedPortEdge.endpoints().any { v ->
+            play.buildings.any { it.owner == play.currentPlayer && it.vertex == v }
+        }
+        assertEquals(true, ownsAnEndpoint)
+        assertEquals(3, engine.bankRates(withPort, withPort.currentPlayer)[Resource.ORE])
+    }
+
+    @Test
+    fun portOnUnreachedEdgeDoesNotApply() {
+        val withPort = play.withPorts(Port(unownedPortEdge, resource = null, ratio = 2))
         assertEquals(ratio, engine.bankRates(withPort, withPort.currentPlayer)[Resource.ORE])
     }
 }

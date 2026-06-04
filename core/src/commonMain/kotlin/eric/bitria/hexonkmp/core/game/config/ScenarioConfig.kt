@@ -1,6 +1,6 @@
 package eric.bitria.hexonkmp.core.game.config
 
-import eric.bitria.hexonkmp.core.game.model.Port
+import eric.bitria.hexonkmp.core.game.model.PortKind
 import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Terrain
 import kotlinx.serialization.Serializable
@@ -19,9 +19,9 @@ data class ScenarioConfig(
     val terrainBag: List<Terrain>,
     val numberTokens: List<Int>,
     val rules: RuleConfig,
-    // Harbors: per-vertex trade discounts. A building on one of these vertices
-    // lowers the owner's bank-trade ratio (see Port). Empty = no ports.
-    val ports: List<Port> = emptyList(),
+    // Harbors to place, as a position-less multiset (like terrainBag/numberTokens).
+    // BoardGenerator shuffles these onto random coastline edges. Empty = no ports.
+    val portBag: List<PortKind> = emptyList(),
 ) {
     init {
         require(terrainBag.size == hexLayout.size) {

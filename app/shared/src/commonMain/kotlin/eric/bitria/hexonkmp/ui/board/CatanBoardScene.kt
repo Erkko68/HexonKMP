@@ -282,11 +282,13 @@ fun CatanBoardScene(
                 )
             }
 
-            // Ports (harbors): a wooden-plank rectangle at each harbor vertex, colored
-            // by the discounted resource (generic ports use the desert/sand color).
-            // Sunk low so it intersects the tile surface like a dock.
-            state.config.ports.forEach { port ->
-                val p = HexMath.vertexCenter(port.vertex, HEX_SIZE)
+            // Ports (harbors): a wooden-plank rectangle on each harbor's coastline
+            // edge, rotated to lie along it, colored by the discounted resource
+            // (generic ports use the desert/sand color). Sunk low so it intersects
+            // the tile surface like a dock.
+            state.board.ports.forEach { port ->
+                val p = HexMath.edgeCenter(port.edge, HEX_SIZE)
+                val angle = HexMath.edgeAngleY(port.edge, HEX_SIZE)
                 val color = ResourceColors.forResource(port.resource)
                 val inst = rememberMaterialInstance(solidMat, engine = engine).apply {
                     setParameter("baseColor", color.x, color.y, color.z)
@@ -294,6 +296,9 @@ fun CatanBoardScene(
                 Cube(
                     material = inst,
                     position = Position(p.x, PORT_Y, p.z),
+                    rotation = remember(angle) {
+                        Quaternion.fromAxisAngle(Direction(0f, 1f, 0f), angle * RAD_TO_DEG)
+                    },
                     scale = PORT_SIZE,
                 )
             }
