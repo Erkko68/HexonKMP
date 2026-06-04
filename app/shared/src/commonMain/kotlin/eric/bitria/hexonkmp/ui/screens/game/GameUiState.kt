@@ -6,6 +6,7 @@ import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Edge
+import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
 
 // What the player is currently placing (drives the board's ghost markers).
@@ -30,6 +31,11 @@ data class BuildOptions(
     val canTrade: Boolean = false,
     // Notification dot on the Trade button
     val tradeBadge: Boolean = false,
+    // The local player's best bank ratio per resource (lowered by owned ports).
+    // Used to label/highlight discounted resources in the trade editor.
+    val bankRates: Map<Resource, Int> = emptyMap(),
+    // Whether the current trade draft is a valid bank trade (enables the bank button).
+    val canBankTrade: Boolean = false,
     // End Turn: shown only in Play phase, enabled only on the local player's turn
     val showEndTurn: Boolean = false,
     val canEndTurn: Boolean = false,
@@ -41,7 +47,10 @@ data class BuildOptions(
     }
 }
 
-data class ProposeDraft(
+// The unified give/receive trade draft, used for BOTH bank and player trades.
+// The player fills in what they'll give and what they want, then chooses to send
+// it to the bank or offer it to other players.
+data class TradeDraft(
     val give: ResourceCount = ResourceCount(),
     val receive: ResourceCount = ResourceCount(),
 )
@@ -57,7 +66,7 @@ sealed class GameUiState {
         val buildMode: BuildMode = BuildMode.NONE,
         val notice: String? = null,
         val buildOptions: BuildOptions = BuildOptions.NONE,
-        val proposeDraft: ProposeDraft = ProposeDraft(),
+        val tradeDraft: TradeDraft = TradeDraft(),
         val discardDraft: ResourceCount = ResourceCount(),
     ) : GameUiState() {
         val isMyTurn: Boolean get() = state.currentPlayer == myPlayerId

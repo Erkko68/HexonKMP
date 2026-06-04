@@ -1,10 +1,9 @@
 package eric.bitria.hexonkmp.ui.components.cards
 
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Hexagon
@@ -18,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.ui.theme.ResourcePalette
 import eric.bitria.hexonkmp.ui.theme.Shapes
@@ -36,12 +34,15 @@ fun ResourceCard(
     size: Dp = Tokens.tokenMd,
     onClick: (() -> Unit)? = null,
 ) {
-    val border = if (selected) Modifier.border(Shapes.selectedBorder, MaterialTheme.colorScheme.primary, Shapes.card) else Modifier
-    val cardModifier = modifier.size(size).then(border).alpha(if (enabled) 1f else 0.35f)
+    val cardModifier = modifier.size(size).alpha(if (enabled) 1f else 0.35f)
     val colors = CardDefaults.cardColors(
         containerColor = ResourcePalette.color(resource),
         contentColor = ResourcePalette.onColor(resource),
     )
+    // The selection ring uses the Card's own border slot so it's drawn with the
+    // card's shape and always hugs the rounded corners (a plain Modifier.border
+    // can read as a square against the card's bounds).
+    val border = if (selected) BorderStroke(Shapes.selectedBorder, MaterialTheme.colorScheme.primary) else null
     val iconFraction = if (count != null) 0.45f else 0.6f
     val content: @Composable () -> Unit = {
         Column(
@@ -62,8 +63,8 @@ fun ResourceCard(
     // Keep the same node type regardless of enabled — toggling `enabled` on the
     // Card avoids the node swap that can swallow an in-flight press.
     if (onClick != null) {
-        Card(onClick = onClick, enabled = enabled, modifier = cardModifier, shape = Shapes.card, colors = colors) { content() }
+        Card(onClick = onClick, enabled = enabled, modifier = cardModifier, shape = Shapes.card, colors = colors, border = border) { content() }
     } else {
-        Card(modifier = cardModifier, shape = Shapes.card, colors = colors) { content() }
+        Card(modifier = cardModifier, shape = Shapes.card, colors = colors, border = border) { content() }
     }
 }

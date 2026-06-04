@@ -46,17 +46,13 @@ data class MoveRobber(val hex: Axial) : GameAction
 @SerialName("DiscardResources")
 data class DiscardResources(val cards: ResourceCount) : GameAction
 
-// One bank swap: `ratio` of [give] -> one [get] (ratio from RuleConfig). Each
-// swap is independent — you can't pool different resources toward one swap.
-@Serializable
-data class BankSwap(val give: Resource, val get: Resource)
-
-// Trade with the bank, applied atomically. Bundles one or more [swaps] (e.g.
-// "8 ore -> 1 brick + 1 wheat" = two ORE swaps) so a single user action is one
-// message + one event. Play phase only, current player only.
+// Trade with the bank: give up [give] for [receive], applied atomically. Same
+// give/receive shape as a player trade — the engine validates that [give] funds
+// [receive] at the player's bank ratios (4:1 by default, lower with ports), with
+// each given resource an exact multiple of its ratio. Play phase, current player.
 @Serializable
 @SerialName("BankTrade")
-data class BankTrade(val swaps: List<BankSwap>) : GameAction
+data class BankTrade(val give: ResourceCount, val receive: ResourceCount) : GameAction
 
 // --- Player-to-player trades ---
 

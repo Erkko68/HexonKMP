@@ -1,6 +1,5 @@
 package eric.bitria.hexonkmp.core.game.engine
 
-import eric.bitria.hexonkmp.core.game.action.BankSwap
 import eric.bitria.hexonkmp.core.game.action.BankTrade
 import eric.bitria.hexonkmp.core.game.action.BuyDevCard
 import eric.bitria.hexonkmp.core.game.action.CancelTrade
@@ -132,7 +131,7 @@ class CatanGameEngine(
             PlayRoadBuilding -> playRoadBuilding(state, actor)
             is PlayYearOfPlenty -> playYearOfPlenty(state, actor, action.resources)
             is PlayMonopoly -> playMonopoly(state, actor, action.resource)
-            is BankTrade -> bankTrade(state, actor, action.swaps)
+            is BankTrade -> bankTrade(state, actor, action.give, action.receive)
             is ProposeTrade -> proposeTrade(state, actor, action.give, action.receive)
             is FinalizeTrade -> finalizeTrade(state, actor, action.offerId, action.partner)
             is CancelTrade -> cancelTrade(state, actor, action.offerId)
@@ -141,35 +140,68 @@ class CatanGameEngine(
         }
     }
 
-    // --- Play: bank trade (ratio:1 with the bank, applied atomically) ---
+    // --- Play: bank trade (give/receive, validated against the player's ratios) ---
 
-    private fun bankTrade(state: GameState, actor: PlayerId, swaps: List<BankSwap>): CatanResult {
-        if (state.phase !is GamePhase.Play) {
-            return CatanResult(state, rejection = "You can only trade during your turn")
-        }
-        if (swaps.isEmpty()) {
-            return CatanResult(state, rejection = "Nothing to trade")
-        }
-        if (swaps.any { it.give == it.get }) {
-            return CatanResult(state, rejection = "Trade must be for a different resource")
-        }
-        val ratio = state.config.rules.bankTradeRatio
-        // Aggregate the whole trade: each swap costs `ratio` of its give-resource
-        // and yields 1 of its get-resource. Summing first lets us validate the
-        // total against the hand once, with no partial application.
-        var given = ResourceCount()
-        var received = ResourceCount()
-        for (swap in swaps) {
-            given += ResourceCount.of(swap.give to ratio)
-            received += ResourceCount.of(swap.get to 1)
-        }
-        if (!state.handOf(actor).covers(given)) {
-            return CatanResult(state, rejection = "Not enough resources for this trade")
-        }
+    // A bank trade is "give X, receive Y" where the bank funds each received card
+    // from the given cards at the player's per-resource ratio (4:1 by default,
+    // lower with ports). Validation: give and receive disjoint; each given resource
+    // an exact multiple of its ratio; the funded outputs exactly equal receive.total.
+    private fun bankTrade(
+        state: GameState,
+        actor: PlayerId,
+        give: ResourceCount,
+        receive: ResourceCount,
+    ): CatanResult {
+        bankTradeRejection(state, actor, give, receive)?.let { return CatanResult(state, rejection = it) }
         val next = state.copy(
-            hands = addGain(spend(state.hands, actor, given), actor, received),
+            hands = addGain(spend(state.hands, actor, give), actor, receive),
         )
-        return CatanResult(next, events = listOf(BankTraded(actor, given, received)))
+        return CatanResult(next, events = listOf(BankTraded(actor, give, receive)))
+    }
+
+    // Validates a give/receive bank trade against the player's per-resource ratios.
+    // give and receive must be disjoint; the hand must cover give; each given
+    // resource must be an exact multiple of its ratio; and the outputs those
+    // multiples fund must exactly equal receive.total. Shared by reduce() and UI.
+    override fun bankTradeRejection(
+        state: GameState,
+        player: PlayerId,
+        give: ResourceCount,
+        receive: ResourceCount,
+    ): String? {
+        if (state.phase !is GamePhase.Play) return "You can only trade during your turn"
+        if (give.isEmpty || receive.isEmpty) return "Nothing to trade"
+        if (give.amounts.keys.any { it in receive.amounts.keys }) {
+            return "Trade must be for a different resource"
+        }
+        if (!state.handOf(player).covers(give)) return "Not enough resources for this trade"
+        val rates = bankRates(state, player)
+        var funded = 0
+        for ((res, qty) in give.amounts) {
+            val ratio = rates.getValue(res)
+            if (qty % ratio != 0) return "Give $res in multiples of $ratio"
+            funded += qty / ratio
+        }
+        if (funded != receive.total) return "The bank rate doesn't balance this trade"
+        return null
+    }
+
+    // The player's best (lowest) bank ratio per resource: the base ratio lowered by
+    // any port whose vertex carries one of the player's buildings. A generic port
+    // (resource == null) lowers every resource; a specific port lowers only its own.
+    override fun bankRates(state: GameState, player: PlayerId): Map<Resource, Int> {
+        val base = state.config.rules.bankTradeRatio
+        val rates = Resource.entries.associateWith { base }.toMutableMap()
+        val owned = state.buildings.filter { it.owner == player }.map { it.vertex }.toSet()
+        for (port in state.config.ports) {
+            if (port.vertex !in owned) continue
+            if (port.resource == null) {
+                for (res in Resource.entries) rates[res] = minOf(rates.getValue(res), port.ratio)
+            } else {
+                rates[port.resource] = minOf(rates.getValue(port.resource), port.ratio)
+            }
+        }
+        return rates
     }
 
     // --- Play: player-to-player trades (propose -> respond -> finalize) ---

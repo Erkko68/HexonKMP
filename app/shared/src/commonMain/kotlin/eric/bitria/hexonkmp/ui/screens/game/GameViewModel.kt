@@ -2,7 +2,6 @@ package eric.bitria.hexonkmp.ui.screens.game
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexonkmp.core.game.action.BankSwap
 import eric.bitria.hexonkmp.core.game.action.BankTrade
 import eric.bitria.hexonkmp.core.game.action.BuyDevCard
 import eric.bitria.hexonkmp.core.game.action.CancelTrade
@@ -122,8 +121,17 @@ class GameViewModel(
 
     // --- Bank trade ---
 
-    // The bank's exchange ratio (e.g. 4:1) for the current game.
-    fun bankTradeRatio(s: GameUiState.InGame): Int = s.state.config.rules.bankTradeRatio
+    // Send the current draft as a bank trade (give -> receive at the player's
+    // ratios), then reset the draft. The engine re-validates authoritatively.
+    fun submitBankTrade() {
+        val s = _state.value as? GameUiState.InGame ?: return
+        val draft = s.tradeDraft
+        if (!s.isMyTurn || !s.buildOptions.canBankTrade) return
+        repository.sendAction(BankTrade(draft.give, draft.receive))
+        _state.update { current ->
+            if (current is GameUiState.InGame) current.updated(tradeDraft = TradeDraft()) else current
+        }
+    }
 
     // Victory points: built pieces (settlement 1, city 2) + held Victory-Point dev
     // cards + Largest Army. For opponents we only know our own dev cards (theirs are
@@ -172,13 +180,6 @@ class GameViewModel(
         repository.sendAction(PlayMonopoly(resource))
     }
 
-    // Send one atomic bank trade bundling all the chosen swaps.
-    fun bankTrade(swaps: List<BankSwap>) {
-        val s = _state.value as? GameUiState.InGame ?: return
-        if (!s.isMyTurn || swaps.isEmpty()) return
-        repository.sendAction(BankTrade(swaps))
-    }
-
     // --- Player-to-player trades ---
 
     // Tap-to-cycle the give side: +1 up to what you hold, wrapping to 0. A
@@ -188,9 +189,9 @@ class GameViewModel(
             if (s !is GameUiState.InGame) s
             else {
                 val hand = s.state.handOf(myPlayerId ?: return)
-                val d = s.proposeDraft
+                val d = s.tradeDraft
                 if (d.receive[resource] > 0) s
-                else s.updated(proposeDraft = d.copy(give = d.give.cycle(resource, hand[resource])))
+                else s.updated(tradeDraft = d.copy(give = d.give.cycle(resource, hand[resource])))
             }
         }
     }
@@ -200,16 +201,16 @@ class GameViewModel(
         _state.update { s ->
             if (s !is GameUiState.InGame) s
             else {
-                val d = s.proposeDraft
+                val d = s.tradeDraft
                 if (d.give[resource] > 0) s
-                else s.updated(proposeDraft = d.copy(receive = d.receive.cycle(resource, MAX_RECEIVE)))
+                else s.updated(tradeDraft = d.copy(receive = d.receive.cycle(resource, MAX_RECEIVE)))
             }
         }
     }
 
-    fun clearProposeDraft() {
+    fun clearTradeDraft() {
         _state.update { s ->
-            if (s is GameUiState.InGame) s.updated(proposeDraft = ProposeDraft()) else s
+            if (s is GameUiState.InGame) s.updated(tradeDraft = TradeDraft()) else s
         }
     }
 
@@ -217,11 +218,11 @@ class GameViewModel(
     // the draft. The engine re-validates; the sheet stays open to finalize a reply.
     fun submitProposal() {
         val s = _state.value as? GameUiState.InGame ?: return
-        val draft = s.proposeDraft
+        val draft = s.tradeDraft
         if (!s.isMyTurn || draft.give.isEmpty || draft.receive.isEmpty) return
         repository.sendAction(ProposeTrade(draft.give, draft.receive))
         _state.update { current ->
-            if (current is GameUiState.InGame) current.updated(proposeDraft = ProposeDraft()) else current
+            if (current is GameUiState.InGame) current.updated(tradeDraft = TradeDraft()) else current
         }
     }
 
@@ -391,6 +392,13 @@ class GameViewModel(
             s.state.devCards[me].orEmpty().filter { it != DevCard.VICTORY_POINT }.toSet()
         } else emptySet()
 
+        // Bank trading: the player's discounted ratios + whether the live draft is
+        // a legal bank trade (shared engine predicate, single source of truth).
+        val bankRates = engine.bankRates(s.state, me)
+        val canBankTrade = engine.bankTradeRejection(
+            s.state, me, s.tradeDraft.give, s.tradeDraft.receive,
+        ) == null
+
         return BuildOptions(
             canSettlement = settlements.isNotEmpty(),
             canRoad = roads.isNotEmpty(),
@@ -402,6 +410,8 @@ class GameViewModel(
             robberTargets = emptyList(),
             canTrade = canTrade,
             tradeBadge = tradeBadge,
+            bankRates = bankRates,
+            canBankTrade = canBankTrade,
             showEndTurn = showEndTurn,
             canEndTurn = canEndTurn,
             playableDevCards = playableDevCards,
@@ -412,14 +422,14 @@ class GameViewModel(
         state: GameState = this.state,
         buildMode: BuildMode = this.buildMode,
         notice: String? = this.notice,
-        proposeDraft: ProposeDraft = this.proposeDraft,
+        tradeDraft: TradeDraft = this.tradeDraft,
         discardDraft: ResourceCount = this.discardDraft,
     ): GameUiState.InGame {
         val next = copy(
             state = state,
             buildMode = buildMode,
             notice = notice,
-            proposeDraft = proposeDraft,
+            tradeDraft = tradeDraft,
             discardDraft = discardDraft
         )
         return next.copy(buildOptions = computeBuildOptions(next))

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -71,7 +70,7 @@ fun LandscapePlayerPanel(
             PlayerToken(color, label, size = Tokens.tokenSm)
 
             Column(
-                modifier = Modifier.weight(1f, fill = false),
+                modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -106,8 +105,6 @@ fun LandscapePlayerPanel(
                     )
                 }
             }
-
-            Spacer(Modifier.weight(1f))
 
             Text("$victoryPoints VP", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         }

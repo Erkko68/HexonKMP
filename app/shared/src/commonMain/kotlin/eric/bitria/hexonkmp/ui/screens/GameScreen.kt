@@ -14,7 +14,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import eric.bitria.hexonkmp.core.game.action.BankSwap
 import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.ResourceCount
@@ -44,7 +43,6 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                 InGameContent(
                     state = s,
                     engine = engine,
-                    bankRatio = viewModel.bankTradeRatio(s),
                     victoryPointsOf = { viewModel.victoryPoints(s, it) },
                     onBuyDevCard = viewModel::buyDevCard,
                     onPlayDevCard = viewModel::playDevCard,
@@ -60,10 +58,10 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                     onPickVertex = viewModel::pickVertex,
                     onPickEdge = viewModel::pickEdge,
                     onPickHex = viewModel::pickHex,
-                    onBankTrade = viewModel::bankTrade,
+                    onBankTrade = viewModel::submitBankTrade,
                     onCycleGive = viewModel::cycleGive,
                     onCycleReceive = viewModel::cycleReceive,
-                    onClearPropose = viewModel::clearProposeDraft,
+                    onClearTrade = viewModel::clearTradeDraft,
                     onSubmitPropose = viewModel::submitProposal,
                     onRespondTrade = viewModel::respondTrade,
                     onFinalizeTrade = viewModel::finalizeTrade,
@@ -123,7 +121,6 @@ private fun WaitingContent(state: GameUiState.Waiting) {
 private fun InGameContent(
     state: GameUiState.InGame,
     engine: Engine,
-    bankRatio: Int,
     victoryPointsOf: (PlayerId) -> Int,
     onBuyDevCard: () -> Unit,
     onPlayDevCard: (DevCard) -> Unit,
@@ -139,10 +136,10 @@ private fun InGameContent(
     onPickVertex: (Vertex) -> Unit,
     onPickEdge: (Edge) -> Unit,
     onPickHex: (Axial) -> Unit,
-    onBankTrade: (List<BankSwap>) -> Unit,
+    onBankTrade: () -> Unit,
     onCycleGive: (Resource) -> Unit,
     onCycleReceive: (Resource) -> Unit,
-    onClearPropose: () -> Unit,
+    onClearTrade: () -> Unit,
     onSubmitPropose: () -> Unit,
     onRespondTrade: (Int, Boolean) -> Unit,
     onFinalizeTrade: (Int, PlayerId) -> Unit,
@@ -157,7 +154,6 @@ private fun InGameContent(
             LandscapeGameLayout(
                 state = state,
                 engine = engine,
-                bankRatio = bankRatio,
                 victoryPointsOf = victoryPointsOf,
                 onBuyDevCard = onBuyDevCard,
                 onPlayDevCard = onPlayDevCard,
@@ -176,7 +172,7 @@ private fun InGameContent(
                 onBankTrade = onBankTrade,
                 onCycleGive = onCycleGive,
                 onCycleReceive = onCycleReceive,
-                onClearPropose = onClearPropose,
+                onClearTrade = onClearTrade,
                 onSubmitPropose = onSubmitPropose,
                 onRespondTrade = onRespondTrade,
                 onFinalizeTrade = onFinalizeTrade,
@@ -188,7 +184,6 @@ private fun InGameContent(
             PortraitGameLayout(
                 state = state,
                 engine = engine,
-                bankRatio = bankRatio,
                 victoryPointsOf = victoryPointsOf,
                 onBuyDevCard = onBuyDevCard,
                 onPlayDevCard = onPlayDevCard,
@@ -207,7 +202,7 @@ private fun InGameContent(
                 onBankTrade = onBankTrade,
                 onCycleGive = onCycleGive,
                 onCycleReceive = onCycleReceive,
-                onClearPropose = onClearPropose,
+                onClearTrade = onClearTrade,
                 onSubmitPropose = onSubmitPropose,
                 onRespondTrade = onRespondTrade,
                 onFinalizeTrade = onFinalizeTrade,

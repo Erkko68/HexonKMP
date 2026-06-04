@@ -35,7 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import eric.bitria.hexonkmp.core.game.action.BankSwap
 import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.PlayerId
@@ -77,7 +76,6 @@ private enum class PortraitBottomTab {
 fun PortraitGameLayout(
     state: GameUiState.InGame,
     engine: Engine,
-    bankRatio: Int,
     victoryPointsOf: (PlayerId) -> Int,
     onBuyDevCard: () -> Unit,
     onPlayDevCard: (DevCard) -> Unit,
@@ -93,10 +91,10 @@ fun PortraitGameLayout(
     onPickVertex: (Vertex) -> Unit,
     onPickEdge: (Edge) -> Unit,
     onPickHex: (Axial) -> Unit,
-    onBankTrade: (List<BankSwap>) -> Unit,
+    onBankTrade: () -> Unit,
     onCycleGive: (Resource) -> Unit,
     onCycleReceive: (Resource) -> Unit,
-    onClearPropose: () -> Unit,
+    onClearTrade: () -> Unit,
     onSubmitPropose: () -> Unit,
     onRespondTrade: (Int, Boolean) -> Unit,
     onFinalizeTrade: (Int, PlayerId) -> Unit,
@@ -302,21 +300,22 @@ fun PortraitGameLayout(
 
         if (showTradeSheet) {
             TradeSheet(
-                ratio = bankRatio,
+                bankRates = opts.bankRates,
+                canBankTrade = opts.canBankTrade,
                 hand = state.state.handOf(me),
                 me = me,
                 isMyTurn = state.isMyTurn,
                 playerColor = { PlayerPalette.color(it, players) },
                 offers = state.state.pendingTrades,
-                proposeGive = state.proposeDraft.give,
-                proposeReceive = state.proposeDraft.receive,
-                onBankTrade = { swaps ->
-                    onBankTrade(swaps)
+                give = state.tradeDraft.give,
+                receive = state.tradeDraft.receive,
+                onBankTrade = {
+                    onBankTrade()
                     showTradeSheet = false
                 },
                 onCycleGive = onCycleGive,
                 onCycleReceive = onCycleReceive,
-                onClearPropose = onClearPropose,
+                onClear = onClearTrade,
                 onSubmitPropose = onSubmitPropose,
                 onRespondTrade = onRespondTrade,
                 onFinalizeTrade = onFinalizeTrade,
