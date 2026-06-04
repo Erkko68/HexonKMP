@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import eric.bitria.hexonkmp.core.game.action.BankSwap
 import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.PlayerId
+import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
@@ -47,6 +48,8 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                     victoryPointsOf = { viewModel.victoryPoints(s, it) },
                     onBuyDevCard = viewModel::buyDevCard,
                     onPlayDevCard = viewModel::playDevCard,
+                    onPlayYearOfPlenty = viewModel::playYearOfPlenty,
+                    onPlayMonopoly = viewModel::playMonopoly,
                     discardRequired = viewModel.discardOwed(s),
                     onCycleDiscard = viewModel::cycleDiscard,
                     onClearDiscard = viewModel::clearDiscardDraft,
@@ -124,6 +127,8 @@ private fun InGameContent(
     victoryPointsOf: (PlayerId) -> Int,
     onBuyDevCard: () -> Unit,
     onPlayDevCard: (DevCard) -> Unit,
+    onPlayYearOfPlenty: (ResourceCount) -> Unit,
+    onPlayMonopoly: (Resource) -> Unit,
     discardRequired: Int,
     onCycleDiscard: (Resource) -> Unit,
     onClearDiscard: () -> Unit,
@@ -156,6 +161,8 @@ private fun InGameContent(
                 victoryPointsOf = victoryPointsOf,
                 onBuyDevCard = onBuyDevCard,
                 onPlayDevCard = onPlayDevCard,
+                onPlayYearOfPlenty = onPlayYearOfPlenty,
+                onPlayMonopoly = onPlayMonopoly,
                 discardRequired = discardRequired,
                 onCycleDiscard = onCycleDiscard,
                 onClearDiscard = onClearDiscard,
@@ -185,6 +192,8 @@ private fun InGameContent(
                 victoryPointsOf = victoryPointsOf,
                 onBuyDevCard = onBuyDevCard,
                 onPlayDevCard = onPlayDevCard,
+                onPlayYearOfPlenty = onPlayYearOfPlenty,
+                onPlayMonopoly = onPlayMonopoly,
                 discardRequired = discardRequired,
                 onCycleDiscard = onCycleDiscard,
                 onClearDiscard = onClearDiscard,

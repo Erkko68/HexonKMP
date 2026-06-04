@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -102,12 +103,12 @@ fun CatanBoardScene(
         ghostCities.isNotEmpty() || movingRobber
 
     // Map each ghost marker's renderable entity -> the board location it offers,
-    // so a pick result resolves back to a Vertex/Edge. Rebuilt when the candidate
-    // set changes (so stale entity ids from a previous build mode are dropped).
-    // Settlement and city ghosts both resolve to a Vertex (onPickVertex routes by
-    // the armed build mode).
-    val entityToVertex = remember(ghostSettlements, ghostCities) { mutableMapOf<Int, Vertex>() }
-    val entityToEdge = remember(ghostRoads) { mutableMapOf<Int, Edge>() }
+    // so a pick result resolves back to a Vertex/Edge. Persistent across ghost-list
+    // changes: key(vertex/edge) in forEach ensures each Cube is tied to its location,
+    // so removed ghosts dispose their entity (clearing it from picking), while the
+    // remaining ones keep their onCreate entries without needing to re-fire.
+    val entityToVertex = remember { mutableMapOf<Int, Vertex>() }
+    val entityToEdge = remember { mutableMapOf<Int, Edge>() }
     // Tile entity -> hex, for relocating the robber (populated as tiles are drawn).
     val entityToHex = remember(state.board.tiles) { mutableMapOf<Int, Axial>() }
 
@@ -267,47 +268,53 @@ fun CatanBoardScene(
 
             // --- Ghost markers for legal placements (opaque -> pickable) ---
             ghostSettlements.forEach { vertex ->
-                val p = HexMath.vertexCenter(vertex, HEX_SIZE)
-                val inst = rememberMaterialInstance(solidMat, engine = engine).apply {
-                    setParameter("baseColor", ghostColor.x, ghostColor.y, ghostColor.z)
+                key(vertex) {
+                    val p = HexMath.vertexCenter(vertex, HEX_SIZE)
+                    val inst = rememberMaterialInstance(solidMat, engine = engine).apply {
+                        setParameter("baseColor", ghostColor.x, ghostColor.y, ghostColor.z)
+                    }
+                    Cube(
+                        material = inst,
+                        position = Position(p.x, BUILDING_Y, p.z),
+                        size = 0.26f,
+                        onCreate = { entityToVertex[it] = vertex },
+                    )
                 }
-                Cube(
-                    material = inst,
-                    position = Position(p.x, BUILDING_Y, p.z),
-                    size = 0.26f,
-                    onCreate = { entityToVertex[it] = vertex },
-                )
             }
             ghostRoads.forEach { edge ->
-                val p = HexMath.edgeCenter(edge, HEX_SIZE)
-                val angle = HexMath.edgeAngleY(edge, HEX_SIZE)
-                val inst = rememberMaterialInstance(solidMat, engine = engine).apply {
-                    setParameter("baseColor", ghostColor.x, ghostColor.y, ghostColor.z)
+                key(edge) {
+                    val p = HexMath.edgeCenter(edge, HEX_SIZE)
+                    val angle = HexMath.edgeAngleY(edge, HEX_SIZE)
+                    val inst = rememberMaterialInstance(solidMat, engine = engine).apply {
+                        setParameter("baseColor", ghostColor.x, ghostColor.y, ghostColor.z)
+                    }
+                    Cube(
+                        material = inst,
+                        position = Position(p.x, ROAD_Y, p.z),
+                        rotation = remember(angle) {
+                            Quaternion.fromAxisAngle(Direction(0f, 1f, 0f), angle * RAD_TO_DEG)
+                        },
+                        scale = Scale(0.5f, 0.08f, 0.12f),
+                        onCreate = { entityToEdge[it] = edge },
+                    )
                 }
-                Cube(
-                    material = inst,
-                    position = Position(p.x, ROAD_Y, p.z),
-                    rotation = remember(angle) {
-                        Quaternion.fromAxisAngle(Direction(0f, 1f, 0f), angle * RAD_TO_DEG)
-                    },
-                    scale = Scale(0.5f, 0.08f, 0.12f),
-                    onCreate = { entityToEdge[it] = edge },
-                )
             }
 
             // Ghost markers for upgradeable settlements -> cities (city-sized cube
             // sitting over your existing settlement).
             ghostCities.forEach { vertex ->
-                val p = HexMath.vertexCenter(vertex, HEX_SIZE)
-                val inst = rememberMaterialInstance(solidMat, engine = engine).apply {
-                    setParameter("baseColor", ghostColor.x, ghostColor.y, ghostColor.z)
+                key(vertex) {
+                    val p = HexMath.vertexCenter(vertex, HEX_SIZE)
+                    val inst = rememberMaterialInstance(solidMat, engine = engine).apply {
+                        setParameter("baseColor", ghostColor.x, ghostColor.y, ghostColor.z)
+                    }
+                    Cube(
+                        material = inst,
+                        position = Position(p.x, BUILDING_Y, p.z),
+                        size = 0.36f,
+                        onCreate = { entityToVertex[it] = vertex },
+                    )
                 }
-                Cube(
-                    material = inst,
-                    position = Position(p.x, BUILDING_Y, p.z),
-                    size = 0.36f,
-                    onCreate = { entityToVertex[it] = vertex },
-                )
             }
         }
     }

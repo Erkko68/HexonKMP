@@ -7,6 +7,9 @@ import eric.bitria.hexonkmp.core.game.action.CancelTrade
 import eric.bitria.hexonkmp.core.game.action.DiscardResources
 import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.PlayKnight
+import eric.bitria.hexonkmp.core.game.action.PlayMonopoly
+import eric.bitria.hexonkmp.core.game.action.PlayRoadBuilding
+import eric.bitria.hexonkmp.core.game.action.PlayYearOfPlenty
 import eric.bitria.hexonkmp.core.game.action.FinalizeTrade
 import eric.bitria.hexonkmp.core.game.action.GameAction
 import eric.bitria.hexonkmp.core.game.action.PlaceRoad
@@ -28,6 +31,7 @@ import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.GameEnded
 import eric.bitria.hexonkmp.core.game.event.LargestArmyChanged
 import eric.bitria.hexonkmp.core.game.event.GameEvent
+import eric.bitria.hexonkmp.core.game.event.MonopolyUsed
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
 import eric.bitria.hexonkmp.core.game.event.ResourceStolen
 import eric.bitria.hexonkmp.core.game.event.ResourcesDiscarded
@@ -40,6 +44,7 @@ import eric.bitria.hexonkmp.core.game.event.TradeOffersCleared
 import eric.bitria.hexonkmp.core.game.event.TradeProposed
 import eric.bitria.hexonkmp.core.game.event.TradeResponded
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
+import eric.bitria.hexonkmp.core.game.event.YearOfPlentyUsed
 import eric.bitria.hexonkmp.core.game.model.Building
 import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.GamePhase
@@ -115,13 +120,18 @@ class CatanGameEngine(
             is PlaceSettlement ->
                 if (state.phase is GamePhase.Setup) placeSettlement(state, actor, action.vertex)
                 else buildSettlement(state, actor, action.vertex)
-            is PlaceRoad ->
-                if (state.phase is GamePhase.Setup) placeRoad(state, actor, action.edge)
-                else buildRoad(state, actor, action.edge)
+            is PlaceRoad -> when (state.phase) {
+                is GamePhase.Setup -> placeRoad(state, actor, action.edge)
+                is GamePhase.RoadBuilding -> placeRoadFree(state, actor, action.edge)
+                else -> buildRoad(state, actor, action.edge)
+            }
             is UpgradeCity -> upgradeCity(state, actor, action.vertex)
             is MoveRobber -> moveRobber(state, actor, action.hex)
             BuyDevCard -> buyDevCard(state, actor)
             PlayKnight -> playKnight(state, actor)
+            PlayRoadBuilding -> playRoadBuilding(state, actor)
+            is PlayYearOfPlenty -> playYearOfPlenty(state, actor, action.resources)
+            is PlayMonopoly -> playMonopoly(state, actor, action.resource)
             is BankTrade -> bankTrade(state, actor, action.swaps)
             is ProposeTrade -> proposeTrade(state, actor, action.give, action.receive)
             is FinalizeTrade -> finalizeTrade(state, actor, action.offerId, action.partner)
@@ -383,6 +393,102 @@ class CatanGameEngine(
         events += PhaseChanged(GamePhase.Robber)
         // Largest Army's points can reach the goal — end the game if so.
         return endIfWon(CatanResult(next, events = events), actor)
+    }
+
+    // Play a Road Building card: spend it, set devCardPlayed, enter RoadBuilding(2).
+    // The player then issues two PlaceRoad actions (free, no cost) before the engine
+    // automatically returns to Play.
+    private fun playRoadBuilding(state: GameState, actor: PlayerId): CatanResult {
+        if (state.phase !is GamePhase.Play) {
+            return CatanResult(state, rejection = "You can only play a card on your turn")
+        }
+        if (state.devCardPlayed) {
+            return CatanResult(state, rejection = "You already played a development card this turn")
+        }
+        val playable = state.devCards[actor].orEmpty()
+        if (DevCard.ROAD_BUILDING !in playable) {
+            return CatanResult(state, rejection = "You have no Road Building card to play")
+        }
+        val remaining = playable.toMutableList().apply { remove(DevCard.ROAD_BUILDING) }
+        val phase = GamePhase.RoadBuilding(roadsLeft = 2)
+        val next = state.copy(
+            devCards = state.devCards + (actor to remaining),
+            devCardPlayed = true,
+            phase = phase,
+        )
+        return CatanResult(next, events = listOf(DevCardPlayed(actor, DevCard.ROAD_BUILDING), PhaseChanged(phase)))
+    }
+
+    // Place one free road during the RoadBuilding phase. No cost check. Decrements
+    // roadsLeft; returns to Play automatically when it reaches 0.
+    private fun placeRoadFree(state: GameState, actor: PlayerId, edge: Edge): CatanResult {
+        val phase = state.phase as? GamePhase.RoadBuilding
+            ?: return CatanResult(state, rejection = "Not in Road Building phase")
+        playRoadRejection(state, actor, edge)?.let { return CatanResult(state, rejection = it) }
+        val road = Road(actor, edge)
+        val roadsLeft = phase.roadsLeft - 1
+        val nextPhase: GamePhase = if (roadsLeft > 0) GamePhase.RoadBuilding(roadsLeft) else GamePhase.Play
+        val next = state.copy(roads = state.roads + road, phase = nextPhase)
+        return CatanResult(next, events = listOf(RoadPlaced(road), PhaseChanged(nextPhase)))
+    }
+
+    // Play a Year of Plenty card: take exactly 2 resources of the player's choice
+    // from the (infinite) bank. Fully public — the event reveals both resources.
+    private fun playYearOfPlenty(state: GameState, actor: PlayerId, resources: ResourceCount): CatanResult {
+        if (state.phase !is GamePhase.Play) {
+            return CatanResult(state, rejection = "You can only play a card on your turn")
+        }
+        if (state.devCardPlayed) {
+            return CatanResult(state, rejection = "You already played a development card this turn")
+        }
+        val playable = state.devCards[actor].orEmpty()
+        if (DevCard.YEAR_OF_PLENTY !in playable) {
+            return CatanResult(state, rejection = "You have no Year of Plenty card to play")
+        }
+        if (resources.total != 2) {
+            return CatanResult(state, rejection = "You must take exactly 2 resources")
+        }
+        val remaining = playable.toMutableList().apply { remove(DevCard.YEAR_OF_PLENTY) }
+        val next = state.copy(
+            devCards = state.devCards + (actor to remaining),
+            devCardPlayed = true,
+            hands = addGain(state.hands, actor, resources),
+        )
+        return CatanResult(next, events = listOf(DevCardPlayed(actor, DevCard.YEAR_OF_PLENTY), YearOfPlentyUsed(actor, resources)))
+    }
+
+    // Play a Monopoly card: take every opponent's supply of [resource]. Fully
+    // public — the event names the resource and each victim's loss.
+    private fun playMonopoly(state: GameState, actor: PlayerId, resource: Resource): CatanResult {
+        if (state.phase !is GamePhase.Play) {
+            return CatanResult(state, rejection = "You can only play a card on your turn")
+        }
+        if (state.devCardPlayed) {
+            return CatanResult(state, rejection = "You already played a development card this turn")
+        }
+        val playable = state.devCards[actor].orEmpty()
+        if (DevCard.MONOPOLY !in playable) {
+            return CatanResult(state, rejection = "You have no Monopoly card to play")
+        }
+        val remaining = playable.toMutableList().apply { remove(DevCard.MONOPOLY) }
+        var hands = state.hands
+        val stolenFrom = mutableMapOf<PlayerId, Int>()
+        for (player in state.players) {
+            if (player == actor) continue
+            val amount = state.handOf(player)[resource]
+            if (amount > 0) {
+                hands = spend(hands, player, ResourceCount.of(resource to amount))
+                stolenFrom[player] = amount
+            }
+        }
+        val total = stolenFrom.values.sum()
+        if (total > 0) hands = addGain(hands, actor, ResourceCount.of(resource to total))
+        val next = state.copy(
+            devCards = state.devCards + (actor to remaining),
+            devCardPlayed = true,
+            hands = hands,
+        )
+        return CatanResult(next, events = listOf(DevCardPlayed(actor, DevCard.MONOPOLY), MonopolyUsed(actor, resource, stolenFrom)))
     }
 
     // Whoever should hold Largest Army given knights played: the strict maximum once
@@ -661,6 +767,8 @@ class CatanGameEngine(
             }
             // Left mid-robber-move: just move on (robber stays put).
             is GamePhase.Robber -> advanceTurn(base.copy(phase = GamePhase.Play))
+            // Left mid-road-building: forfeit remaining free roads and advance.
+            is GamePhase.RoadBuilding -> advanceTurn(base.copy(phase = GamePhase.Play))
             // Handled above, but the when must stay exhaustive.
             is GamePhase.Discard -> CatanResult(base)
             // Game's over; nothing to advance.
@@ -682,7 +790,7 @@ class CatanGameEngine(
             GamePhase.Play ->
                 if (!canAfford(state, player, Buildable.SETTLEMENT)) emptySet()
                 else state.board.vertices().filter { playSettlementRejection(state, player, it) == null }.toSet()
-            GamePhase.Robber, is GamePhase.Discard, is GamePhase.Finished -> emptySet()
+            GamePhase.Robber, is GamePhase.Discard, is GamePhase.RoadBuilding, is GamePhase.Finished -> emptySet()
         }
     }
 
@@ -695,6 +803,8 @@ class CatanGameEngine(
             GamePhase.Play ->
                 if (!canAfford(state, player, Buildable.ROAD)) emptySet()
                 else state.board.edges().filter { playRoadRejection(state, player, it) == null }.toSet()
+            is GamePhase.RoadBuilding ->
+                state.board.edges().filter { playRoadRejection(state, player, it) == null }.toSet()
             GamePhase.Robber, is GamePhase.Discard, is GamePhase.Finished -> emptySet()
         }
     }

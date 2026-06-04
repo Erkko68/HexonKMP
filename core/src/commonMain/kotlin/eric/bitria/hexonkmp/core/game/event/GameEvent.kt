@@ -159,3 +159,19 @@ data class DevCardPlayed(val player: PlayerId, val card: DevCard) : GameEvent
 @Serializable
 @SerialName("LargestArmyChanged")
 data class LargestArmyChanged(val holder: PlayerId?) : GameEvent
+
+// A player used Year of Plenty: the bank gave them [resources] (exactly 2 total).
+// Fully public — everyone learns exactly what was taken.
+@Serializable
+@SerialName("YearOfPlentyUsed")
+data class YearOfPlentyUsed(val player: PlayerId, val resources: ResourceCount) : GameEvent
+
+// A player used Monopoly: [resource] was named, and [stolenFrom] maps every
+// victim to how many cards they lost. Fully public — everyone sees the total.
+@Serializable
+@SerialName("MonopolyUsed")
+data class MonopolyUsed(
+    val player: PlayerId,
+    val resource: Resource,
+    val stolenFrom: Map<PlayerId, Int>,
+) : GameEvent

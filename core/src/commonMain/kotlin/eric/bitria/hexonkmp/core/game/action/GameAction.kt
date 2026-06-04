@@ -97,3 +97,21 @@ data object BuyDevCard : GameAction
 @Serializable
 @SerialName("PlayKnight")
 data object PlayKnight : GameAction
+
+// Play a Road Building dev card: enters RoadBuilding phase, granting 2 free
+// road placements (PlaceRoad actions, no cost) before returning to Play.
+@Serializable
+@SerialName("PlayRoadBuilding")
+data object PlayRoadBuilding : GameAction
+
+// Play a Year of Plenty dev card: take any [resources] (exactly 2 total) from
+// the bank for free. Play phase, current player only.
+@Serializable
+@SerialName("PlayYearOfPlenty")
+data class PlayYearOfPlenty(val resources: ResourceCount) : GameAction
+
+// Play a Monopoly dev card: name a [resource]; every other player gives you
+// all of their supply of that resource. Play phase, current player only.
+@Serializable
+@SerialName("PlayMonopoly")
+data class PlayMonopoly(val resource: Resource) : GameAction

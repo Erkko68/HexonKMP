@@ -3,12 +3,19 @@ package eric.bitria.hexonkmp.core.game
 import eric.bitria.hexonkmp.core.game.action.BuyDevCard
 import eric.bitria.hexonkmp.core.game.action.EndTurn
 import eric.bitria.hexonkmp.core.game.action.MoveRobber
+import eric.bitria.hexonkmp.core.game.action.PlaceRoad
 import eric.bitria.hexonkmp.core.game.action.PlayKnight
+import eric.bitria.hexonkmp.core.game.action.PlayMonopoly
+import eric.bitria.hexonkmp.core.game.action.PlayRoadBuilding
+import eric.bitria.hexonkmp.core.game.action.PlayYearOfPlenty
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
 import eric.bitria.hexonkmp.core.game.event.DevCardBought
 import eric.bitria.hexonkmp.core.game.event.DevCardPlayed
 import eric.bitria.hexonkmp.core.game.event.GameEnded
 import eric.bitria.hexonkmp.core.game.event.LargestArmyChanged
+import eric.bitria.hexonkmp.core.game.event.MonopolyUsed
+import eric.bitria.hexonkmp.core.game.event.RoadPlaced
+import eric.bitria.hexonkmp.core.game.event.YearOfPlentyUsed
 import eric.bitria.hexonkmp.core.game.model.Building
 import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.GamePhase
@@ -18,6 +25,7 @@ import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -120,6 +128,133 @@ class DevCardTest {
         val result = engine.reduce(state, alice, BuyDevCard)
         assertEquals(GamePhase.Finished(alice), result.state.phase)
         assertTrue(result.events.any { it is GameEnded && it.winner == alice })
+    }
+
+    // --- Road Building ---
+
+    @Test
+    fun roadBuildingEntersRoadBuildingPhaseAndSpendingCard() {
+        val state = play.copy(devCards = mapOf(alice to listOf(DevCard.ROAD_BUILDING)))
+        val result = engine.reduce(state, alice, PlayRoadBuilding)
+
+        assertEquals(GamePhase.RoadBuilding(roadsLeft = 2), result.state.phase)
+        assertTrue(result.state.devCardPlayed)
+        assertTrue(result.state.devCards[alice].isNullOrEmpty())
+        assertTrue(result.events.any { it is DevCardPlayed && it.card == DevCard.ROAD_BUILDING })
+    }
+
+    @Test
+    fun roadBuildingFirstRoadDecrementsCounter() {
+        val state = play.copy(devCards = mapOf(alice to listOf(DevCard.ROAD_BUILDING)))
+        val afterPlay = engine.reduce(state, alice, PlayRoadBuilding).state
+        val edge = engine.legalRoads(afterPlay, alice).first()
+        val afterFirst = engine.reduce(afterPlay, alice, PlaceRoad(edge))
+
+        assertEquals(GamePhase.RoadBuilding(roadsLeft = 1), afterFirst.state.phase)
+        assertTrue(afterFirst.events.any { it is RoadPlaced })
+        // No road cost spent (Road Building is free).
+        assertEquals(afterPlay.handOf(alice), afterFirst.state.handOf(alice))
+    }
+
+    @Test
+    fun roadBuildingSecondRoadReturnsToPlay() {
+        val state = play.copy(devCards = mapOf(alice to listOf(DevCard.ROAD_BUILDING)))
+        var s = engine.reduce(state, alice, PlayRoadBuilding).state
+        val edge1 = engine.legalRoads(s, alice).first()
+        s = engine.reduce(s, alice, PlaceRoad(edge1)).state
+        val edge2 = engine.legalRoads(s, alice).first()
+        s = engine.reduce(s, alice, PlaceRoad(edge2)).state
+
+        assertEquals(GamePhase.Play, s.phase)
+        assertEquals(2, s.roads.count { it.owner == alice } - play.roads.count { it.owner == alice })
+    }
+
+    @Test
+    fun cannotPlayRoadBuildingWithoutCard() {
+        assertNotNull(engine.reduce(play, alice, PlayRoadBuilding).rejection)
+    }
+
+    @Test
+    fun playerLeavingDuringRoadBuildingSkipsPhaseAndAdvancesTurn() {
+        val state = play.copy(devCards = mapOf(alice to listOf(DevCard.ROAD_BUILDING)))
+        val inRoadBuilding = engine.reduce(state, alice, PlayRoadBuilding).state
+        assertEquals(GamePhase.RoadBuilding(roadsLeft = 2), inRoadBuilding.phase)
+
+        val result = engine.playerLeft(inRoadBuilding, alice)
+        assertFalse(alice in result.state.present)
+        assertEquals(bob, result.state.currentPlayer)
+        assertFalse(result.state.phase is GamePhase.RoadBuilding)
+    }
+
+    // --- Year of Plenty ---
+
+    @Test
+    fun yearOfPlentyGrantsTwoResourcesFromBank() {
+        val state = play.copy(devCards = mapOf(alice to listOf(DevCard.YEAR_OF_PLENTY)))
+        val pick = ResourceCount.of(Resource.ORE to 1, Resource.GRAIN to 1)
+        val result = engine.reduce(state, alice, PlayYearOfPlenty(pick))
+
+        assertNull(result.rejection)
+        assertEquals(state.handOf(alice) + pick, result.state.handOf(alice))
+        assertTrue(result.state.devCardPlayed)
+        assertTrue(result.state.devCards[alice].isNullOrEmpty())
+        val e = result.events.filterIsInstance<YearOfPlentyUsed>().single()
+        assertEquals(alice, e.player)
+        assertEquals(pick, e.resources)
+    }
+
+    @Test
+    fun yearOfPlentyAllowsTwoOfSameResource() {
+        val state = play.copy(devCards = mapOf(alice to listOf(DevCard.YEAR_OF_PLENTY)))
+        val pick = ResourceCount.of(Resource.WOOL to 2)
+        assertNull(engine.reduce(state, alice, PlayYearOfPlenty(pick)).rejection)
+    }
+
+    @Test
+    fun yearOfPlentyRejectsWrongCount() {
+        val state = play.copy(devCards = mapOf(alice to listOf(DevCard.YEAR_OF_PLENTY)))
+        assertNotNull(engine.reduce(state, alice, PlayYearOfPlenty(ResourceCount.of(Resource.ORE to 1))).rejection)
+        assertNotNull(engine.reduce(state, alice, PlayYearOfPlenty(ResourceCount.of(Resource.ORE to 3))).rejection)
+    }
+
+    @Test
+    fun cannotPlayYearOfPlentyWithoutCard() {
+        assertNotNull(engine.reduce(play, alice, PlayYearOfPlenty(ResourceCount.of(Resource.ORE to 2))).rejection)
+    }
+
+    // --- Monopoly ---
+
+    @Test
+    fun monopolyStealAllOfResourceFromOpponents() {
+        val bobWood = ResourceCount.of(Resource.LUMBER to 3)
+        val state = play.copy(
+            devCards = mapOf(alice to listOf(DevCard.MONOPOLY)),
+            hands = play.hands + (bob to bobWood),
+        )
+        val result = engine.reduce(state, alice, PlayMonopoly(Resource.LUMBER))
+
+        assertNull(result.rejection)
+        assertEquals(state.handOf(alice) + bobWood, result.state.handOf(alice))
+        assertEquals(0, result.state.handOf(bob)[Resource.LUMBER])
+        assertTrue(result.state.devCardPlayed)
+        val e = result.events.filterIsInstance<MonopolyUsed>().single()
+        assertEquals(alice, e.player)
+        assertEquals(Resource.LUMBER, e.resource)
+        assertEquals(mapOf(bob to 3), e.stolenFrom)
+    }
+
+    @Test
+    fun monopolyWithNoOpponentHoldingsIsNoOp() {
+        val state = play.copy(devCards = mapOf(alice to listOf(DevCard.MONOPOLY)))
+        val result = engine.reduce(state, alice, PlayMonopoly(Resource.BRICK))
+
+        assertNull(result.rejection)
+        assertTrue(result.events.filterIsInstance<MonopolyUsed>().single().stolenFrom.isEmpty())
+    }
+
+    @Test
+    fun cannotPlayMonopolyWithoutCard() {
+        assertNotNull(engine.reduce(play, alice, PlayMonopoly(Resource.ORE)).rejection)
     }
 
     // --- helpers ---

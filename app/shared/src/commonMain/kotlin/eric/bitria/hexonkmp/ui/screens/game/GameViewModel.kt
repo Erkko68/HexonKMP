@@ -13,6 +13,9 @@ import eric.bitria.hexonkmp.core.game.action.MoveRobber
 import eric.bitria.hexonkmp.core.game.action.PlaceRoad
 import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
 import eric.bitria.hexonkmp.core.game.action.PlayKnight
+import eric.bitria.hexonkmp.core.game.action.PlayMonopoly
+import eric.bitria.hexonkmp.core.game.action.PlayRoadBuilding
+import eric.bitria.hexonkmp.core.game.action.PlayYearOfPlenty
 import eric.bitria.hexonkmp.core.game.action.UpgradeCity
 import eric.bitria.hexonkmp.core.game.action.ProposeTrade
 import eric.bitria.hexonkmp.core.game.action.RespondTrade
@@ -32,6 +35,7 @@ import eric.bitria.hexonkmp.core.game.event.RobberMoved
 import eric.bitria.hexonkmp.core.game.event.ResourceStolen
 import eric.bitria.hexonkmp.core.game.event.ResourcesDiscarded
 import eric.bitria.hexonkmp.core.game.event.BankTraded
+import eric.bitria.hexonkmp.core.game.event.MonopolyUsed
 import eric.bitria.hexonkmp.core.game.event.TradeCancelled
 import eric.bitria.hexonkmp.core.game.event.TradeFinalized
 import eric.bitria.hexonkmp.core.game.event.TradeOffersCleared
@@ -39,6 +43,7 @@ import eric.bitria.hexonkmp.core.game.event.TradeProposed
 import eric.bitria.hexonkmp.core.game.event.TradeResponded
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
 import eric.bitria.hexonkmp.core.game.event.LargestArmyChanged
+import eric.bitria.hexonkmp.core.game.event.YearOfPlentyUsed
 import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.model.Building
 import eric.bitria.hexonkmp.core.game.model.DevCard
@@ -140,18 +145,31 @@ class GameViewModel(
         if (s.isMyTurn) repository.sendAction(BuyDevCard)
     }
 
-    // Dispatch a dev card play. The caller (confirm dialog) already verified the
-    // card is in the player's hand and that canPlay conditions are met.
+    // Dispatch a dev card play. ROAD_BUILDING sends immediately (engine manages
+    // the RoadBuilding phase); YEAR_OF_PLENTY and MONOPOLY need a picker sheet
+    // in the UI first — the layout calls playYearOfPlenty / playMonopoly directly.
     fun playDevCard(card: DevCard) {
         val s = _state.value as? GameUiState.InGame ?: return
         if (!s.isMyTurn) return
         when (card) {
             DevCard.KNIGHT -> repository.sendAction(PlayKnight)
-            DevCard.VICTORY_POINT -> Unit // can't be played
-            DevCard.ROAD_BUILDING -> Unit // TODO
-            DevCard.YEAR_OF_PLENTY -> Unit // TODO
-            DevCard.MONOPOLY -> Unit // TODO
+            DevCard.ROAD_BUILDING -> repository.sendAction(PlayRoadBuilding)
+            DevCard.VICTORY_POINT -> Unit // passive, never played
+            DevCard.YEAR_OF_PLENTY -> Unit // handled by the YearOfPlentySheet via playYearOfPlenty()
+            DevCard.MONOPOLY -> Unit // handled by the MonopolySheet via playMonopoly()
         }
+    }
+
+    fun playYearOfPlenty(resources: ResourceCount) {
+        val s = _state.value as? GameUiState.InGame ?: return
+        if (!s.isMyTurn) return
+        repository.sendAction(PlayYearOfPlenty(resources))
+    }
+
+    fun playMonopoly(resource: Resource) {
+        val s = _state.value as? GameUiState.InGame ?: return
+        if (!s.isMyTurn) return
+        repository.sendAction(PlayMonopoly(resource))
     }
 
     // Send one atomic bank trade bundling all the chosen swaps.
@@ -292,10 +310,14 @@ class GameViewModel(
 
     fun pickEdge(edge: Edge) {
         val s = _state.value as? GameUiState.InGame ?: return
-        if (s.buildMode != BuildMode.ROAD) return
+        val isRoadBuilding = s.state.phase is GamePhase.RoadBuilding
+        if (!isRoadBuilding && s.buildMode != BuildMode.ROAD) return
         repository.sendAction(PlaceRoad(edge))
-        _state.update { current ->
-            if (current is GameUiState.InGame) current.updated(buildMode = BuildMode.NONE) else current
+        // During RoadBuilding the phase drives ghost roads — no buildMode to clear.
+        if (!isRoadBuilding) {
+            _state.update { current ->
+                if (current is GameUiState.InGame) current.updated(buildMode = BuildMode.NONE) else current
+            }
         }
     }
 
@@ -345,7 +367,18 @@ class GameViewModel(
             )
         }
 
-        // My turn, non-Robber: compute full set of placement / purchase affordances.
+        // Road Building phase: show free road ghost markers; no other actions.
+        if (phase is GamePhase.RoadBuilding) {
+            val roads = engine.legalRoads(s.state, me)
+            return BuildOptions(
+                canRoad = roads.isNotEmpty(),
+                ghostRoads = roads.toList(),
+                showEndTurn = false,
+                canEndTurn = false,
+            )
+        }
+
+        // My turn, Play phase: compute full set of placement / purchase affordances.
         val settlements = engine.legalSettlements(s.state, me)
         val roads = engine.legalRoads(s.state, me)
         val cities = engine.legalCities(s.state, me)
@@ -353,10 +386,9 @@ class GameViewModel(
             s.state.devDeckSize > 0 &&
             engine.canAfford(s.state, me, Buildable.DEV_CARD)
 
-        // Dev card playability: Play phase, one per turn, and the card must be in
-        // the playable hand (not boughtThisTurn). Only implemented cards are included.
+        // All non-VP cards in the playable hand are actionable (one per turn).
         val playableDevCards = if (phase is GamePhase.Play && !s.state.devCardPlayed) {
-            s.state.devCards[me].orEmpty().filter { it == DevCard.KNIGHT }.toSet()
+            s.state.devCards[me].orEmpty().filter { it != DevCard.VICTORY_POINT }.toSet()
         } else emptySet()
 
         return BuildOptions(
@@ -533,6 +565,16 @@ class GameViewModel(
                 )
             }
             is LargestArmyChanged -> s.state.copy(largestArmy = e.holder)
+            is YearOfPlentyUsed -> s.state.applyResourceDeltas(mapOf(e.player to e.resources))
+            is MonopolyUsed -> {
+                val total = e.stolenFrom.values.sum()
+                val deltas = mutableMapOf<PlayerId, ResourceCount>()
+                if (total > 0) deltas[e.player] = ResourceCount.of(e.resource to total)
+                for ((victim, amount) in e.stolenFrom) {
+                    deltas[victim] = (deltas[victim] ?: ResourceCount()) - ResourceCount.of(e.resource to amount)
+                }
+                s.state.applyResourceDeltas(deltas)
+            }
         }
 
     // Deducts a buildable's cost from the owner (the Play-phase build price).

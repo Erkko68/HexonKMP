@@ -16,11 +16,9 @@ import androidx.compose.material.icons.filled.LocationCity
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +33,7 @@ import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Edge
+import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
 import eric.bitria.hexonkmp.ui.board.CatanBoardScene
@@ -48,9 +47,12 @@ import eric.bitria.hexonkmp.ui.components.hud.RollBadge
 import eric.bitria.hexonkmp.ui.components.sheets.DiscardSheet
 import eric.bitria.hexonkmp.ui.components.sheets.TradeSidePanel
 import eric.bitria.hexonkmp.ui.components.sheets.WinnerDialog
+import eric.bitria.hexonkmp.ui.components.sheets.devcards.KnightSheet
+import eric.bitria.hexonkmp.ui.components.sheets.devcards.MonopolySheet
+import eric.bitria.hexonkmp.ui.components.sheets.devcards.RoadBuildingSheet
+import eric.bitria.hexonkmp.ui.components.sheets.devcards.YearOfPlentySheet
 import eric.bitria.hexonkmp.ui.screens.game.BuildMode
 import eric.bitria.hexonkmp.ui.screens.game.GameUiState
-import eric.bitria.hexonkmp.ui.theme.DevCardPalette
 import eric.bitria.hexonkmp.ui.theme.PlayerPalette
 import eric.bitria.hexonkmp.ui.theme.Spacing
 import io.github.erkko68.filament.Engine
@@ -63,6 +65,8 @@ fun LandscapeGameLayout(
     victoryPointsOf: (PlayerId) -> Int,
     onBuyDevCard: () -> Unit,
     onPlayDevCard: (DevCard) -> Unit,
+    onPlayYearOfPlenty: (ResourceCount) -> Unit,
+    onPlayMonopoly: (Resource) -> Unit,
     discardRequired: Int,
     onCycleDiscard: (Resource) -> Unit,
     onClearDiscard: () -> Unit,
@@ -151,7 +155,12 @@ fun LandscapeGameLayout(
                         RollBadge(roll, modifier = Modifier.padding(top = Spacing.sm))
                     }
                     val robberPrompt = opts.robberTargets.isNotEmpty()
-                    val notice = if (robberPrompt) "Move the robber — tap a tile" else state.notice
+                    val roadBuildingPhase = state.state.phase as? GamePhase.RoadBuilding
+                    val notice = when {
+                        roadBuildingPhase != null -> "Place ${roadBuildingPhase.roadsLeft} free road(s) — tap a spot"
+                        robberPrompt -> "Move the robber — tap a tile"
+                        else -> state.notice
+                    }
                     notice?.let {
                         Text(
                             it,
@@ -271,20 +280,25 @@ fun LandscapeGameLayout(
             )
         }
 
-        // Confirm dialog before spending a dev card
-        confirmPlay?.let { card ->
-            AlertDialog(
-                onDismissRequest = { confirmPlay = null },
-                title = { Text("Play ${DevCardPalette.label(card)}?") },
-                text = { Text(devCardPrompt(card)) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        confirmPlay = null
-                        onPlayDevCard(card)
-                    }) { Text("Play") }
-                },
-                dismissButton = { TextButton(onClick = { confirmPlay = null }) { Text("Cancel") } },
+        // Dev card sheet (one per card type)
+        when (confirmPlay) {
+            DevCard.KNIGHT -> KnightSheet(
+                onConfirm = { onPlayDevCard(DevCard.KNIGHT) },
+                onDismiss = { confirmPlay = null },
             )
+            DevCard.ROAD_BUILDING -> RoadBuildingSheet(
+                onConfirm = { onPlayDevCard(DevCard.ROAD_BUILDING) },
+                onDismiss = { confirmPlay = null },
+            )
+            DevCard.YEAR_OF_PLENTY -> YearOfPlentySheet(
+                onSubmit = { resources -> confirmPlay = null; onPlayYearOfPlenty(resources) },
+                onDismiss = { confirmPlay = null },
+            )
+            DevCard.MONOPOLY -> MonopolySheet(
+                onSubmit = { resource -> confirmPlay = null; onPlayMonopoly(resource) },
+                onDismiss = { confirmPlay = null },
+            )
+            else -> Unit
         }
 
         // Winner overlay
@@ -304,13 +318,7 @@ private fun phaseLabel(phase: GamePhase): String = when (phase) {
     GamePhase.Play -> "Play"
     is GamePhase.Discard -> "Discard"
     GamePhase.Robber -> "Robber"
+    is GamePhase.RoadBuilding -> "Road Building"
     is GamePhase.Finished -> "Finished"
 }
 
-private fun devCardPrompt(card: DevCard): String = when (card) {
-    DevCard.KNIGHT -> "Move the robber and steal a card. Counts toward Largest Army."
-    DevCard.ROAD_BUILDING -> "Place two roads for free."
-    DevCard.YEAR_OF_PLENTY -> "Take any two resources from the bank."
-    DevCard.MONOPOLY -> "Name a resource; every other player gives you all of theirs."
-    DevCard.VICTORY_POINT -> "A hidden victory point — it can't be played."
-}

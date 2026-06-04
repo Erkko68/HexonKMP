@@ -50,6 +50,13 @@ sealed interface GamePhase {
     @SerialName("Robber")
     data object Robber : GamePhase
 
+    // Playing a Road Building dev card: the current player places [roadsLeft] free
+    // roads before returning to Play. Decrements on each PlaceRoad; reaches 0 ->
+    // engine switches back to Play automatically.
+    @Serializable
+    @SerialName("RoadBuilding")
+    data class RoadBuilding(val roadsLeft: Int) : GamePhase
+
     // The game is over — [winner] reached the victory-point goal. Terminal: no
     // further actions are accepted.
     @Serializable
