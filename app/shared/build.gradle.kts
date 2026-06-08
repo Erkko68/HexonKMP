@@ -72,6 +72,7 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.auth)
             implementation(libs.ktor.client.contentNegotiation)
             implementation(libs.ktor.client.websockets)
             implementation(libs.ktor.client.serialization.json)

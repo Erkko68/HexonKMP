@@ -25,6 +25,7 @@ fun Application.module() {
     install(CORS) {
         anyHost()                           // TODO restrict to your domain in production
         allowHeader(HttpHeaders.ContentType)
+        allowHeader(HttpHeaders.Authorization) // bearer token — triggers a CORS preflight
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Get)
     }

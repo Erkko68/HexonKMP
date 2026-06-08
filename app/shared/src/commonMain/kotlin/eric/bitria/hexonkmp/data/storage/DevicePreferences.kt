@@ -8,6 +8,10 @@ interface DevicePreferences {
     suspend fun setPlayerId(id: String)
     suspend fun getPlayerName(): String?
     suspend fun setPlayerName(name: String)
+    // The secret auth token issued by the server at registration; proves this device's
+    // identity on every request. Null until first registration.
+    suspend fun getToken(): String?
+    suspend fun setToken(token: String)
 }
 
 expect fun createDevicePreferences(): DevicePreferences

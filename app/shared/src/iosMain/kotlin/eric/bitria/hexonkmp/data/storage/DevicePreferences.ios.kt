@@ -32,6 +32,7 @@ private class DataStoreDevicePreferences(
 ) : DevicePreferences {
     private val playerIdKey = stringPreferencesKey("player_id")
     private val playerNameKey = stringPreferencesKey("player_name")
+    private val tokenKey = stringPreferencesKey("auth_token")
 
     override suspend fun getPlayerId(): String? =
         store.data.map { it[playerIdKey] }.firstOrNull()
@@ -45,5 +46,12 @@ private class DataStoreDevicePreferences(
 
     override suspend fun setPlayerName(name: String) {
         store.edit { it[playerNameKey] = name }
+    }
+
+    override suspend fun getToken(): String? =
+        store.data.map { it[tokenKey] }.firstOrNull()
+
+    override suspend fun setToken(token: String) {
+        store.edit { it[tokenKey] = token }
     }
 }

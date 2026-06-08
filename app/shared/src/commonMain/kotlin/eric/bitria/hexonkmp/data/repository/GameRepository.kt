@@ -29,16 +29,19 @@ interface GameRepository {
     // showing opponents by name in-game. Travels with the snapshot at the handoff.
     val startedNames: Map<String, String>
 
-    suspend fun register(name: String, existingPlayerId: String?): RegisterResponse
-    suspend fun joinGame(playerId: String): JoinGameResponse
+    // register is the auth/refresh endpoint (token in the body). The other HTTP calls
+    // authenticate via the client's Auth bearer header, so they take no token.
+    suspend fun register(name: String, token: String?): RegisterResponse
+    suspend fun joinGame(): JoinGameResponse
 
     // Private lobbies.
-    suspend fun createLobby(playerId: String): CreateLobbyResponse
-    suspend fun joinLobby(code: String, playerId: String): JoinLobbyResponse
-    suspend fun startLobby(gameId: String, playerId: String)
+    suspend fun createLobby(): CreateLobbyResponse
+    suspend fun joinLobby(code: String): JoinLobbyResponse
+    suspend fun startLobby(gameId: String)
 
-    // [name] is sent with the WS connection for the lobby roster.
-    fun connect(playerId: String, name: String, gameId: String)
+    // The WS authenticates with [token] (query param); [playerId] is the caller's own
+    // id (known from registration) kept for local bookkeeping, and [name] feeds the roster.
+    fun connect(token: String, playerId: String, name: String, gameId: String)
     fun sendAction(action: GameAction)
     fun disconnect()
 }

@@ -3,9 +3,7 @@ package eric.bitria.hexonkmp.client
 import eric.bitria.hexonkmp.core.game.action.GameAction
 import eric.bitria.hexonkmp.core.protocol.CatanCodec
 import eric.bitria.hexonkmp.core.protocol.CatanServerEvent
-import eric.bitria.hexonkmp.core.protocol.CreateLobbyRequest
 import eric.bitria.hexonkmp.core.protocol.CreateLobbyResponse
-import eric.bitria.hexonkmp.core.protocol.JoinGameRequest
 import eric.bitria.hexonkmp.core.protocol.JoinGameResponse
 import eric.bitria.hexonkmp.core.protocol.JoinLobbyRequest
 import eric.bitria.hexonkmp.core.protocol.JoinLobbyResponse
@@ -26,47 +24,51 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+// HTTP auth (token attach + 401 refresh-and-retry) is handled centrally by the
+// client's Auth bearer plugin (see HttpClientFactory), so these calls carry no token:
+// register is the refresh endpoint (token in the body), everything else relies on the
+// plugin's Authorization header. Only the WebSocket passes the token explicitly,
+// because browsers can't set headers on the WS handshake.
 class GameClient(private val http: HttpClient) {
 
-    // Identity handshake: send our chosen name (and prior id, if any) and get back
-    // the server-issued playerId. Separate from joinGame so it can later become auth.
-    suspend fun register(name: String, existingPlayerId: String?): RegisterResponse =
-        http.post("/register") { setBody(RegisterRequest(name, existingPlayerId)) }.body()
+    // Identity handshake / token refresh: send our chosen name (and stored token, if
+    // any) and get back the server-issued playerId + token.
+    suspend fun register(name: String, token: String?): RegisterResponse =
+        http.post("/register") { setBody(RegisterRequest(name, token)) }.body()
 
-    suspend fun joinGame(playerId: String): JoinGameResponse =
-        http.post("/game") { setBody(JoinGameRequest(playerId)) }.body()
+    suspend fun joinGame(): JoinGameResponse =
+        http.post("/game").body()
 
     // Create a private lobby (caller becomes host); returns the gameId + join code.
-    suspend fun createLobby(playerId: String): CreateLobbyResponse =
-        http.post("/lobby") { setBody(CreateLobbyRequest(playerId)) }.body()
+    suspend fun createLobby(): CreateLobbyResponse =
+        http.post("/lobby").body()
 
-    // Join a private lobby by code; returns the gameId to connect to. Throws on an
-    // unknown/full code (non-2xx) so callers get a clean failure rather than a
-    // confusing body-deserialization error.
-    suspend fun joinLobby(code: String, playerId: String): JoinLobbyResponse {
-        val response = http.post("/lobby/join") { setBody(JoinLobbyRequest(code, playerId)) }
+    // Join a private lobby by code; returns the gameId. A non-success status (an
+    // unknown/full code) throws so the caller can show "lobby not found".
+    suspend fun joinLobby(code: String): JoinLobbyResponse {
+        val response = http.post("/lobby/join") { setBody(JoinLobbyRequest(code)) }
         if (!response.status.isSuccess()) error("Lobby not found")
         return response.body()
     }
 
     // Host-only: start a private lobby.
-    suspend fun startLobby(gameId: String, playerId: String) {
-        http.post("/lobby/start") { setBody(StartLobbyRequest(gameId, playerId)) }
+    suspend fun startLobby(gameId: String) {
+        http.post("/lobby/start") { setBody(StartLobbyRequest(gameId)) }
     }
 
     suspend fun connectToGame(
-        playerId: String,
+        token: String,
         name: String,
         gameId: String,
         outgoing: Flow<GameAction>,
         onEvent: suspend (CatanServerEvent) -> Unit,
     ) {
-        // playerId + name go in the query string, not headers: browsers can't set
-        // custom headers on WebSocket connections.
+        // token + name go in the query string, not headers: browsers can't set
+        // custom headers on WebSocket connections. The token authenticates the player.
         http.webSocket(
             path = "/game/$gameId",
             request = {
-                parameter("playerId", playerId)
+                parameter("token", token)
                 parameter("name", name)
             },
         ) {

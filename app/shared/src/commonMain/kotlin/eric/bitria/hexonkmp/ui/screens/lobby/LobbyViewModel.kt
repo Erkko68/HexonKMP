@@ -43,6 +43,8 @@ class LobbyViewModel(
     private val _gameStarted = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val gameStarted: SharedFlow<Unit> = _gameStarted.asSharedFlow()
 
+    // Our identity: the secret auth token (the credential) and the playerId it maps to.
+    private var cachedToken: String? = null
     private var cachedPlayerId: String? = null
     // Join code of the private lobby we're in (null for matchmaking); shown in the room.
     private var lobbyCode: String? = null
@@ -71,18 +73,23 @@ class LobbyViewModel(
             }
         }
         viewModelScope.launch {
+            cachedToken = prefs.getToken()
             cachedPlayerId = prefs.getPlayerId()
             val name = prefs.getPlayerName()
             _playerName.value = name
-            // Already named from a previous session: confirm/refresh our server id up
+            // Already named from a previous session: confirm/refresh our identity up
             // front (best-effort) so playing is instant. The actions below retry if it failed.
             if (name != null) runCatching { ensureRegistered(name) }
         }
     }
 
+    // Registers with the server — presenting our stored token to reclaim the same
+    // identity, or minting a fresh one — and persists the issued token + playerId + name.
     private suspend fun ensureRegistered(name: String): String {
-        val response = repository.register(name, cachedPlayerId)
+        val response = repository.register(name, cachedToken)
+        cachedToken = response.token
         cachedPlayerId = response.playerId
+        prefs.setToken(response.token)
         prefs.setPlayerId(response.playerId)
         prefs.setPlayerName(response.name)
         _playerName.value = response.name
@@ -101,13 +108,13 @@ class LobbyViewModel(
 
     // --- Entering a lobby (matchmaking or private) ---
 
-    fun findGame() = enter(onError = { _state.value = LobbyUiState.Error(it) }) { id, _ ->
+    fun findGame() = enter(onError = { _state.value = LobbyUiState.Error(it) }) {
         lobbyCode = null
-        repository.joinGame(id).gameId
+        repository.joinGame().gameId
     }
 
-    fun createLobby() = enter(onError = { _state.value = LobbyUiState.Error(it) }) { id, _ ->
-        val response = repository.createLobby(id)
+    fun createLobby() = enter(onError = { _state.value = LobbyUiState.Error(it) }) {
+        val response = repository.createLobby()
         lobbyCode = response.code
         response.gameId
     }
@@ -118,29 +125,36 @@ class LobbyViewModel(
             _joinError.value = "Enter a 6-digit code"
             return
         }
-        enter(onError = { _joinError.value = "Lobby not found" }) { id, _ ->
-            val response = repository.joinLobby(digits, id)
+        enter(onError = { _joinError.value = "Lobby not found" }) {
+            val response = repository.joinLobby(digits)
             lobbyCode = digits
             response.gameId
         }
     }
 
-    // Ensures identity, runs [block] (the HTTP that returns a gameId), then opens the
-    // WS and signals navigation to the lobby room. Only navigates on success, so a
-    // failed join surfaces via [onError] without leaving the menu.
+    // Ensures we have an identity, runs [block] (the HTTP that returns a gameId — the
+    // Auth plugin attaches our token and transparently re-registers + retries on a 401),
+    // then opens the WS and signals navigation. Only navigates on success, so a failed
+    // join surfaces via [onError] without leaving the menu. Identity is re-read from
+    // storage afterwards in case the plugin refreshed it mid-call.
     private fun enter(
         onError: (String) -> Unit,
-        block: suspend (id: String, name: String) -> String,
+        block: suspend () -> String,
     ) {
         val name = _playerName.value ?: return // must choose a name first
         _joinError.value = null
         viewModelScope.launch {
             runCatching {
-                val id = cachedPlayerId ?: ensureRegistered(name)
-                id to block(id, name)
-            }.onSuccess { (id, gameId) ->
+                if (cachedToken == null) ensureRegistered(name)
+                val gameId = block()
+                cachedToken = prefs.getToken()
+                cachedPlayerId = prefs.getPlayerId()
+                val token = cachedToken ?: error("Not registered")
+                val playerId = cachedPlayerId ?: error("Not registered")
+                Triple(token, playerId, gameId)
+            }.onSuccess { (token, playerId, gameId) ->
                 _state.value = LobbyUiState.Connecting
-                repository.connect(id, name, gameId)
+                repository.connect(token, playerId, name, gameId)
                 _enterLobby.tryEmit(Unit)
             }.onFailure { onError(it.message ?: "Connection failed") }
         }
@@ -153,9 +167,8 @@ class LobbyViewModel(
     // Host-only: ask the server to start. The server broadcasts GameStarted, which
     // flows back as the [gameStarted] navigation signal.
     fun startGame() {
-        val id = cachedPlayerId ?: return
         val gameId = repository.currentGameId ?: return
-        viewModelScope.launch { runCatching { repository.startLobby(gameId, id) } }
+        viewModelScope.launch { runCatching { repository.startLobby(gameId) } }
     }
 
     // Leave the lobby (cancel matchmaking or exit a private lobby): drop the

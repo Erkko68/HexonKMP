@@ -40,27 +40,24 @@ class GameRepositoryImpl(private val client: GameClient) : GameRepository {
     override var startedNames: Map<String, String> = emptyMap()
         private set
 
-    override suspend fun register(name: String, existingPlayerId: String?): RegisterResponse =
-        client.register(name, existingPlayerId)
+    override suspend fun register(name: String, token: String?): RegisterResponse =
+        client.register(name, token)
 
-    override suspend fun joinGame(playerId: String): JoinGameResponse = client.joinGame(playerId)
+    override suspend fun joinGame(): JoinGameResponse = client.joinGame()
 
-    override suspend fun createLobby(playerId: String): CreateLobbyResponse =
-        client.createLobby(playerId)
+    override suspend fun createLobby(): CreateLobbyResponse = client.createLobby()
 
-    override suspend fun joinLobby(code: String, playerId: String): JoinLobbyResponse =
-        client.joinLobby(code, playerId)
+    override suspend fun joinLobby(code: String): JoinLobbyResponse = client.joinLobby(code)
 
-    override suspend fun startLobby(gameId: String, playerId: String) =
-        client.startLobby(gameId, playerId)
+    override suspend fun startLobby(gameId: String) = client.startLobby(gameId)
 
-    override fun connect(playerId: String, name: String, gameId: String) {
+    override fun connect(token: String, playerId: String, name: String, gameId: String) {
         connectionJob?.cancel()
         currentPlayerId = playerId
         currentGameId = gameId
         connectionJob = scope.launch {
             try {
-                client.connectToGame(playerId, name, gameId, _outgoing) { event ->
+                client.connectToGame(token, name, gameId, _outgoing) { event ->
                     // Cache the start snapshot for the game screen's handoff (it's
                     // created only after the lobby reacts to this same event).
                     if (event is GameStarted<*>) {

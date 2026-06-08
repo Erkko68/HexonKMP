@@ -12,10 +12,10 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 fun appModule() = module {
-    single { createHttpClient() }
+    single<DevicePreferences> { createDevicePreferences() }
+    single { createHttpClient(get()) }
     single { GameClient(get()) }
     single<GameRepository> { GameRepositoryImpl(get()) }
-    single<DevicePreferences> { createDevicePreferences() }
     viewModelOf(::LobbyViewModel)
     viewModelOf(::GameViewModel)
 }
