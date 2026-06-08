@@ -11,7 +11,7 @@ BRANCH="main"
 # ── Deploy ─────────────────────────────────────────────────────────────────────
 echo "→ Deploying to ${SERVER_USER}@${SERVER_HOST}:${REMOTE_DIR}"
 
-ssh "${SERVER_USER}@${SERVER_HOST}" bash <<EOF
+ssh -t "${SERVER_USER}@${SERVER_HOST}" sudo bash <<EOF
 set -euo pipefail
 
 # Clone the repo on first deploy, pull on subsequent ones.
