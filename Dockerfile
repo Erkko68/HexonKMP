@@ -23,7 +23,7 @@ RUN rm -f gradle/gradle-daemon-jvm.properties && \
 # ── Runtime stage ──────────────────────────────────────────────────────────────
 FROM eclipse-temurin:22-jre-alpine
 WORKDIR /app
-COPY --from=build /build/server/build/libs/server-*-all.jar server.jar
+COPY --from=build /build/server/build/libs/server-all.jar server.jar
 
 # SERVER_BIND_HOST / SERVER_BIND_PORT are read by application.conf at runtime.
 # Override them via docker run -e or docker-compose environment.
