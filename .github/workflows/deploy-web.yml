@@ -35,7 +35,7 @@ jobs:
         run: ./gradlew generateEnvConfig --no-daemon --no-configuration-cache
 
       - name: Build web bundle
-        run: ./gradlew :app:webApp:jsBrowserProductionWebpack --no-daemon --no-configuration-cache
+        run: ./gradlew :app:webApp:jsBrowserDistribution --no-daemon --no-configuration-cache
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
