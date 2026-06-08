@@ -25,6 +25,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import eric.bitria.hexonkmp.ui.theme.Shapes
 import eric.bitria.hexonkmp.ui.theme.Spacing
+import hexonkmp.app.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 // Prompt for the player's display name. Shown on first run (no name yet) and when
 // the player taps their name to change it. When [onDismiss] is null the dialog is
@@ -48,7 +50,7 @@ fun NameDialog(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
                 Text(
-                    "Choose your name",
+                    stringResource(Res.string.choose_your_name),
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
                 )
@@ -56,15 +58,15 @@ fun NameDialog(
                     value = text,
                     onValueChange = { text = it },
                     singleLine = true,
-                    label = { Text("Player name") },
+                    label = { Text(stringResource(Res.string.player_name)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     if (onDismiss != null) {
-                        OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+                        OutlinedButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
                     }
                     Button(onClick = { onConfirm(text.trim()) }, enabled = text.isNotBlank()) {
-                        Text("Continue")
+                        Text(stringResource(Res.string.action_continue))
                     }
                 }
             }

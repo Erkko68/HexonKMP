@@ -60,8 +60,11 @@ fun renderActual(pkg: String, values: Map<String, String>, isWeb: Boolean = fals
     appendLine("actual object EnvConfig {")
     values.filter { it.key in clientEnvKeys }.forEach { (k, v) ->
         when {
-            // Web: resolve host at runtime so the bundle works from any machine.
-            k == "SERVER_HOST" && isWeb -> appendLine("    actual val $k: String = window.location.hostname")
+            // Web dev: resolve host dynamically so the bundle works from any machine on the LAN.
+            // Web prod: when SERVER_HOST is an explicit non-localhost value, bake it in as a
+            // literal so the bundle can connect to a separate API subdomain.
+            k == "SERVER_HOST" && isWeb && v == "localhost" ->
+                appendLine("    actual val $k: String = window.location.hostname")
             v.toIntOrNull() != null     -> appendLine("    actual val $k: Int = $v")
             else                        -> appendLine("    actual val $k: String = \"$v\"")
         }

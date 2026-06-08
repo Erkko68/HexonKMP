@@ -26,7 +26,9 @@ import eric.bitria.hexonkmp.core.protocol.LobbyMember
 import eric.bitria.hexonkmp.ui.components.hud.PlayerToken
 import eric.bitria.hexonkmp.ui.theme.Spacing
 import eric.bitria.hexonkmp.ui.theme.Tokens
+import hexonkmp.app.shared.generated.resources.*
 import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 // The waiting room (shared with MenuScreen via one LobbyViewModel). Shows the roster
@@ -52,18 +54,18 @@ fun LobbyScreen(
             if (s.hostId == null) MatchmakingView(state = s, onLeave = leave)
             else LobbyRoom(state = s, onStart = viewModel::startGame, onLeave = leave)
         is LobbyUiState.Error -> Centered {
-            Text("Something went wrong", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(Res.string.something_went_wrong), style = MaterialTheme.typography.titleMedium)
             Text(s.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-            Button(onClick = leave) { Text("Back") }
+            Button(onClick = leave) { Text(stringResource(Res.string.action_back)) }
         }
         // Connecting (and the transient Idle right after leaving) show a spinner.
         else -> Centered {
             CircularProgressIndicator()
-            Text("Connecting…", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(Res.string.connecting), style = MaterialTheme.typography.bodyLarge)
             Button(
                 onClick = leave,
                 colors = leaveColors(),
-            ) { Text("Cancel") }
+            ) { Text(stringResource(Res.string.action_cancel)) }
         }
     }
 }
@@ -85,11 +87,11 @@ private fun LobbyRoom(
 
     Centered {
         state.code?.let { code ->
-            Text("Lobby code", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(Res.string.lobby_code), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(formatCode(code), style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary)
         }
 
-        Text("Players ${state.members.size} / ${state.maxPlayers}", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(Res.string.players_count, state.members.size, state.maxPlayers), style = MaterialTheme.typography.titleMedium)
 
         // All seats: filled members first, then greyed placeholders for empty slots.
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.lg, Alignment.CenterHorizontally)) {
@@ -101,13 +103,13 @@ private fun LobbyRoom(
         }
 
         remaining?.let {
-            Text("Starting in ${it}s", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(Res.string.starting_in, it), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Button(onClick = onLeave, colors = leaveColors()) { Text("Leave") }
+            Button(onClick = onLeave, colors = leaveColors()) { Text(stringResource(Res.string.action_leave)) }
             if (state.isHost) {
-                Button(onClick = onStart, enabled = state.canStart) { Text("Start game") }
+                Button(onClick = onStart, enabled = state.canStart) { Text(stringResource(Res.string.start_game)) }
             }
         }
     }
@@ -125,16 +127,16 @@ private fun MatchmakingView(state: LobbyUiState.InLobby, onLeave: () -> Unit) {
     }
     Centered {
         CircularProgressIndicator()
-        Text("Waiting for players…", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(Res.string.waiting_for_players), style = MaterialTheme.typography.titleMedium)
         Text(
-            "${state.members.size} / ${state.maxPlayers}",
+            stringResource(Res.string.count_fraction, state.members.size, state.maxPlayers),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         remaining?.let {
-            Text("Starting in ${it}s", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(Res.string.starting_in, it), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Button(onClick = onLeave, colors = leaveColors()) { Text("Cancel") }
+        Button(onClick = onLeave, colors = leaveColors()) { Text(stringResource(Res.string.action_cancel)) }
     }
 }
 
@@ -148,7 +150,7 @@ private fun MemberColumn(member: LobbyMember, isHost: Boolean) {
         PlayerToken(MaterialTheme.colorScheme.primary, member.name, size = Tokens.tokenMd)
         Text(member.name, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
         if (isHost) {
-            Text("host", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(Res.string.lobby_host), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -162,7 +164,7 @@ private fun EmptySlotColumn() {
     ) {
         PlayerToken(
             color = MaterialTheme.colorScheme.surfaceVariant,
-            label = "Open slot",
+            label = stringResource(Res.string.open_slot),
             size = Tokens.tokenMd,
             modifier = Modifier.alpha(0.5f),
         )

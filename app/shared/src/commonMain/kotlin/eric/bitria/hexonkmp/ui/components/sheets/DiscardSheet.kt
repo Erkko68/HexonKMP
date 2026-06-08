@@ -24,6 +24,8 @@ import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.ui.components.cards.ResourceCard
 import eric.bitria.hexonkmp.ui.theme.Spacing
+import hexonkmp.app.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 // Forced "discard half" sheet shown after a 7 when you're over the hand limit.
 // It can't be dismissed — you must discard exactly [required] cards. Mirrors the
@@ -54,7 +56,7 @@ fun DiscardSheet(
         ) {
             Text("Too many cards!", style = MaterialTheme.typography.titleSmall)
             Text(
-                "Discard $required  (${selected.total} / $required selected)",
+                stringResource(Res.string.discard_progress, required, selected.total),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -77,8 +79,8 @@ fun DiscardSheet(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(onClick = onClear, enabled = !selected.isEmpty) { Text("Clear") }
-                Button(onClick = onSubmit, enabled = selected.total == required) { Text("Discard") }
+                OutlinedButton(onClick = onClear, enabled = !selected.isEmpty) { Text(stringResource(Res.string.action_clear)) }
+                Button(onClick = onSubmit, enabled = selected.total == required) { Text(stringResource(Res.string.discard)) }
             }
         }
     }

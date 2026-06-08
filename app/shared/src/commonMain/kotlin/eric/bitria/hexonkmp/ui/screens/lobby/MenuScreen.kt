@@ -24,6 +24,8 @@ import eric.bitria.hexonkmp.ui.components.hud.PlayerToken
 import eric.bitria.hexonkmp.ui.components.sheets.NameDialog
 import eric.bitria.hexonkmp.ui.theme.Spacing
 import eric.bitria.hexonkmp.ui.theme.Tokens
+import hexonkmp.app.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 // The main menu: choose a name, then Find Game (matchmaking) or open the Private
@@ -67,16 +69,16 @@ fun MenuScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("Hexon", style = MaterialTheme.typography.displayMedium)
-            Text("Ready to play?", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.displayMedium)
+            Text(stringResource(Res.string.ready_to_play), style = MaterialTheme.typography.bodyLarge)
             Button(onClick = viewModel::findGame, enabled = ready, modifier = Modifier.widthIn(min = 200.dp)) {
-                Text("Find Game")
+                Text(stringResource(Res.string.find_game))
             }
             Button(
                 onClick = { viewModel.clearJoinError(); showPrivate = true },
                 enabled = ready,
                 modifier = Modifier.widthIn(min = 200.dp),
-            ) { Text("Private Lobby") }
+            ) { Text(stringResource(Res.string.private_lobby)) }
         }
 
         if (playerName == null || editingName) {

@@ -1,0 +1,105 @@
+<resources>
+    <string name="app_name">Hexon</string>
+    <string name="ready_to_play">プレイしますか？</string>
+    <string name="find_game">ゲームを探す</string>
+    <string name="private_lobby">プライベートロビー</string>
+
+    <string name="action_join">参加</string>
+    <string name="action_create">作成</string>
+    <string name="action_cancel">キャンセル</string>
+    <string name="action_clear">クリア</string>
+    <string name="action_back">戻る</string>
+    <string name="action_retry">再試行</string>
+    <string name="action_continue">続ける</string>
+    <string name="action_play">プレイ</string>
+    <string name="action_take">取る</string>
+    <string name="action_leave">退出</string>
+    <string name="action_accept">承諾</string>
+    <string name="action_decline">断る</string>
+
+    <string name="choose_your_name">名前を選んでください</string>
+    <string name="player_name">プレイヤー名</string>
+
+    <string name="lobby_code">ロビーコード</string>
+    <string name="enter_6_digit_code">6桁のコードを入力</string>
+    <string name="lobby_not_found">ロビーが見つかりません</string>
+    <string name="connecting">接続中…</string>
+    <string name="loading">読み込み中…</string>
+    <string name="waiting_for_players">プレイヤーを待っています…</string>
+    <string name="players_count">プレイヤー %1$d / %2$d</string>
+    <string name="count_fraction">%1$d / %2$d</string>
+    <string name="starting_in">%1$d秒後に開始</string>
+    <string name="start_game">ゲームを開始</string>
+    <string name="lobby_host">ホスト</string>
+    <string name="open_slot">空きスロット</string>
+    <string name="something_went_wrong">問題が発生しました</string>
+    <string name="connection_failed">接続に失敗しました</string>
+
+    <string name="build_settlement">開拓地</string>
+    <string name="build_road">道</string>
+    <string name="build_city">都市</string>
+    <string name="buy_dev_card">発展カードを購入</string>
+    <string name="trade">交易</string>
+    <string name="end_turn">ターン終了</string>
+    <string name="tab_actions">アクション</string>
+    <string name="tab_inventory">インベントリ</string>
+
+    <string name="phase_setup">セットアップ</string>
+    <string name="phase_play">プレイ</string>
+    <string name="phase_discard">捨て牌</string>
+    <string name="phase_robber">盗賊</string>
+    <string name="phase_road_building">道の建設</string>
+    <string name="phase_finished">終了</string>
+
+    <string name="notice_place_free_roads">%1$d本の無料の道を配置 — タップ</string>
+    <string name="notice_move_robber">盗賊を移動 — タイルをタップ</string>
+    <string name="notice_choose_steal">盗む相手を選んでください</string>
+    <string name="notice_player_joined">%1$sが参加しました</string>
+    <string name="notice_player_left">%1$sが退出しました</string>
+
+    <string name="steal_title">盗む相手を選んでください</string>
+    <string name="steal_description">盗賊が複数の対戦相手のいるタイルに着地しました。1人を選んでカードを盗んでください。</string>
+    <string name="cards_count">%1$dカード</string>
+
+    <string name="resource_brick">レンガ</string>
+    <string name="resource_lumber">木材</string>
+    <string name="resource_wool">羊毛</string>
+    <string name="resource_grain">小麦</string>
+    <string name="resource_ore">鉱石</string>
+
+    <string name="dev_knight">騎士</string>
+    <string name="dev_victory_point">勝利点</string>
+    <string name="dev_road_building">道の建設</string>
+    <string name="dev_year_of_plenty">収穫</string>
+    <string name="dev_monopoly">独占</string>
+    <string name="achievement_longest_road">最長道路</string>
+    <string name="achievement_largest_army">最大騎士力</string>
+    <string name="knight_description">盗賊を任意のタイルに移動させ、隣接する対戦相手からカードを盗みます。最大騎士力にカウントされます。</string>
+    <string name="road_building_description">自分のネットワークのどこにでも無料で2本の道を配置します。</string>
+    <string name="year_of_plenty_progress">銀行から2つの資源を取る  (%1$d / 2)</string>
+    <string name="monopoly_description">資源を1つ選ぶ — 他のプレイヤー全員からその資源を取ります</string>
+
+    <string name="trade_bank">銀行</string>
+    <string name="trade_offer">オファー</string>
+    <string name="trade_proposer">提案者</string>
+    <string name="trade_player">プレイヤー</string>
+    <string name="trade_console">交易コンソール</string>
+    <string name="trade_your_offers">あなたのオファー</string>
+    <string name="trade_offers_for_you">あなたへのオファー</string>
+    <string name="trade_you_give">渡す</string>
+    <string name="trade_you_want">欲しい</string>
+    <string name="trade_finalize">交易</string>
+    <string name="trade_no_offers">オファーがありません</string>
+    <string name="trade_waiting_responses">返答を待っています…</string>
+    <string name="trade_no_resources">資源なし</string>
+    <string name="trade_missing_resources">相手が欲しいものを持っていません</string>
+    <string name="trade_declined">断られました</string>
+
+    <string name="discard">捨てる</string>
+    <string name="discard_progress">%1$dを捨てる  (%2$d / %1$d 選択済み)</string>
+
+    <string name="you_won">勝利！</string>
+    <string name="game_over">ゲームオーバー</string>
+    <string name="reached_goal">%1$sが目標に達しました</string>
+    <string name="return_to_menu">メニューに戻る</string>
+</resources>

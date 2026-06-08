@@ -20,6 +20,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import eric.bitria.hexonkmp.ui.theme.Spacing
+import hexonkmp.app.shared.generated.resources.Res
+import hexonkmp.app.shared.generated.resources.app_name
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun LandscapeGameHeader(
@@ -45,7 +48,7 @@ fun LandscapeGameHeader(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                "HexonKMP",
+                text = stringResource(Res.string.app_name),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
             )

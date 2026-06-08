@@ -27,7 +27,9 @@ import eric.bitria.hexonkmp.ui.screens.game.GameViewModel
 import eric.bitria.hexonkmp.ui.screens.game.layout.LandscapeGameLayout
 import eric.bitria.hexonkmp.ui.screens.game.layout.PortraitGameLayout
 import eric.bitria.hexonkmp.ui.theme.Spacing
+import hexonkmp.app.shared.generated.resources.*
 import io.github.erkko68.filament.Engine
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 // The in-game screen. The live connection and start snapshot are already in place
@@ -89,7 +91,7 @@ private fun LoadingContent() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         CircularProgressIndicator()
-        Text("Loading…", style = MaterialTheme.typography.bodyLarge)
+        Text(stringResource(Res.string.loading), style = MaterialTheme.typography.bodyLarge)
     }
 }
 

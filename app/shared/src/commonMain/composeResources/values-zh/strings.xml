@@ -1,0 +1,105 @@
+<resources>
+    <string name="app_name">Hexon</string>
+    <string name="ready_to_play">准备好了吗？</string>
+    <string name="find_game">寻找游戏</string>
+    <string name="private_lobby">私人大厅</string>
+
+    <string name="action_join">加入</string>
+    <string name="action_create">创建</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_clear">清除</string>
+    <string name="action_back">返回</string>
+    <string name="action_retry">重试</string>
+    <string name="action_continue">继续</string>
+    <string name="action_play">游玩</string>
+    <string name="action_take">获取</string>
+    <string name="action_leave">离开</string>
+    <string name="action_accept">接受</string>
+    <string name="action_decline">拒绝</string>
+
+    <string name="choose_your_name">选择你的名字</string>
+    <string name="player_name">玩家名称</string>
+
+    <string name="lobby_code">大厅代码</string>
+    <string name="enter_6_digit_code">输入6位代码</string>
+    <string name="lobby_not_found">未找到大厅</string>
+    <string name="connecting">连接中…</string>
+    <string name="loading">加载中…</string>
+    <string name="waiting_for_players">等待玩家中…</string>
+    <string name="players_count">玩家 %1$d / %2$d</string>
+    <string name="count_fraction">%1$d / %2$d</string>
+    <string name="starting_in">%1$d秒后开始</string>
+    <string name="start_game">开始游戏</string>
+    <string name="lobby_host">房主</string>
+    <string name="open_slot">空位</string>
+    <string name="something_went_wrong">出现错误</string>
+    <string name="connection_failed">连接失败</string>
+
+    <string name="build_settlement">村庄</string>
+    <string name="build_road">道路</string>
+    <string name="build_city">城市</string>
+    <string name="buy_dev_card">购买发展卡</string>
+    <string name="trade">交易</string>
+    <string name="end_turn">结束回合</string>
+    <string name="tab_actions">行动</string>
+    <string name="tab_inventory">物品栏</string>
+
+    <string name="phase_setup">准备阶段</string>
+    <string name="phase_play">游戏</string>
+    <string name="phase_discard">弃牌</string>
+    <string name="phase_robber">强盗</string>
+    <string name="phase_road_building">筑路</string>
+    <string name="phase_finished">已结束</string>
+
+    <string name="notice_place_free_roads">放置%1$d条免费道路 — 点击位置</string>
+    <string name="notice_move_robber">移动强盗 — 点击地块</string>
+    <string name="notice_choose_steal">选择要偷窃的对象</string>
+    <string name="notice_player_joined">%1$s加入了</string>
+    <string name="notice_player_left">%1$s离开了</string>
+
+    <string name="steal_title">选择要偷窃的对象</string>
+    <string name="steal_description">强盗落在了有多个对手的地块上。点击其中一人来偷取一张牌。</string>
+    <string name="cards_count">%1$d张牌</string>
+
+    <string name="resource_brick">砖块</string>
+    <string name="resource_lumber">木材</string>
+    <string name="resource_wool">羊毛</string>
+    <string name="resource_grain">粮食</string>
+    <string name="resource_ore">矿石</string>
+
+    <string name="dev_knight">骑士</string>
+    <string name="dev_victory_point">胜利点</string>
+    <string name="dev_road_building">筑路</string>
+    <string name="dev_year_of_plenty">丰年</string>
+    <string name="dev_monopoly">垄断</string>
+    <string name="achievement_longest_road">最长道路</string>
+    <string name="achievement_largest_army">最强军队</string>
+    <string name="knight_description">将强盗移动到任意地块，并从相邻对手处偷取一张牌。计入最强军队。</string>
+    <string name="road_building_description">在你的路网中任意位置免费放置两条道路。</string>
+    <string name="year_of_plenty_progress">从银行获取2个资源  (%1$d / 2)</string>
+    <string name="monopoly_description">选择一种资源 — 从其他所有玩家处获取该资源</string>
+
+    <string name="trade_bank">银行</string>
+    <string name="trade_offer">报价</string>
+    <string name="trade_proposer">提议者</string>
+    <string name="trade_player">玩家</string>
+    <string name="trade_console">交易台</string>
+    <string name="trade_your_offers">你的报价</string>
+    <string name="trade_offers_for_you">给你的报价</string>
+    <string name="trade_you_give">你给出</string>
+    <string name="trade_you_want">你想要</string>
+    <string name="trade_finalize">交易</string>
+    <string name="trade_no_offers">目前没有报价</string>
+    <string name="trade_waiting_responses">等待回应…</string>
+    <string name="trade_no_resources">没有资源</string>
+    <string name="trade_missing_resources">你没有他们想要的</string>
+    <string name="trade_declined">已拒绝</string>
+
+    <string name="discard">弃牌</string>
+    <string name="discard_progress">弃掉%1$d张  (%2$d / %1$d 已选)</string>
+
+    <string name="you_won">你赢了！</string>
+    <string name="game_over">游戏结束</string>
+    <string name="reached_goal">%1$s达到了目标</string>
+    <string name="return_to_menu">返回菜单</string>
+</resources>

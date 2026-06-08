@@ -42,6 +42,8 @@ import eric.bitria.hexonkmp.ui.components.hud.PlayerToken
 import eric.bitria.hexonkmp.ui.components.cards.ResourceCard
 import eric.bitria.hexonkmp.ui.theme.Spacing
 import eric.bitria.hexonkmp.ui.theme.Tokens
+import hexonkmp.app.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 // The trade sheet (portrait): a single give/receive editor that the player can
 // send to the bank or offer to other players, plus the live offers below.
@@ -129,7 +131,7 @@ internal fun TradeBody(
             )
             if (offers.isNotEmpty()) {
                 HorizontalDivider()
-                Text("Your offers", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(Res.string.trade_your_offers), style = MaterialTheme.typography.labelMedium)
                 offers.asReversed().forEach { offer ->
                     ProposerOfferCard(offer, playerColor, onFinalize, onCancel)
                 }
@@ -137,9 +139,9 @@ internal fun TradeBody(
         } else {
             val incoming = offers.filter { it.proposer != me }
             if (incoming.isEmpty()) {
-                Placeholder("No offers right now")
+                Placeholder(stringResource(Res.string.trade_no_offers))
             } else {
-                Text("Offers for you", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(Res.string.trade_offers_for_you), style = MaterialTheme.typography.labelMedium)
                 incoming.asReversed().forEach { offer ->
                     IncomingOfferCard(offer, me, playerColor, hand, onRespond)
                 }
@@ -167,7 +169,7 @@ private fun TradeEditor(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("You give", style = MaterialTheme.typography.labelMedium)
+        Text(stringResource(Res.string.trade_you_give), style = MaterialTheme.typography.labelMedium)
         TokenRow {
             Resource.entries.forEach { r ->
                 GiveToken(
@@ -183,7 +185,7 @@ private fun TradeEditor(
 
         Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "for", modifier = Modifier.size(20.dp))
 
-        Text("You want", style = MaterialTheme.typography.labelMedium)
+        Text(stringResource(Res.string.trade_you_want), style = MaterialTheme.typography.labelMedium)
         TokenRow {
             Resource.entries.forEach { r ->
                 ResourceCard(
@@ -209,7 +211,7 @@ private fun TradeEditor(
                 modifier = Modifier.weight(1f),
             ) {
                 Icon(Icons.Filled.AccountBalance, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text(" Bank", maxLines = 1)
+                Text(" " + stringResource(Res.string.trade_bank), maxLines = 1)
             }
             Button(
                 onClick = onSubmitPropose,
@@ -217,10 +219,10 @@ private fun TradeEditor(
                 modifier = Modifier.weight(1f),
             ) {
                 Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text(" Offer", maxLines = 1)
+                Text(" " + stringResource(Res.string.trade_offer), maxLines = 1)
             }
         }
-        OutlinedButton(onClick = onClear, enabled = !give.isEmpty || !receive.isEmpty) { Text("Clear") }
+        OutlinedButton(onClick = onClear, enabled = !give.isEmpty || !receive.isEmpty) { Text(stringResource(Res.string.action_clear)) }
     }
 }
 
@@ -276,7 +278,7 @@ private fun ProposerOfferCard(
             }
             HorizontalDivider()
             if (offer.responses.isEmpty()) {
-                StatusText("Waiting for responses…")
+                StatusText(stringResource(Res.string.trade_waiting_responses))
             } else {
                 offer.responses.forEach { (player, accepted) ->
                     Row(
@@ -284,11 +286,11 @@ private fun ProposerOfferCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
                     ) {
-                        PlayerToken(playerColor(player), "Player", size = Tokens.tokenSm)
+                        PlayerToken(playerColor(player), stringResource(Res.string.trade_player), size = Tokens.tokenSm)
                         if (accepted) {
-                            Button(onClick = { onFinalize(offer.id, player) }) { Text("Trade") }
+                            Button(onClick = { onFinalize(offer.id, player) }) { Text(stringResource(Res.string.trade_finalize)) }
                         } else {
-                            Button(onClick = {}, enabled = false) { Text("Declined") }
+                            Button(onClick = {}, enabled = false) { Text(stringResource(Res.string.trade_declined)) }
                         }
                     }
                 }
@@ -316,19 +318,19 @@ private fun IncomingOfferCard(
         ) {
             OfferLine(
                 offer.give, offer.receive,
-                leading = { PlayerToken(playerColor(offer.proposer), "Proposer", size = Tokens.tokenMd) },
+                leading = { PlayerToken(playerColor(offer.proposer), stringResource(Res.string.trade_proposer), size = Tokens.tokenMd) },
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Button(
                     onClick = { onRespond(offer.id, true) },
                     enabled = canAccept && myResponse != true,
-                ) { Text("Accept") }
+                ) { Text(stringResource(Res.string.action_accept)) }
                 OutlinedButton(
                     onClick = { onRespond(offer.id, false) },
                     enabled = myResponse != false,
-                ) { Text("Decline") }
+                ) { Text(stringResource(Res.string.action_decline)) }
             }
-            if (!canAccept) StatusText("You don't have what they want", error = true)
+            if (!canAccept) StatusText(stringResource(Res.string.trade_missing_resources), error = true)
         }
     }
 }

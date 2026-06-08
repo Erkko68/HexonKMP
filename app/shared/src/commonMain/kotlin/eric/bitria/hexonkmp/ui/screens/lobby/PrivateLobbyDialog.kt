@@ -30,6 +30,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import eric.bitria.hexonkmp.ui.theme.Shapes
 import eric.bitria.hexonkmp.ui.theme.Spacing
+import hexonkmp.app.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 // Main-menu dialog for private lobbies: enter a 6-digit code to Join, or Create a
 // new lobby. [error] shows inline (e.g. an unknown code) without closing the dialog.
@@ -48,11 +50,11 @@ fun PrivateLobbyDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                Text("Private Lobby", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(Res.string.private_lobby), style = MaterialTheme.typography.titleMedium)
                 OutlinedTextField(
                     value = code,
                     onValueChange = { code = it.filter(Char::isDigit).take(6) },
-                    label = { Text("Lobby code") },
+                    label = { Text(stringResource(Res.string.lobby_code)) },
                     singleLine = true,
                     isError = error != null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -63,8 +65,8 @@ fun PrivateLobbyDialog(
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Button(onClick = { onJoin(code) }, enabled = code.length == 6) { Text("Join") }
-                    Button(onClick = onCreate) { Text("Create") }
+                    Button(onClick = { onJoin(code) }, enabled = code.length == 6) { Text(stringResource(Res.string.action_join)) }
+                    Button(onClick = onCreate) { Text(stringResource(Res.string.action_create)) }
                 }
             }
         }

@@ -63,6 +63,8 @@ import eric.bitria.hexonkmp.ui.theme.Spacing
 import eric.bitria.hexonkmp.ui.theme.Tokens
 import eric.bitria.hexonkmp.ui.components.hud.PlayerToken
 import io.github.erkko68.filament.Engine
+import hexonkmp.app.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 private enum class PortraitBottomTab {
     ACTIONS,
@@ -156,9 +158,9 @@ fun PortraitGameLayout(
         // Contextual notice text (rendered just above the action bar, below).
         val roadBuildingPhase = state.state.phase as? GamePhase.RoadBuilding
         val notice = when {
-            roadBuildingPhase != null -> "Place ${roadBuildingPhase.roadsLeft} free road(s) — tap a spot"
-            opts.robberTargets.isNotEmpty() -> "Move the robber — tap a tile"
-            state.state.phase is GamePhase.ChooseStealTarget && state.isMyTurn -> "Choose who to steal from"
+            roadBuildingPhase != null -> stringResource(Res.string.notice_place_free_roads, roadBuildingPhase.roadsLeft)
+            opts.robberTargets.isNotEmpty() -> stringResource(Res.string.notice_move_robber)
+            state.state.phase is GamePhase.ChooseStealTarget && state.isMyTurn -> stringResource(Res.string.notice_choose_steal)
             else -> state.notice
         }
 
@@ -199,7 +201,7 @@ fun PortraitGameLayout(
                             modifier = Modifier.padding(horizontal = Spacing.md)
                         ) {
                             Text(
-                                "Actions",
+                                stringResource(Res.string.tab_actions),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold
                             )
@@ -219,7 +221,7 @@ fun PortraitGameLayout(
                             modifier = Modifier.padding(horizontal = Spacing.md)
                         ) {
                             Text(
-                                "Inventory",
+                                stringResource(Res.string.tab_inventory),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold
                             )
@@ -232,7 +234,7 @@ fun PortraitGameLayout(
                 PortraitBottomTab.ACTIONS -> {
                     ActionBar {
                         ActionCard(
-                            label = "Settlement",
+                            label = stringResource(Res.string.build_settlement),
                             enabled = opts.canSettlement,
                             selected = state.buildMode == BuildMode.SETTLEMENT,
                             onClick = onToggleSettlement,
@@ -240,7 +242,7 @@ fun PortraitGameLayout(
                             Icon(rememberSvgPainter("files/icons/svg/ic_settlement.svg"), null, Modifier.fillMaxSize(0.6f))
                         }
                         ActionCard(
-                            label = "Road",
+                            label = stringResource(Res.string.build_road),
                             enabled = opts.canRoad,
                             selected = state.buildMode == BuildMode.ROAD,
                             onClick = onToggleRoad,
@@ -248,7 +250,7 @@ fun PortraitGameLayout(
                             Icon(rememberSvgPainter("files/icons/svg/ic_road.svg"), null, Modifier.fillMaxSize(0.6f))
                         }
                         ActionCard(
-                            label = "City",
+                            label = stringResource(Res.string.build_city),
                             enabled = opts.canCity,
                             selected = state.buildMode == BuildMode.CITY,
                             onClick = onToggleCity,
@@ -256,14 +258,14 @@ fun PortraitGameLayout(
                             Icon(rememberSvgPainter("files/icons/svg/ic_city.svg"), null, Modifier.fillMaxSize(0.6f))
                         }
                         ActionCard(
-                            label = "Buy dev card",
+                            label = stringResource(Res.string.buy_dev_card),
                             enabled = opts.canBuyDevCard,
                             onClick = onBuyDevCard,
                         ) {
                             Icon(rememberSvgPainter("files/icons/svg/ic_dev_card.svg"), null, Modifier.fillMaxSize(0.6f))
                         }
                         ActionCard(
-                            label = "Trade",
+                            label = stringResource(Res.string.trade),
                             enabled = opts.canTrade,
                             selected = showTradeSheet,
                             badge = opts.tradeBadge,
@@ -272,7 +274,7 @@ fun PortraitGameLayout(
                             Icon(Icons.Filled.SwapHoriz, null, Modifier.fillMaxSize(0.6f))
                         }
                         ActionCard(
-                            label = "End turn",
+                            label = stringResource(Res.string.end_turn),
                             enabled = opts.canEndTurn,
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
@@ -387,13 +389,16 @@ fun PortraitGameLayout(
     }
 }
 
-private fun phaseLabel(phase: GamePhase): String = when (phase) {
-    is GamePhase.Setup -> "Setup"
-    GamePhase.Play -> "Play"
-    is GamePhase.Discard -> "Discard"
-    GamePhase.Robber -> "Robber"
-    is GamePhase.ChooseStealTarget -> "Robber"
-    is GamePhase.RoadBuilding -> "Road Building"
-    is GamePhase.Finished -> "Finished"
-}
+@Composable
+private fun phaseLabel(phase: GamePhase): String = stringResource(
+    when (phase) {
+        is GamePhase.Setup -> Res.string.phase_setup
+        GamePhase.Play -> Res.string.phase_play
+        is GamePhase.Discard -> Res.string.phase_discard
+        GamePhase.Robber -> Res.string.phase_robber
+        is GamePhase.ChooseStealTarget -> Res.string.phase_robber
+        is GamePhase.RoadBuilding -> Res.string.phase_road_building
+        is GamePhase.Finished -> Res.string.phase_finished
+    }
+)
 

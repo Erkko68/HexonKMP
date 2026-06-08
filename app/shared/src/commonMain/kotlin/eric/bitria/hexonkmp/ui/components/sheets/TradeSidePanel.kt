@@ -30,6 +30,8 @@ import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.TradeOffer
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.ui.theme.Spacing
+import hexonkmp.app.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun TradeSidePanel(
@@ -70,7 +72,7 @@ fun TradeSidePanel(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Trade Console", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(Res.string.trade_console), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = "Close trade console")
                 }

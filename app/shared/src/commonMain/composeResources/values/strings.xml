@@ -1,0 +1,118 @@
+<resources>
+    <!-- App / menu -->
+    <string name="app_name">Hexon</string>
+    <string name="ready_to_play">Ready to play?</string>
+    <string name="find_game">Find Game</string>
+    <string name="private_lobby">Private Lobby</string>
+
+    <!-- Common actions -->
+    <string name="action_join">Join</string>
+    <string name="action_create">Create</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_back">Back</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_play">Play</string>
+    <string name="action_take">Take</string>
+    <string name="action_leave">Leave</string>
+    <string name="action_accept">Accept</string>
+    <string name="action_decline">Decline</string>
+
+    <!-- Name dialog -->
+    <string name="choose_your_name">Choose your name</string>
+    <string name="player_name">Player name</string>
+
+    <!-- Lobby / matchmaking -->
+    <string name="lobby_code">Lobby code</string>
+    <string name="enter_6_digit_code">Enter a 6-digit code</string>
+    <string name="lobby_not_found">Lobby not found</string>
+    <string name="connecting">Connecting…</string>
+    <string name="loading">Loading…</string>
+    <string name="waiting_for_players">Waiting for players…</string>
+    <string name="players_count">Players %1$d / %2$d</string>
+    <string name="count_fraction">%1$d / %2$d</string>
+    <string name="starting_in">Starting in %1$ds</string>
+    <string name="start_game">Start game</string>
+    <string name="lobby_host">host</string>
+    <string name="open_slot">Open slot</string>
+    <string name="something_went_wrong">Something went wrong</string>
+    <string name="connection_failed">Connection failed</string>
+
+    <!-- Game HUD -->
+    <string name="build_settlement">Settlement</string>
+    <string name="build_road">Road</string>
+    <string name="build_city">City</string>
+    <string name="buy_dev_card">Buy dev card</string>
+    <string name="trade">Trade</string>
+    <string name="end_turn">End turn</string>
+    <string name="tab_actions">Actions</string>
+    <string name="tab_inventory">Inventory</string>
+
+    <!-- Phases -->
+    <string name="phase_setup">Setup</string>
+    <string name="phase_play">Play</string>
+    <string name="phase_discard">Discard</string>
+    <string name="phase_robber">Robber</string>
+    <string name="phase_road_building">Road Building</string>
+    <string name="phase_finished">Finished</string>
+
+    <!-- Contextual notices -->
+    <string name="notice_place_free_roads">Place %1$d free road(s) — tap a spot</string>
+    <string name="notice_move_robber">Move the robber — tap a tile</string>
+    <string name="notice_choose_steal">Choose who to steal from</string>
+    <string name="notice_player_joined">%1$s joined</string>
+    <string name="notice_player_left">%1$s left</string>
+
+    <!-- Steal target sheet -->
+    <string name="steal_title">Choose who to steal from</string>
+    <string name="steal_description">The robber landed on a tile with multiple opponents. Tap one to steal a card.</string>
+    <string name="cards_count">%1$d cards</string>
+
+    <!-- Resources -->
+    <string name="resource_brick">Brick</string>
+    <string name="resource_lumber">Lumber</string>
+    <string name="resource_wool">Wool</string>
+    <string name="resource_grain">Grain</string>
+    <string name="resource_ore">Ore</string>
+
+    <!-- Development cards + achievements -->
+    <string name="dev_knight">Knight</string>
+    <string name="dev_victory_point">Victory Point</string>
+    <string name="dev_road_building">Road Building</string>
+    <string name="dev_year_of_plenty">Year of Plenty</string>
+    <string name="dev_monopoly">Monopoly</string>
+    <string name="achievement_longest_road">Longest Road</string>
+    <string name="achievement_largest_army">Largest Army</string>
+    <string name="knight_description">Move the robber to any tile and steal a card from an adjacent opponent. Counts toward Largest Army.</string>
+    <string name="road_building_description">Place two roads anywhere in your network for free.</string>
+    <string name="year_of_plenty_progress">Take 2 resources from the bank  (%1$d / 2)</string>
+    <string name="monopoly_description">Choose a resource — you take all of it from every other player</string>
+
+    <!-- Trade -->
+    <string name="trade_bank">Bank</string>
+    <string name="trade_offer">Offer</string>
+    <string name="trade_proposer">Proposer</string>
+    <string name="trade_player">Player</string>
+    <string name="trade_console">Trade Console</string>
+    <string name="trade_your_offers">Your offers</string>
+    <string name="trade_offers_for_you">Offers for you</string>
+    <string name="trade_you_give">You give</string>
+    <string name="trade_you_want">You want</string>
+    <string name="trade_finalize">Trade</string>
+    <string name="trade_no_offers">No offers right now</string>
+    <string name="trade_waiting_responses">Waiting for responses…</string>
+    <string name="trade_no_resources">No resources</string>
+    <string name="trade_missing_resources">You don\'t have what they want</string>
+    <string name="trade_declined">Declined</string>
+
+    <!-- Discard -->
+    <string name="discard">Discard</string>
+    <string name="discard_progress">Discard %1$d  (%2$d / %1$d selected)</string>
+
+    <!-- Winner -->
+    <string name="you_won">You won!</string>
+    <string name="game_over">Game over</string>
+    <string name="reached_goal">%1$s reached the goal</string>
+    <string name="return_to_menu">Return to menu</string>
+</resources>

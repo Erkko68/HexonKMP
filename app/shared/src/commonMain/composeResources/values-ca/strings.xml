@@ -1,0 +1,105 @@
+<resources>
+    <string name="app_name">Hexon</string>
+    <string name="ready_to_play">A punt per jugar?</string>
+    <string name="find_game">Cerca partida</string>
+    <string name="private_lobby">Sala privada</string>
+
+    <string name="action_join">Uneix-te</string>
+    <string name="action_create">Crea</string>
+    <string name="action_cancel">Cancel·la</string>
+    <string name="action_clear">Esborra</string>
+    <string name="action_back">Enrere</string>
+    <string name="action_retry">Reintenta</string>
+    <string name="action_continue">Continua</string>
+    <string name="action_play">Juga</string>
+    <string name="action_take">Pren</string>
+    <string name="action_leave">Surt</string>
+    <string name="action_accept">Accepta</string>
+    <string name="action_decline">Rebutja</string>
+
+    <string name="choose_your_name">Tria el teu nom</string>
+    <string name="player_name">Nom del jugador</string>
+
+    <string name="lobby_code">Codi de sala</string>
+    <string name="enter_6_digit_code">Introdueix un codi de 6 dígits</string>
+    <string name="lobby_not_found">Sala no trobada</string>
+    <string name="connecting">Connectant…</string>
+    <string name="loading">Carregant…</string>
+    <string name="waiting_for_players">Esperant jugadors…</string>
+    <string name="players_count">Jugadors %1$d / %2$d</string>
+    <string name="count_fraction">%1$d / %2$d</string>
+    <string name="starting_in">Comença en %1$ds</string>
+    <string name="start_game">Comença la partida</string>
+    <string name="lobby_host">amfitrió</string>
+    <string name="open_slot">Plaça lliure</string>
+    <string name="something_went_wrong">Alguna cosa ha anat malament</string>
+    <string name="connection_failed">Error de connexió</string>
+
+    <string name="build_settlement">Poblat</string>
+    <string name="build_road">Camí</string>
+    <string name="build_city">Ciutat</string>
+    <string name="buy_dev_card">Compra carta de desenvolupament</string>
+    <string name="trade">Comercia</string>
+    <string name="end_turn">Acaba el torn</string>
+    <string name="tab_actions">Accions</string>
+    <string name="tab_inventory">Inventari</string>
+
+    <string name="phase_setup">Preparació</string>
+    <string name="phase_play">Joc</string>
+    <string name="phase_discard">Descarta</string>
+    <string name="phase_robber">Lladre</string>
+    <string name="phase_road_building">Construcció de camins</string>
+    <string name="phase_finished">Finalitzada</string>
+
+    <string name="notice_place_free_roads">Col·loca %1$d camí(ns) gratis — toca un lloc</string>
+    <string name="notice_move_robber">Mou el lladre — toca una casella</string>
+    <string name="notice_choose_steal">Tria a qui robar</string>
+    <string name="notice_player_joined">%1$s s\'ha unit</string>
+    <string name="notice_player_left">%1$s ha sortit</string>
+
+    <string name="steal_title">Tria a qui robar</string>
+    <string name="steal_description">El lladre ha caigut en una casella amb diversos oponents. Toca\'n un per robar-li una carta.</string>
+    <string name="cards_count">%1$d cartes</string>
+
+    <string name="resource_brick">Argila</string>
+    <string name="resource_lumber">Fusta</string>
+    <string name="resource_wool">Llana</string>
+    <string name="resource_grain">Blat</string>
+    <string name="resource_ore">Mineral</string>
+
+    <string name="dev_knight">Cavaller</string>
+    <string name="dev_victory_point">Punt de victòria</string>
+    <string name="dev_road_building">Construcció de camins</string>
+    <string name="dev_year_of_plenty">Any d\'abundància</string>
+    <string name="dev_monopoly">Monopoli</string>
+    <string name="achievement_longest_road">Camí més llarg</string>
+    <string name="achievement_largest_army">Exèrcit més gran</string>
+    <string name="knight_description">Mou el lladre a qualsevol casella i roba una carta a un oponent adjacent. Compta per a l\'Exèrcit més gran.</string>
+    <string name="road_building_description">Col·loca dos camins gratis a qualsevol lloc de la teva xarxa.</string>
+    <string name="year_of_plenty_progress">Pren 2 recursos del banc  (%1$d / 2)</string>
+    <string name="monopoly_description">Tria un recurs — t\'enduus tot el que tinguin els altres jugadors</string>
+
+    <string name="trade_bank">Banc</string>
+    <string name="trade_offer">Ofereix</string>
+    <string name="trade_proposer">Proponent</string>
+    <string name="trade_player">Jugador</string>
+    <string name="trade_console">Consola de comerç</string>
+    <string name="trade_your_offers">Les teves ofertes</string>
+    <string name="trade_offers_for_you">Ofertes per a tu</string>
+    <string name="trade_you_give">Tu dones</string>
+    <string name="trade_you_want">Tu vols</string>
+    <string name="trade_finalize">Comercia</string>
+    <string name="trade_no_offers">No hi ha ofertes ara</string>
+    <string name="trade_waiting_responses">Esperant respostes…</string>
+    <string name="trade_no_resources">Sense recursos</string>
+    <string name="trade_missing_resources">No tens el que demana</string>
+    <string name="trade_declined">Rebutjada</string>
+
+    <string name="discard">Descarta</string>
+    <string name="discard_progress">Descarta %1$d  (%2$d / %1$d seleccionades)</string>
+
+    <string name="you_won">Has guanyat!</string>
+    <string name="game_over">Partida acabada</string>
+    <string name="reached_goal">%1$s ha assolit l\'objectiu</string>
+    <string name="return_to_menu">Torna al menú</string>
+</resources>

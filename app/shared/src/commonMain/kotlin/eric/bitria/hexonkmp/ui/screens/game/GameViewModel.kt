@@ -76,6 +76,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import hexonkmp.app.shared.generated.resources.Res
+import hexonkmp.app.shared.generated.resources.notice_player_joined
+import hexonkmp.app.shared.generated.resources.notice_player_left
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
 
 // Upper bound for how many of a resource you can request in one proposed trade.
 private const val MAX_RECEIVE = 9
@@ -482,6 +487,11 @@ class GameViewModel(
     private fun displayNameOf(playerId: String): String =
         (_state.value as? GameUiState.InGame)?.displayName(PlayerId(playerId)) ?: playerId
 
+    // Localized presence notice: resolve the string off the main path, then show it.
+    private fun notify(template: StringResource, playerId: String) {
+        viewModelScope.launch { showNotice(getString(template, displayNameOf(playerId))) }
+    }
+
     private fun handleServerEvent(event: CatanServerEvent) {
         when (event) {
             // Lobby-only events: handled by the LobbyViewModel, ignored here.
@@ -502,8 +512,8 @@ class GameViewModel(
             }
             // --- Presence: Catan-style, players coming and going don't end the
             // game for the others — just surface a notice. ---
-            is PlayerJoined -> showNotice("${displayNameOf(event.playerId)} joined")
-            is PlayerLeft -> showNotice("${displayNameOf(event.playerId)} left")
+            is PlayerJoined -> notify(Res.string.notice_player_joined, event.playerId)
+            is PlayerLeft -> notify(Res.string.notice_player_left, event.playerId)
             // --- Game updates: apply the domain event to the local state copy. ---
             is GameUpdate -> _state.update { s ->
                 if (s is GameUiState.InGame) s.updated(state = applyEvent(s, event)) else s

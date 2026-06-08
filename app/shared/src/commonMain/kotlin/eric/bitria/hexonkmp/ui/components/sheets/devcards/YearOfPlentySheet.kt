@@ -24,6 +24,8 @@ import eric.bitria.hexonkmp.core.game.model.ResourceCount
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.ui.components.cards.ResourceCard
 import eric.bitria.hexonkmp.ui.theme.Spacing
+import hexonkmp.app.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 // Year of Plenty sheet: tap-to-pick any 2 resources from the bank (any mix,
 // including two of the same). Submit sends the action; Cancel dismisses.
@@ -40,9 +42,9 @@ fun YearOfPlentySheet(onSubmit: (ResourceCount) -> Unit, onDismiss: () -> Unit) 
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("Year of Plenty", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(Res.string.dev_year_of_plenty), style = MaterialTheme.typography.titleSmall)
             Text(
-                "Take 2 resources from the bank  (${selected.total} / 2)",
+                stringResource(Res.string.year_of_plenty_progress, selected.total),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -72,15 +74,15 @@ fun YearOfPlentySheet(onSubmit: (ResourceCount) -> Unit, onDismiss: () -> Unit) 
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+                OutlinedButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
                 OutlinedButton(
                     onClick = { selected = ResourceCount() },
                     enabled = !selected.isEmpty,
-                ) { Text("Clear") }
+                ) { Text(stringResource(Res.string.action_clear)) }
                 Button(
                     onClick = { onDismiss(); onSubmit(selected) },
                     enabled = selected.total == 2,
-                ) { Text("Take") }
+                ) { Text(stringResource(Res.string.action_take)) }
             }
         }
     }

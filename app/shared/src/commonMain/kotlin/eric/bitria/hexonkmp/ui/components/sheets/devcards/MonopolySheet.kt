@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.ui.components.cards.ResourceCard
 import eric.bitria.hexonkmp.ui.theme.Spacing
+import hexonkmp.app.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 // Monopoly sheet: tap a resource type to select it, then confirm to take all
 // of that resource from every other player. Cancel dismisses without action.
@@ -39,9 +41,9 @@ fun MonopolySheet(onSubmit: (Resource) -> Unit, onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("Monopoly", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(Res.string.dev_monopoly), style = MaterialTheme.typography.titleSmall)
             Text(
-                "Choose a resource — you take all of it from every other player",
+                stringResource(Res.string.monopoly_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -62,11 +64,11 @@ fun MonopolySheet(onSubmit: (Resource) -> Unit, onDismiss: () -> Unit) {
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+                OutlinedButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
                 Button(
                     onClick = { selected?.let { onDismiss(); onSubmit(it) } },
                     enabled = selected != null,
-                ) { Text("Take") }
+                ) { Text(stringResource(Res.string.action_take)) }
             }
         }
     }

@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import eric.bitria.hexonkmp.ui.theme.Spacing
+import hexonkmp.app.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 // Confirmation sheet for playing the Knight dev card. Informational only —
 // the card effect (move robber + steal) plays out on the board after confirming.
@@ -30,16 +32,16 @@ fun KnightSheet(onConfirm: () -> Unit, onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("Knight", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(Res.string.dev_knight), style = MaterialTheme.typography.titleSmall)
             Text(
-                "Move the robber to any tile and steal a card from an adjacent opponent. Counts toward Largest Army.",
+                stringResource(Res.string.knight_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
-                Button(onClick = { onDismiss(); onConfirm() }) { Text("Play") }
+                OutlinedButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
+                Button(onClick = { onDismiss(); onConfirm() }) { Text(stringResource(Res.string.action_play)) }
             }
         }
     }

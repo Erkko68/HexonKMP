@@ -1,0 +1,105 @@
+<resources>
+    <string name="app_name">Hexon</string>
+    <string name="ready_to_play">Prêt à jouer ?</string>
+    <string name="find_game">Trouver une partie</string>
+    <string name="private_lobby">Salon privé</string>
+
+    <string name="action_join">Rejoindre</string>
+    <string name="action_create">Créer</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="action_clear">Effacer</string>
+    <string name="action_back">Retour</string>
+    <string name="action_retry">Réessayer</string>
+    <string name="action_continue">Continuer</string>
+    <string name="action_play">Jouer</string>
+    <string name="action_take">Prendre</string>
+    <string name="action_leave">Quitter</string>
+    <string name="action_accept">Accepter</string>
+    <string name="action_decline">Refuser</string>
+
+    <string name="choose_your_name">Choisissez votre nom</string>
+    <string name="player_name">Nom du joueur</string>
+
+    <string name="lobby_code">Code du salon</string>
+    <string name="enter_6_digit_code">Entrez un code à 6 chiffres</string>
+    <string name="lobby_not_found">Salon introuvable</string>
+    <string name="connecting">Connexion…</string>
+    <string name="loading">Chargement…</string>
+    <string name="waiting_for_players">En attente de joueurs…</string>
+    <string name="players_count">Joueurs %1$d / %2$d</string>
+    <string name="count_fraction">%1$d / %2$d</string>
+    <string name="starting_in">Départ dans %1$ds</string>
+    <string name="start_game">Lancer la partie</string>
+    <string name="lobby_host">hôte</string>
+    <string name="open_slot">Place libre</string>
+    <string name="something_went_wrong">Une erreur s\'est produite</string>
+    <string name="connection_failed">Échec de connexion</string>
+
+    <string name="build_settlement">Colonie</string>
+    <string name="build_road">Route</string>
+    <string name="build_city">Ville</string>
+    <string name="buy_dev_card">Acheter une carte développement</string>
+    <string name="trade">Échanger</string>
+    <string name="end_turn">Fin de tour</string>
+    <string name="tab_actions">Actions</string>
+    <string name="tab_inventory">Inventaire</string>
+
+    <string name="phase_setup">Mise en place</string>
+    <string name="phase_play">Jeu</string>
+    <string name="phase_discard">Défausser</string>
+    <string name="phase_robber">Voleur</string>
+    <string name="phase_road_building">Construction de routes</string>
+    <string name="phase_finished">Terminée</string>
+
+    <string name="notice_place_free_roads">Placez %1$d route(s) gratuite(s) — appuyez sur un emplacement</string>
+    <string name="notice_move_robber">Déplacez le voleur — appuyez sur une tuile</string>
+    <string name="notice_choose_steal">Choisissez qui voler</string>
+    <string name="notice_player_joined">%1$s a rejoint</string>
+    <string name="notice_player_left">%1$s est parti</string>
+
+    <string name="steal_title">Choisissez qui voler</string>
+    <string name="steal_description">Le voleur s\'est posé sur une tuile avec plusieurs adversaires. Appuyez sur l\'un d\'eux pour lui voler une carte.</string>
+    <string name="cards_count">%1$d cartes</string>
+
+    <string name="resource_brick">Argile</string>
+    <string name="resource_lumber">Bois</string>
+    <string name="resource_wool">Laine</string>
+    <string name="resource_grain">Blé</string>
+    <string name="resource_ore">Minerai</string>
+
+    <string name="dev_knight">Chevalier</string>
+    <string name="dev_victory_point">Point de victoire</string>
+    <string name="dev_road_building">Construction de routes</string>
+    <string name="dev_year_of_plenty">Année d\'abondance</string>
+    <string name="dev_monopoly">Monopole</string>
+    <string name="achievement_longest_road">Route la plus longue</string>
+    <string name="achievement_largest_army">Grande armée</string>
+    <string name="knight_description">Déplacez le voleur sur n\'importe quelle tuile et volez une carte à un adversaire adjacent. Compte pour la Grande armée.</string>
+    <string name="road_building_description">Placez gratuitement deux routes n\'importe où dans votre réseau.</string>
+    <string name="year_of_plenty_progress">Prenez 2 ressources de la banque  (%1$d / 2)</string>
+    <string name="monopoly_description">Choisissez une ressource — vous prenez toutes celles des autres joueurs</string>
+
+    <string name="trade_bank">Banque</string>
+    <string name="trade_offer">Offre</string>
+    <string name="trade_proposer">Proposant</string>
+    <string name="trade_player">Joueur</string>
+    <string name="trade_console">Console d\'échange</string>
+    <string name="trade_your_offers">Vos offres</string>
+    <string name="trade_offers_for_you">Offres pour vous</string>
+    <string name="trade_you_give">Vous donnez</string>
+    <string name="trade_you_want">Vous voulez</string>
+    <string name="trade_finalize">Échanger</string>
+    <string name="trade_no_offers">Aucune offre pour l\'instant</string>
+    <string name="trade_waiting_responses">En attente de réponses…</string>
+    <string name="trade_no_resources">Pas de ressources</string>
+    <string name="trade_missing_resources">Vous n\'avez pas ce qu\'ils veulent</string>
+    <string name="trade_declined">Refusée</string>
+
+    <string name="discard">Défausser</string>
+    <string name="discard_progress">Défaussez %1$d  (%2$d / %1$d sélectionné(s))</string>
+
+    <string name="you_won">Vous avez gagné !</string>
+    <string name="game_over">Partie terminée</string>
+    <string name="reached_goal">%1$s a atteint l\'objectif</string>
+    <string name="return_to_menu">Retour au menu</string>
+</resources>

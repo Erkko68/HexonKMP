@@ -12,6 +12,8 @@ import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.ui.theme.Spacing
 import eric.bitria.hexonkmp.ui.theme.Tokens
 import eric.bitria.hexonkmp.ui.theme.rememberSvgPainter
+import hexonkmp.app.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 // The local player's dev cards as a row of DevelopmentCards, one chip per type.
 // Cards in [playable] are highlighted and fire onPlay(card) on tap. Any held
@@ -38,13 +40,13 @@ fun DevelopmentBar(
         if (hasLongestRoad) {
             AchievementCard(
                 painter = rememberSvgPainter("files/icons/svg/ic_road.svg"),
-                label = "Longest Road",
+                label = stringResource(Res.string.achievement_longest_road),
             )
         }
         if (hasLargestArmy) {
             AchievementCard(
                 painter = rememberSvgPainter("files/icons/svg/ic_dev_knight.svg"),
-                label = "Largest Army",
+                label = stringResource(Res.string.achievement_largest_army),
             )
         }
         if (hasAchievement && hasDevCards) {

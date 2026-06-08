@@ -18,6 +18,8 @@ import androidx.compose.ui.text.style.TextAlign
 import eric.bitria.hexonkmp.ui.components.hud.PlayerToken
 import eric.bitria.hexonkmp.ui.theme.Spacing
 import eric.bitria.hexonkmp.ui.theme.Tokens
+import hexonkmp.app.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 // Full-screen game-over overlay. [color] and [label] are the winner's resolved
 // player visuals; [youWon] drives the headline copy.
@@ -39,18 +41,18 @@ fun WinnerDialog(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
                 Text(
-                    if (youWon) "You won!" else "Game over",
+                    stringResource(if (youWon) Res.string.you_won else Res.string.game_over),
                     style = MaterialTheme.typography.headlineSmall,
                     textAlign = TextAlign.Center,
                 )
                 PlayerToken(color, label, size = Tokens.tokenLg)
                 Text(
-                    "$label reached the goal",
+                    stringResource(Res.string.reached_goal, label),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
-                Button(onClick = onReturnToMenu) { Text("Return to menu") }
+                Button(onClick = onReturnToMenu) { Text(stringResource(Res.string.return_to_menu)) }
             }
         }
     }

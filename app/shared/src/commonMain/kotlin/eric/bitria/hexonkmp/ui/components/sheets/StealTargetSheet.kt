@@ -27,6 +27,8 @@ import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.ui.theme.Shapes
 import eric.bitria.hexonkmp.ui.theme.Spacing
 import eric.bitria.hexonkmp.ui.theme.Tokens
+import hexonkmp.app.shared.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 // Sheet shown when the robber lands on a tile that has buildings from two or more
 // opponents. The roller picks one to steal a card from. Laid out like the resource
@@ -48,9 +50,9 @@ fun StealTargetSheet(
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("Choose who to steal from", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(Res.string.steal_title), style = MaterialTheme.typography.titleSmall)
             Text(
-                "The robber landed on a tile with multiple opponents. Tap one to steal a card.",
+                stringResource(Res.string.steal_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -103,7 +105,7 @@ private fun StealTargetCard(
         }
         Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
         Text(
-            "$cardCount card${if (cardCount == 1) "" else "s"}",
+            stringResource(Res.string.cards_count, cardCount),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
