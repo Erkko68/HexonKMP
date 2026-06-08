@@ -22,3 +22,6 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Kotlin/JS yarn lock — platform-specific (fsevents on macOS), let CI regenerate it
+kotlin-js-store/yarn.lock
