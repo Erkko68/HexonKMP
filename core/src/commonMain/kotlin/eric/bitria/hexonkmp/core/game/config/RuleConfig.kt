@@ -25,6 +25,10 @@ data class RuleConfig(
     // it's worth (held by whoever has played the most knights, once past the min).
     val largestArmyMin: Int = 3,
     val largestArmyVp: Int = 2,
+    // Longest Road: the minimum road-chain length to claim the award, and its VP value.
+    // Incumbent keeps the title on ties — a challenger must exceed, not match.
+    val longestRoadMin: Int = 5,
+    val longestRoadVp: Int = 2,
     // How many identical resources the bank takes for one of any other resource
     // (classic Catan = 4:1; ports lower this, added later).
     val bankTradeRatio: Int = 4,

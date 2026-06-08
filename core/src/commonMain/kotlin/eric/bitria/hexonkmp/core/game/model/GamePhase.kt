@@ -57,6 +57,13 @@ sealed interface GamePhase {
     @SerialName("RoadBuilding")
     data class RoadBuilding(val roadsLeft: Int) : GamePhase
 
+    // After the robber lands on a tile with 2+ eligible opponents: the roller must
+    // pick who to steal from. [victims] are the eligible player ids (each has a
+    // building on the robber tile and at least one resource card).
+    @Serializable
+    @SerialName("ChooseStealTarget")
+    data class ChooseStealTarget(val victims: List<PlayerId>) : GamePhase
+
     // The game is over — [winner] reached the victory-point goal. Terminal: no
     // further actions are accepted.
     @Serializable

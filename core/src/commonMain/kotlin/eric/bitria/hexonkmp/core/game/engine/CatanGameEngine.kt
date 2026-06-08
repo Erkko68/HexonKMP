@@ -16,6 +16,7 @@ import eric.bitria.hexonkmp.core.game.action.MoveRobber
 import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
 import eric.bitria.hexonkmp.core.game.action.ProposeTrade
 import eric.bitria.hexonkmp.core.game.action.RespondTrade
+import eric.bitria.hexonkmp.core.game.action.StealFrom
 import eric.bitria.hexonkmp.core.game.action.UpgradeCity
 import eric.bitria.hexonkmp.core.game.board.BoardGenerator
 import eric.bitria.hexonkmp.core.game.config.Buildable
@@ -29,6 +30,7 @@ import eric.bitria.hexonkmp.core.game.event.DevCardPlayed
 import eric.bitria.hexonkmp.core.game.event.DiceRolled
 import eric.bitria.hexonkmp.core.game.event.GameEnded
 import eric.bitria.hexonkmp.core.game.event.LargestArmyChanged
+import eric.bitria.hexonkmp.core.game.event.LongestRoadChanged
 import eric.bitria.hexonkmp.core.game.event.GameEvent
 import eric.bitria.hexonkmp.core.game.event.MonopolyUsed
 import eric.bitria.hexonkmp.core.game.event.PhaseChanged
@@ -126,6 +128,7 @@ class CatanGameEngine(
             }
             is UpgradeCity -> upgradeCity(state, actor, action.vertex)
             is MoveRobber -> moveRobber(state, actor, action.hex)
+            is StealFrom -> stealFrom(state, actor, action.target)
             BuyDevCard -> buyDevCard(state, actor)
             PlayKnight -> playKnight(state, actor)
             PlayRoadBuilding -> playRoadBuilding(state, actor)
@@ -338,11 +341,11 @@ class CatanGameEngine(
             return CatanResult(state, rejection = "Not enough resources")
         }
         val road = Road(actor, edge)
-        val next = state.copy(
+        val placed = state.copy(
             roads = state.roads + road,
             hands = spend(state.hands, actor, cost),
         )
-        return CatanResult(next, events = listOf(RoadPlaced(road)))
+        return checkLongestRoad(CatanResult(placed, events = listOf(RoadPlaced(road))), actor)
     }
 
     private fun upgradeCity(state: GameState, actor: PlayerId, vertex: Vertex): CatanResult {
@@ -461,8 +464,11 @@ class CatanGameEngine(
         val road = Road(actor, edge)
         val roadsLeft = phase.roadsLeft - 1
         val nextPhase: GamePhase = if (roadsLeft > 0) GamePhase.RoadBuilding(roadsLeft) else GamePhase.Play
-        val next = state.copy(roads = state.roads + road, phase = nextPhase)
-        return CatanResult(next, events = listOf(RoadPlaced(road), PhaseChanged(nextPhase)))
+        val placed = state.copy(roads = state.roads + road, phase = nextPhase)
+        return checkLongestRoad(
+            CatanResult(placed, events = listOf(RoadPlaced(road), PhaseChanged(nextPhase))),
+            actor,
+        )
     }
 
     // Play a Year of Plenty card: take exactly 2 resources of the player's choice
@@ -542,12 +548,81 @@ class CatanGameEngine(
         return holder
     }
 
+    // The length of the longest continuous road chain owned by [player].
+    // Roads form a graph of vertices connected by edges; a chain is broken at any
+    // vertex occupied by an opponent's settlement or city (you can't route through
+    // another player's building). Uses DFS with edge-visited tracking over the
+    // (bounded) road graph, which is small enough to be exhaustive.
+    internal fun longestRoadOf(state: GameState, player: PlayerId): Int {
+        val playerRoads = state.roads.filter { it.owner == player }
+        if (playerRoads.isEmpty()) return 0
+
+        val visited = mutableSetOf<Edge>()
+
+        fun dfs(vertex: Vertex): Int {
+            var best = 0
+            for (road in playerRoads) {
+                if (road.edge in visited) continue
+                if (!road.edge.touches(vertex)) continue
+                // Move along this road to its other endpoint.
+                val next = road.edge.endpoints().firstOrNull { it != vertex } ?: continue
+                // An opponent's building on [next] breaks the chain — we count the
+                // road reaching [next] but cannot extend beyond it.
+                val blocked = state.buildingAt(next)?.owner.let { it != null && it != player }
+                visited += road.edge
+                val extension = if (blocked) 0 else dfs(next)
+                best = maxOf(best, 1 + extension)
+                visited -= road.edge
+            }
+            return best
+        }
+
+        // Try every endpoint of every player road as a starting point.
+        var max = 0
+        val startVertices = playerRoads.flatMap { it.edge.endpoints() }.distinct()
+        for (v in startVertices) {
+            max = maxOf(max, dfs(v))
+        }
+        return max
+    }
+
+    // Determines who should hold Longest Road: the player with the longest chain
+    // at or above [longestRoadMin] roads. The incumbent keeps the title on ties
+    // (challenger must strictly exceed the current holder's length).
+    private fun longestRoadHolder(state: GameState): PlayerId? {
+        val min = state.config.rules.longestRoadMin
+        val leadLength = state.longestRoad?.let { longestRoadOf(state, it) } ?: 0
+        var holder = state.longestRoad
+        var best = maxOf(leadLength, min - 1) // must reach min, and beat the incumbent
+        for (player in state.players) {
+            val n = longestRoadOf(state, player)
+            if (n >= min && n > best) {
+                best = n
+                holder = player
+            }
+        }
+        return holder
+    }
+
+    // Checks whether Longest Road changed after a road was placed and, if so,
+    // updates the state, emits LongestRoadChanged, and runs the win check.
+    private fun checkLongestRoad(result: CatanResult, actor: PlayerId): CatanResult {
+        val newHolder = longestRoadHolder(result.state)
+        if (newHolder == result.state.longestRoad) return result
+        val next = result.state.copy(longestRoad = newHolder)
+        return endIfWon(
+            result.copy(state = next, events = result.events + LongestRoadChanged(newHolder)),
+            actor,
+        )
+    }
+
     private fun victoryPoints(state: GameState, player: PlayerId): Int {
         val fromBuildings = state.buildings.filter { it.owner == player }
             .sumOf { if (it.kind == Building.Kind.CITY) 2 else 1 }
         val fromVpCards = state.allDevCardsOf(player).count { it == DevCard.VICTORY_POINT }
         val fromArmy = if (state.largestArmy == player) state.config.rules.largestArmyVp else 0
-        return fromBuildings + fromVpCards + fromArmy
+        val fromRoad = if (state.longestRoad == player) state.config.rules.longestRoadVp else 0
+        return fromBuildings + fromVpCards + fromArmy + fromRoad
     }
 
     // If [actor] just reached the victory goal, end the game: switch to Finished
@@ -610,31 +685,65 @@ class CatanGameEngine(
         if (hex == state.board.robber) {
             return CatanResult(state, rejection = "Move the robber to a different tile")
         }
-        val moved = state.copy(board = state.board.copy(robber = hex), phase = GamePhase.Play)
-        // Steal one random card from a random opponent with a building on the tile.
+        val moved = state.copy(board = state.board.copy(robber = hex))
         val victims = state.buildings
             .filter { hex in it.vertex.hexes && it.owner != actor }
             .map { it.owner }
             .distinct()
             .filter { !state.handOf(it).isEmpty }
-        val events = mutableListOf<eric.bitria.hexonkmp.core.game.event.GameEvent>(
-            RobberMoved(hex),
-            PhaseChanged(GamePhase.Play),
-        )
-        if (victims.isEmpty()) {
-            return CatanResult(moved, events = events)
+
+        return when {
+            victims.isEmpty() -> {
+                val next = moved.copy(phase = GamePhase.Play)
+                CatanResult(next, events = listOf(RobberMoved(hex), PhaseChanged(GamePhase.Play)))
+            }
+            victims.size == 1 -> {
+                // Single eligible victim: auto-steal (no UI selection needed).
+                // RobberMoved + steal events are emitted together.
+                executeSteal(moved, actor, victims.single(), leadEvents = listOf(RobberMoved(hex)))
+            }
+            else -> {
+                // Multiple eligible victims: roller must choose — enter a sub-phase.
+                val choosePhase = GamePhase.ChooseStealTarget(victims)
+                val next = moved.copy(phase = choosePhase)
+                CatanResult(next, events = listOf(RobberMoved(hex), PhaseChanged(choosePhase)))
+            }
         }
+    }
+
+    // Steals one random card from [victim], returns to Play. [leadEvents] are
+    // prepended to the result (used in the single-victim path to include RobberMoved).
+    private fun executeSteal(
+        state: GameState,
+        actor: PlayerId,
+        victim: PlayerId,
+        leadEvents: List<GameEvent> = emptyList(),
+    ): CatanResult {
         val rng = Random(state.rngSeed)
-        val victim = victims[rng.nextInt(victims.size)]
         val pool = state.handOf(victim).amounts.flatMap { (res, n) -> List(n) { res } }
         val stolen = pool[rng.nextInt(pool.size)]
         val one = ResourceCount.of(stolen to 1)
-        val next = moved.copy(
-            hands = addGain(spend(moved.hands, victim, one), actor, one),
+        val next = state.copy(
+            hands = addGain(spend(state.hands, victim, one), actor, one),
+            phase = GamePhase.Play,
             rngSeed = rng.nextLong(),
         )
-        events += ResourceStolen(victim, actor, stolen)
-        return CatanResult(next, events = events)
+        return CatanResult(
+            next,
+            events = leadEvents + PhaseChanged(GamePhase.Play) + ResourceStolen(victim, actor, stolen),
+        )
+    }
+
+    private fun stealFrom(state: GameState, actor: PlayerId, target: PlayerId): CatanResult {
+        val phase = state.phase as? GamePhase.ChooseStealTarget
+            ?: return CatanResult(state, rejection = "Not choosing a steal target right now")
+        if (target !in phase.victims) {
+            return CatanResult(state, rejection = "That player is not an eligible target")
+        }
+        if (state.handOf(target).isEmpty) {
+            return CatanResult(state, rejection = "That player has no cards to steal")
+        }
+        return executeSteal(state, actor, target)
     }
 
     // Returns null if `actor` may upgrade the settlement at `vertex`, else why not.
@@ -800,6 +909,20 @@ class CatanGameEngine(
             }
             // Left mid-robber-move: just move on (robber stays put).
             is GamePhase.Robber -> advanceTurn(base.copy(phase = GamePhase.Play))
+            // Left mid-steal-choice: the roller never picked, so choose a victim at
+            // random on their behalf (rather than forfeit the steal), then advance.
+            is GamePhase.ChooseStealTarget -> {
+                val eligible = phase.victims.filter { !base.handOf(it).isEmpty }
+                if (eligible.isEmpty()) {
+                    advanceTurn(base.copy(phase = GamePhase.Play))
+                } else {
+                    val rng = Random(base.rngSeed)
+                    val victim = eligible[rng.nextInt(eligible.size)]
+                    val stolen = executeSteal(base.copy(rngSeed = rng.nextLong()), playerId, victim)
+                    val advanced = advanceTurn(stolen.state)
+                    CatanResult(advanced.state, stolen.events + advanced.events)
+                }
+            }
             // Left mid-road-building: forfeit remaining free roads and advance.
             is GamePhase.RoadBuilding -> advanceTurn(base.copy(phase = GamePhase.Play))
             // Handled above, but the when must stay exhaustive.
@@ -823,7 +946,8 @@ class CatanGameEngine(
             GamePhase.Play ->
                 if (!canAfford(state, player, Buildable.SETTLEMENT)) emptySet()
                 else state.board.vertices().filter { playSettlementRejection(state, player, it) == null }.toSet()
-            GamePhase.Robber, is GamePhase.Discard, is GamePhase.RoadBuilding, is GamePhase.Finished -> emptySet()
+            GamePhase.Robber, is GamePhase.ChooseStealTarget,
+            is GamePhase.Discard, is GamePhase.RoadBuilding, is GamePhase.Finished -> emptySet()
         }
     }
 
@@ -838,7 +962,8 @@ class CatanGameEngine(
                 else state.board.edges().filter { playRoadRejection(state, player, it) == null }.toSet()
             is GamePhase.RoadBuilding ->
                 state.board.edges().filter { playRoadRejection(state, player, it) == null }.toSet()
-            GamePhase.Robber, is GamePhase.Discard, is GamePhase.Finished -> emptySet()
+            GamePhase.Robber, is GamePhase.ChooseStealTarget,
+            is GamePhase.Discard, is GamePhase.Finished -> emptySet()
         }
     }
 

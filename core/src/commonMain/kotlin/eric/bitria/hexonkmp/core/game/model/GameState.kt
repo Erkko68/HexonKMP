@@ -49,6 +49,8 @@ data class GameState(
     val knightsPlayed: Map<PlayerId, Int> = emptyMap(),
     // Who currently holds Largest Army (null = nobody yet). Public.
     val largestArmy: PlayerId? = null,
+    // Who currently holds Longest Road (null = nobody yet). Public.
+    val longestRoad: PlayerId? = null,
     // Whether the current player has already played a dev card this turn (one per
     // turn). Reset at each turn's start.
     val devCardPlayed: Boolean = false,

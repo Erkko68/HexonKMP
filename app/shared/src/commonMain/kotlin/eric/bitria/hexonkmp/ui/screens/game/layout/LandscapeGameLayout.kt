@@ -42,6 +42,7 @@ import eric.bitria.hexonkmp.ui.components.hud.LandscapeGameHeader
 import eric.bitria.hexonkmp.ui.components.hud.LandscapePlayerPanel
 import eric.bitria.hexonkmp.ui.components.hud.NoticeChip
 import eric.bitria.hexonkmp.ui.components.sheets.DiscardSheet
+import eric.bitria.hexonkmp.ui.components.sheets.StealTargetSheet
 import eric.bitria.hexonkmp.ui.components.sheets.TradeSidePanel
 import eric.bitria.hexonkmp.ui.components.sheets.WinnerDialog
 import eric.bitria.hexonkmp.ui.components.sheets.devcards.KnightSheet
@@ -81,6 +82,7 @@ fun LandscapeGameLayout(
     onRespondTrade: (Int, Boolean) -> Unit,
     onFinalizeTrade: (Int, PlayerId) -> Unit,
     onCancelTrade: (Int) -> Unit,
+    onStealFrom: (PlayerId) -> Unit,
     onEndTurn: () -> Unit,
     onReturnToMenu: () -> Unit,
 ) {
@@ -148,6 +150,7 @@ fun LandscapeGameLayout(
                 val notice = when {
                     roadBuildingPhase != null -> "Place ${roadBuildingPhase.roadsLeft} free road(s) — tap a spot"
                     opts.robberTargets.isNotEmpty() -> "Move the robber — tap a tile"
+                    state.state.phase is GamePhase.ChooseStealTarget && state.isMyTurn -> "Choose who to steal from"
                     else -> state.notice
                 }
                 notice?.let {
@@ -168,6 +171,8 @@ fun LandscapeGameLayout(
                         cards = held,
                         playable = opts.playableDevCards,
                         onPlay = { confirmPlay = it },
+                        hasLongestRoad = state.state.longestRoad == me,
+                        hasLargestArmy = state.state.largestArmy == me,
                     )
                     ResourceBar(hand = state.state.handOf(me))
                 }
@@ -273,6 +278,17 @@ fun LandscapeGameLayout(
             )
         }
 
+        val chooseStealPhase = state.state.phase as? GamePhase.ChooseStealTarget
+        if (chooseStealPhase != null && state.isMyTurn) {
+            StealTargetSheet(
+                victims = chooseStealPhase.victims,
+                playerColor = { PlayerPalette.color(it, players) },
+                playerLabel = { PlayerPalette.label(it, players, me) },
+                cardCount = { state.state.resourceCounts[it] ?: state.state.handOf(it).total },
+                onStealFrom = onStealFrom,
+            )
+        }
+
         // Dev card sheet (one per card type)
         when (confirmPlay) {
             DevCard.KNIGHT -> KnightSheet(
@@ -311,6 +327,7 @@ private fun phaseLabel(phase: GamePhase): String = when (phase) {
     GamePhase.Play -> "Play"
     is GamePhase.Discard -> "Discard"
     GamePhase.Robber -> "Robber"
+    is GamePhase.ChooseStealTarget -> "Robber"
     is GamePhase.RoadBuilding -> "Road Building"
     is GamePhase.Finished -> "Finished"
 }

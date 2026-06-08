@@ -111,3 +111,9 @@ data class PlayYearOfPlenty(val resources: ResourceCount) : GameAction
 @Serializable
 @SerialName("PlayMonopoly")
 data class PlayMonopoly(val resource: Resource) : GameAction
+
+// After moving the robber to a tile with multiple eligible opponents, the roller
+// must name the player they want to steal from (ChooseStealTarget phase only).
+@Serializable
+@SerialName("StealFrom")
+data class StealFrom(val target: PlayerId) : GameAction

@@ -15,6 +15,7 @@ import eric.bitria.hexonkmp.core.game.action.PlayKnight
 import eric.bitria.hexonkmp.core.game.action.PlayMonopoly
 import eric.bitria.hexonkmp.core.game.action.PlayRoadBuilding
 import eric.bitria.hexonkmp.core.game.action.PlayYearOfPlenty
+import eric.bitria.hexonkmp.core.game.action.StealFrom
 import eric.bitria.hexonkmp.core.game.action.UpgradeCity
 import eric.bitria.hexonkmp.core.game.action.ProposeTrade
 import eric.bitria.hexonkmp.core.game.action.RespondTrade
@@ -42,6 +43,7 @@ import eric.bitria.hexonkmp.core.game.event.TradeProposed
 import eric.bitria.hexonkmp.core.game.event.TradeResponded
 import eric.bitria.hexonkmp.core.game.event.TurnChanged
 import eric.bitria.hexonkmp.core.game.event.LargestArmyChanged
+import eric.bitria.hexonkmp.core.game.event.LongestRoadChanged
 import eric.bitria.hexonkmp.core.game.event.YearOfPlentyUsed
 import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.model.Building
@@ -144,7 +146,8 @@ class GameViewModel(
         val fromVpCards = (st.devCards[player].orEmpty() + st.boughtThisTurn[player].orEmpty())
             .count { it == DevCard.VICTORY_POINT }
         val fromArmy = if (st.largestArmy == player) st.config.rules.largestArmyVp else 0
-        return fromBuildings + fromVpCards + fromArmy
+        val fromRoad = if (st.longestRoad == player) st.config.rules.longestRoadVp else 0
+        return fromBuildings + fromVpCards + fromArmy + fromRoad
     }
 
     // Send: buy one development card (drawn server-side, hidden from opponents).
@@ -329,6 +332,13 @@ class GameViewModel(
         repository.sendAction(MoveRobber(hex))
     }
 
+    // Choose which adjacent opponent to steal from (ChooseStealTarget phase only).
+    fun stealFrom(target: PlayerId) {
+        val s = _state.value as? GameUiState.InGame ?: return
+        if (!s.isMyTurn || s.state.phase !is GamePhase.ChooseStealTarget) return
+        repository.sendAction(StealFrom(target))
+    }
+
     // Compute all action affordances from a single pass over game state.
     // This is the single source of truth for what the UI may show or enable — the
     // Screen never reads GamePhase or state fields directly for these decisions.
@@ -361,6 +371,16 @@ class GameViewModel(
             val targets = s.state.board.tiles.map { it.hex }.filter { it != s.state.board.robber }
             return BuildOptions(
                 robberTargets = targets,
+                canTrade = canTrade,
+                tradeBadge = tradeBadge,
+                showEndTurn = showEndTurn,
+                canEndTurn = canEndTurn,
+            )
+        }
+
+        // ChooseStealTarget phase: local player must pick a victim; no other actions.
+        if (phase is GamePhase.ChooseStealTarget) {
+            return BuildOptions(
                 canTrade = canTrade,
                 tradeBadge = tradeBadge,
                 showEndTurn = showEndTurn,
@@ -575,6 +595,7 @@ class GameViewModel(
                 )
             }
             is LargestArmyChanged -> s.state.copy(largestArmy = e.holder)
+            is LongestRoadChanged -> s.state.copy(longestRoad = e.holder)
             is YearOfPlentyUsed -> s.state.applyResourceDeltas(mapOf(e.player to e.resources))
             is MonopolyUsed -> {
                 val total = e.stolenFrom.values.sum()

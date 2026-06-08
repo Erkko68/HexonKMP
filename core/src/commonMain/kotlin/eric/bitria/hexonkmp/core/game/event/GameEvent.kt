@@ -160,6 +160,12 @@ data class DevCardPlayed(val player: PlayerId, val card: DevCard) : GameEvent
 @SerialName("LargestArmyChanged")
 data class LargestArmyChanged(val holder: PlayerId?) : GameEvent
 
+// Longest Road changed hands (or was first awarded). [holder] is null if it
+// was ever revoked; in practice it names the new holder.
+@Serializable
+@SerialName("LongestRoadChanged")
+data class LongestRoadChanged(val holder: PlayerId?) : GameEvent
+
 // A player used Year of Plenty: the bank gave them [resources] (exactly 2 total).
 // Fully public — everyone learns exactly what was taken.
 @Serializable
