@@ -1,0 +1,9 @@
+services:
+  server:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_BIND_HOST=0.0.0.0
+      - SERVER_BIND_PORT=8080

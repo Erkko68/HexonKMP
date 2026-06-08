@@ -1,45 +1,73 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM), Server.
+# Hexon
 
-* [/app/iosApp](./app/iosApp/iosApp) contains an iOS application. Even if you’re sharing your UI with Compose
-  Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+A multiplayer Catan-like board game built with Kotlin Multiplatform. Runs on Android, iOS, Desktop (JVM), and Web, with a shared Ktor game server.
 
-* [/app/shared](./app/shared/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-    - [commonMain](./app/shared/src/commonMain/kotlin) is for code that’s common for all targets.
-    - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-      For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-      the [iosMain](./app/shared/src/iosMain/kotlin) folder would be the right place for such calls.
-      Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./app/shared/src/jvmMain/kotlin)
-      folder is the appropriate location.
+## Architecture
 
-* [/core](./core/src) is for the code that will be shared between all targets in the project.
-  The most important subfolder is [commonMain](./core/src/commonMain/kotlin). If preferred, you
-  can add code to the platform-specific folders here too.
+```
+HexonKMP/
+├── core/          Pure game engine — board, rules, actions, events (shared across all targets)
+├── server/        Ktor WebSocket server — lobbies, matchmaking, game sessions
+└── app/
+    ├── shared/    Compose Multiplatform UI — screens, components, ViewModels
+    ├── androidApp Android entry point
+    ├── desktopApp Desktop (JVM) entry point
+    ├── webApp     Kotlin/JS browser entry point
+    └── iosApp     iOS / SwiftUI entry point
+```
 
-* [/server](./server/src/main/kotlin) is for the Ktor server application.
+The game logic lives entirely in `:core` as a pure function `reduce(state, action) → (state, events)`. The server and all clients share this module — no logic is duplicated.
 
-### Running the apps
+## Running locally
 
-Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and
-options:
+Copy `.env.example` to `.env` and adjust if needed, then generate the platform configs:
 
-- Android app: `./gradlew :app:androidApp:assembleDebug`
-- Desktop app:
-    - Hot reload: `./gradlew :app:desktopApp:hotRun --auto`
-    - Standard run: `./gradlew :app:desktopApp:run`
-- Server: `./gradlew :server:run`
-- Web app:
-    - Wasm target (faster, modern browsers): `./gradlew :app:webApp:wasmJsBrowserDevelopmentRun`
-    - JS target (slower, supports older browsers): `./gradlew :app:webApp:jsBrowserDevelopmentRun`
-- iOS app: open the [/app/iosApp](./app/iosApp) directory in Xcode and run it from there.
+```bash
+./gradlew generateEnvConfig
+```
 
----
+| Target | Command |
+|---|---|
+| Android | `./gradlew :app:androidApp:assembleDebug` |
+| Desktop | `./gradlew :app:desktopApp:run` |
+| Web (dev) | `./gradlew :app:webApp:jsBrowserDevelopmentRun` |
+| Server | `./gradlew :server:run` |
+| iOS | Open `app/iosApp` in Xcode |
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html),
-[Compose Multiplatform](https://github.com/JetBrains/compose-multiplatform/#compose-multiplatform),
-[Kotlin/Wasm](https://kotl.in/wasm/)…
+## Deployment
 
-We would appreciate your feedback on Compose/Web and Kotlin/Wasm in the public Slack
-channel [#compose-web](https://slack-chats.kotlinlang.org/c/compose-web).
-If you face any issues, please report them on [YouTrack](https://youtrack.jetbrains.com/newIssue?project=CMP).
+### Server (Docker)
+
+```bash
+docker compose up -d --build
+```
+
+The server binds on `0.0.0.0:8080` by default. Override via environment variables:
+
+```
+SERVER_BIND_HOST=0.0.0.0
+SERVER_BIND_PORT=8080
+```
+
+### Web (GitHub Pages)
+
+Pushed automatically on every merge to `main` via [.github/workflows/deploy-web.yml](.github/workflows/deploy-web.yml). The JS bundle connects to `api.hexon.biri.es:8080` (baked in at build time).
+
+### Deploy script
+
+```bash
+DEPLOY_USER=<user> ./deploy.sh
+```
+
+SSHes into `YOUR_SERVER_HOST`, pulls the latest `main`, and runs `docker compose up -d --build`.
+
+## Environment
+
+| Variable | Side | Description |
+|---|---|---|
+| `SERVER_HOST` | Client | Host to connect to (compiled into the app) |
+| `SERVER_PORT` | Client | Port to connect to (compiled into the app) |
+| `SERVER_BIND_HOST` | Server | Interface Ktor binds on |
+| `SERVER_BIND_PORT` | Server | Port Ktor binds on |
+
+For the web target, `SERVER_HOST` defaults to `window.location.hostname` in dev mode (when set to `localhost`). Set it to an explicit value (e.g. `api.hexon.biri.es`) for production builds.
