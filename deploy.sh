@@ -11,7 +11,10 @@ BRANCH="main"
 # ── Deploy ─────────────────────────────────────────────────────────────────────
 echo "→ Deploying to ${SERVER_USER}@${SERVER_HOST}:${REMOTE_DIR}"
 
-ssh -t "${SERVER_USER}@${SERVER_HOST}" sudo bash <<EOF
+# Build the remote script with values expanded locally. Passed as a bash -c
+# argument (not via stdin) so the terminal stays free for the SSH and sudo
+# password prompts; ssh -t allocates the TTY sudo needs.
+REMOTE_SCRIPT=$(cat <<EOF
 set -euo pipefail
 
 # Clone the repo on first deploy, pull on subsequent ones.
@@ -32,5 +35,8 @@ docker compose up -d --build --remove-orphans
 echo "Done. Running containers:"
 docker compose ps
 EOF
+)
+
+ssh -t "${SERVER_USER}@${SERVER_HOST}" "sudo bash -c '${REMOTE_SCRIPT}'"
 
 echo "✓ Deploy complete."
