@@ -8,6 +8,7 @@ import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
+import eric.bitria.hexonkmp.ui.theme.PlayerPalette
 
 // What the player is currently placing (drives the board's ghost markers).
 enum class BuildMode { NONE, SETTLEMENT, ROAD, CITY }
@@ -63,6 +64,9 @@ sealed class GameUiState {
         val gameId: String,
         val state: GameState,
         val myPlayerId: PlayerId,
+        // Public roster (playerId -> display name) from the start snapshot. Display
+        // only; the engine/GameState stays keyed by PlayerId.
+        val playerNames: Map<PlayerId, String> = emptyMap(),
         val buildMode: BuildMode = BuildMode.NONE,
         val notice: String? = null,
         val buildOptions: BuildOptions = BuildOptions.NONE,
@@ -70,6 +74,11 @@ sealed class GameUiState {
         val discardDraft: ResourceCount = ResourceCount(),
     ) : GameUiState() {
         val isMyTurn: Boolean get() = state.currentPlayer == myPlayerId
+
+        // The label to show for a player: their chosen name when known, else the
+        // generic "You"/"P2" fallback.
+        fun displayName(player: PlayerId): String =
+            playerNames[player] ?: PlayerPalette.label(player, state.players, myPlayerId)
     }
     data class Error(val message: String) : GameUiState()
 }

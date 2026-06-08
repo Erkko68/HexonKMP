@@ -139,7 +139,7 @@ fun PortraitGameLayout(
                 players.sortedByDescending { victoryPointsOf(it) }.forEach { p ->
                     PortraitPlayerPanel(
                         color = PlayerPalette.color(p, players),
-                        label = PlayerPalette.label(p, players, me),
+                        label = state.displayName(p),
                         resourceCount = state.state.resourceCounts[p] ?: state.state.handOf(p).total,
                         devCardCount = state.state.devCardCounts[p] ?: state.state.devCardCountOf(p),
                         victoryPoints = victoryPointsOf(p),
@@ -153,7 +153,7 @@ fun PortraitGameLayout(
         }
 
 
-        // --- Contextual notice chip ---
+        // Contextual notice text (rendered just above the action bar, below).
         val roadBuildingPhase = state.state.phase as? GamePhase.RoadBuilding
         val notice = when {
             roadBuildingPhase != null -> "Place ${roadBuildingPhase.roadsLeft} free road(s) — tap a spot"
@@ -161,21 +161,20 @@ fun PortraitGameLayout(
             state.state.phase is GamePhase.ChooseStealTarget && state.isMyTurn -> "Choose who to steal from"
             else -> state.notice
         }
-        notice?.let {
-            NoticeChip(
-                text = it,
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 152.dp),
-            )
-        }
 
-        // --- Toggleable bottom panel ---
+        // --- Toggleable bottom panel (notice sits on top of it) ---
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .fillMaxWidth()
                 .padding(bottom = Spacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
+            // Notice above the actions; wraps to multiple lines on narrow screens.
+            notice?.let {
+                NoticeChip(text = it, modifier = Modifier.padding(horizontal = Spacing.lg))
+            }
             // Pill toggle button
             Surface(
                 shape = Shapes.pill,
@@ -348,7 +347,7 @@ fun PortraitGameLayout(
             StealTargetSheet(
                 victims = chooseStealPhase.victims,
                 playerColor = { PlayerPalette.color(it, players) },
-                playerLabel = { PlayerPalette.label(it, players, me) },
+                playerLabel = { state.displayName(it) },
                 cardCount = { state.state.resourceCounts[it] ?: state.state.handOf(it).total },
                 onStealFrom = onStealFrom,
             )
@@ -379,7 +378,7 @@ fun PortraitGameLayout(
         (state.state.phase as? GamePhase.Finished)?.let { finished ->
             WinnerDialog(
                 color = PlayerPalette.color(finished.winner, players),
-                label = PlayerPalette.label(finished.winner, players, me),
+                label = state.displayName(finished.winner),
                 youWon = finished.winner == me,
                 onReturnToMenu = onReturnToMenu,
             )

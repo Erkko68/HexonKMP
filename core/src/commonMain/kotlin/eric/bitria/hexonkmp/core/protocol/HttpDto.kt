@@ -22,5 +22,28 @@ data class JoinGameResponse(
     val gameId: String,
 )
 
+// --- Private lobbies (create / join by 6-digit code / host-start) ---
+
+// Create a private lobby; the caller becomes its host. The server mints the session
+// and a short numeric [code] others use to join.
+@Serializable
+data class CreateLobbyRequest(val playerId: String)
+
+@Serializable
+data class CreateLobbyResponse(val gameId: String, val code: String)
+
+// Join a private lobby by its [code]. Reserves the caller's seat (so the WS connect
+// is authorized), mirroring how POST /game works. 404 if the code is unknown/full.
+@Serializable
+data class JoinLobbyRequest(val code: String, val playerId: String)
+
+@Serializable
+data class JoinLobbyResponse(val gameId: String)
+
+// Host-only: start a private lobby. 409 if the caller isn't the host or the lobby
+// isn't startable yet (below the minimum).
+@Serializable
+data class StartLobbyRequest(val gameId: String, val playerId: String)
+
 @Serializable
 data class ErrorResponse(val message: String)

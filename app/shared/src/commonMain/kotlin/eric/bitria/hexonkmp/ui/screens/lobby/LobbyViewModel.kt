@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import eric.bitria.hexonkmp.core.protocol.ConnectionFailed
 import eric.bitria.hexonkmp.core.protocol.GameStarted
-import eric.bitria.hexonkmp.core.protocol.WaitingForPlayers
+import eric.bitria.hexonkmp.core.protocol.LobbyRoster
 import eric.bitria.hexonkmp.data.repository.GameRepository
 import eric.bitria.hexonkmp.data.storage.DevicePreferences
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -15,11 +15,12 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-// Drives the lobby/main menu: choosing a name (server registration), finding a game,
-// and waiting for the room to fill. It owns identity because the name dialog lives
-// here; the live connection is held by the shared GameRepository, so the game screen
-// picks up seamlessly once we navigate. On GameStarted it emits [gameStarted] for the
-// screen to navigate — it never renders the game itself.
+// Drives the main menu AND the waiting lobby (two screens, one shared instance — the
+// connection, identity, and roster all live here). Matchmaking and private lobbies
+// share the room (LobbyUiState.InLobby), fed by the server's LobbyRoster. Navigation
+// is signalled, not pushed: [enterLobby] fires once a connection is established (menu
+// -> lobby), [gameStarted] fires when the host/countdown starts the game (lobby ->
+// game). The live connection is held by the shared GameRepository.
 class LobbyViewModel(
     private val repository: GameRepository,
     private val prefs: DevicePreferences,
@@ -27,27 +28,44 @@ class LobbyViewModel(
     private val _state = MutableStateFlow<LobbyUiState>(LobbyUiState.Idle)
     val state: StateFlow<LobbyUiState> = _state.asStateFlow()
 
-    // The player's chosen display name (null until set via the name dialog). Drives
-    // the prompt: null => show the dialog; present => show name + icon, enable play.
+    // The player's chosen display name (null until set via the name dialog).
     private val _playerName = MutableStateFlow<String?>(null)
     val playerName: StateFlow<String?> = _playerName.asStateFlow()
 
-    // One-shot signal: the game has started, navigate to the game screen.
+    // Inline error for the private-lobby dialog (e.g. a bad code), separate from the
+    // full-screen Error state so the dialog can show it without tearing down the menu.
+    private val _joinError = MutableStateFlow<String?>(null)
+    val joinError: StateFlow<String?> = _joinError.asStateFlow()
+
+    // Navigation signals (collected by the screens).
+    private val _enterLobby = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val enterLobby: SharedFlow<Unit> = _enterLobby.asSharedFlow()
     private val _gameStarted = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val gameStarted: SharedFlow<Unit> = _gameStarted.asSharedFlow()
 
-    // The server-issued player id, persisted locally and reused across sessions.
     private var cachedPlayerId: String? = null
+    // Join code of the private lobby we're in (null for matchmaking); shown in the room.
+    private var lobbyCode: String? = null
 
     init {
         viewModelScope.launch {
             repository.events.collect { event ->
                 when (event) {
-                    is WaitingForPlayers -> _state.value =
-                        LobbyUiState.Waiting(event.connected, event.needed, event.countdownSeconds)
+                    is LobbyRoster -> {
+                        val me = cachedPlayerId
+                        val isHost = me != null && me == event.hostId
+                        _state.value = LobbyUiState.InLobby(
+                            members = event.members,
+                            hostId = event.hostId,
+                            isHost = isHost,
+                            canStart = isHost && event.members.size >= event.minPlayers,
+                            maxPlayers = event.maxPlayers,
+                            code = lobbyCode,
+                            countdownSeconds = event.countdownSeconds,
+                        )
+                    }
                     is GameStarted<*> -> _gameStarted.tryEmit(Unit)
-                    is ConnectionFailed -> _state.value =
-                        LobbyUiState.Error(event.reason)
+                    is ConnectionFailed -> _state.value = LobbyUiState.Error(event.reason)
                     else -> Unit // in-game events belong to the game screen
                 }
             }
@@ -57,14 +75,11 @@ class LobbyViewModel(
             val name = prefs.getPlayerName()
             _playerName.value = name
             // Already named from a previous session: confirm/refresh our server id up
-            // front (best-effort) so joining is instant. joinGame retries if it fails.
+            // front (best-effort) so playing is instant. The actions below retry if it failed.
             if (name != null) runCatching { ensureRegistered(name) }
         }
     }
 
-    // Registers with the server — reusing our stored id if we have one (reconnection),
-    // else the server mints a fresh one — then persists the issued id + name locally.
-    // This is the single place the server-authoritative identity is obtained.
     private suspend fun ensureRegistered(name: String): String {
         val response = repository.register(name, cachedPlayerId)
         cachedPlayerId = response.playerId
@@ -74,44 +89,81 @@ class LobbyViewModel(
         return response.playerId
     }
 
-    // The name dialog submits here: store the name locally (so the UI reflects it
-    // even if the server is down) and register to obtain a server id.
     fun submitName(name: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
             prefs.setPlayerName(trimmed)
             _playerName.value = trimmed
-            runCatching { ensureRegistered(trimmed) } // best-effort; joinGame retries
+            runCatching { ensureRegistered(trimmed) } // best-effort; the play actions retry
         }
     }
 
-    fun joinGame() {
-        if (_state.value != LobbyUiState.Idle) return
+    // --- Entering a lobby (matchmaking or private) ---
+
+    fun findGame() = enter(onError = { _state.value = LobbyUiState.Error(it) }) { id, _ ->
+        lobbyCode = null
+        repository.joinGame(id).gameId
+    }
+
+    fun createLobby() = enter(onError = { _state.value = LobbyUiState.Error(it) }) { id, _ ->
+        val response = repository.createLobby(id)
+        lobbyCode = response.code
+        response.gameId
+    }
+
+    fun joinLobby(code: String) {
+        val digits = code.filter { it.isDigit() }
+        if (digits.length != 6) {
+            _joinError.value = "Enter a 6-digit code"
+            return
+        }
+        enter(onError = { _joinError.value = "Lobby not found" }) { id, _ ->
+            val response = repository.joinLobby(digits, id)
+            lobbyCode = digits
+            response.gameId
+        }
+    }
+
+    // Ensures identity, runs [block] (the HTTP that returns a gameId), then opens the
+    // WS and signals navigation to the lobby room. Only navigates on success, so a
+    // failed join surfaces via [onError] without leaving the menu.
+    private fun enter(
+        onError: (String) -> Unit,
+        block: suspend (id: String, name: String) -> String,
+    ) {
         val name = _playerName.value ?: return // must choose a name first
+        _joinError.value = null
         viewModelScope.launch {
-            _state.value = LobbyUiState.Connecting
             runCatching {
                 val id = cachedPlayerId ?: ensureRegistered(name)
-                id to repository.joinGame(id)
-            }
-                .onSuccess { (id, response) ->
-                    // Stay in Connecting; WaitingForPlayers moves us to Waiting and
-                    // GameStarted triggers navigation to the game screen.
-                    repository.connect(id, response.gameId)
-                }
-                .onFailure { _state.value = LobbyUiState.Error(it.message ?: "Connection failed") }
+                id to block(id, name)
+            }.onSuccess { (id, gameId) ->
+                _state.value = LobbyUiState.Connecting
+                repository.connect(id, name, gameId)
+                _enterLobby.tryEmit(Unit)
+            }.onFailure { onError(it.message ?: "Connection failed") }
         }
     }
 
-    // Abort matchmaking: drop the connection (the server frees our slot and cancels
-    // the countdown if we were the one holding the minimum) and return to Idle.
-    fun cancelSearch() {
-        repository.disconnect()
-        _state.value = LobbyUiState.Idle
+    fun clearJoinError() {
+        _joinError.value = null
     }
 
-    fun retry() {
+    // Host-only: ask the server to start. The server broadcasts GameStarted, which
+    // flows back as the [gameStarted] navigation signal.
+    fun startGame() {
+        val id = cachedPlayerId ?: return
+        val gameId = repository.currentGameId ?: return
+        viewModelScope.launch { runCatching { repository.startLobby(gameId, id) } }
+    }
+
+    // Leave the lobby (cancel matchmaking or exit a private lobby): drop the
+    // connection — the server frees our slot, cancels any countdown, and promotes a
+    // new host if we were one — and reset to the menu.
+    fun leave() {
+        repository.disconnect()
+        lobbyCode = null
         _state.value = LobbyUiState.Idle
     }
 }

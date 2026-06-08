@@ -32,7 +32,14 @@ class ProtocolCodecTest {
 
     @Test
     fun agnosticLifecycleMessageRoundTrips() {
-        val decoded = CatanCodec.decodeServerEvent(CatanCodec.encodeServerEvent(WaitingForPlayers(1, 4)))
-        assertEquals(WaitingForPlayers(1, 4), decoded)
+        val roster = LobbyRoster(
+            members = listOf(LobbyMember("alice", "Alice"), LobbyMember("bob", "Bob")),
+            hostId = "alice",
+            minPlayers = 2,
+            maxPlayers = 4,
+            countdownSeconds = 30,
+        )
+        val decoded = CatanCodec.decodeServerEvent(CatanCodec.encodeServerEvent(roster))
+        assertEquals(roster, decoded)
     }
 }

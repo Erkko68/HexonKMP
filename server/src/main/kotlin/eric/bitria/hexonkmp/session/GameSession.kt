@@ -7,10 +7,11 @@ import eric.bitria.hexonkmp.core.protocol.ActionRejected
 import eric.bitria.hexonkmp.core.protocol.GameCodec
 import eric.bitria.hexonkmp.core.protocol.GameStarted
 import eric.bitria.hexonkmp.core.protocol.GameUpdate
+import eric.bitria.hexonkmp.core.protocol.LobbyMember
+import eric.bitria.hexonkmp.core.protocol.LobbyRoster
 import eric.bitria.hexonkmp.core.protocol.PlayerJoined
 import eric.bitria.hexonkmp.core.protocol.PlayerLeft
 import eric.bitria.hexonkmp.core.protocol.ServerEvent
-import eric.bitria.hexonkmp.core.protocol.WaitingForPlayers
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.CoroutineScope
@@ -42,6 +43,10 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
     private val minPlayers: Int,
     private val maxPlayers: Int,
     autoStartDelaySeconds: Int,
+    // Lobby policy. false (default) = auto/matchmaking: arm a countdown at the
+    // minimum and start automatically. true = manual/private: a host presses Start;
+    // no countdown, and a full room does NOT auto-start.
+    private val manualStart: Boolean = false,
     // Scope for the lobby auto-start countdown; the timer outlives any single
     // connect() call, so it can't live on the request coroutine.
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
@@ -54,6 +59,11 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
     // LinkedHashSet: preserves join order, which becomes the turn order.
     private val reservations = LinkedHashSet<String>()
     private val connections = mutableMapOf<String, DefaultWebSocketSession>()
+    // Display names by playerId, learned on connect; populates the lobby roster.
+    private val names = mutableMapOf<String, String>()
+    // The host of a manual lobby (the creator, or whoever's promoted if they leave).
+    // Null for auto/matchmaking lobbies.
+    private var hostId: String? = null
     // Non-null once the game starts; it then runs for the rest of the session even
     // if players later drop below minPlayers.
     private var state: S? = null
@@ -69,13 +79,16 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
 
     fun reserveSlot(playerId: String) {
         reservations.add(playerId)
+        // The first reserver of a manual lobby is its host.
+        if (manualStart && hostId == null) hostId = playerId
     }
 
-    suspend fun connect(playerId: String, ws: DefaultWebSocketSession): Boolean {
+    suspend fun connect(playerId: String, name: String, ws: DefaultWebSocketSession): Boolean {
         // Decide everything under the lock; perform the sends outside it.
         val plan = mutex.withLock {
             if (playerId !in reservations) return false
             connections[playerId] = ws
+            names[playerId] = name
             val current = state
             val outcome = when {
                 current != null -> {
@@ -83,17 +96,17 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
                     state = engine.playerJoined(current, PlayerId(playerId)).state
                     Outcome.RECONNECTED
                 }
-                connections.size >= maxPlayers -> {
-                    // Room is full — start immediately, drop any pending countdown.
+                // A full AUTO room starts immediately; a manual room waits for its host.
+                !manualStart && connections.size >= maxPlayers -> {
                     cancelAutoStart()
                     state = startState()
                     Outcome.STARTED
                 }
                 else -> {
-                    // Still in the lobby. Arm the countdown once we have the minimum
-                    // (no-op if it's already running).
-                    if (connections.size >= minPlayers) armAutoStart()
-                    Outcome.WAITING
+                    // Still in the lobby. Auto lobbies arm the countdown once they reach
+                    // the minimum (no-op if already running); manual lobbies never do.
+                    if (!manualStart && connections.size >= minPlayers) armAutoStart()
+                    Outcome.LOBBY
                 }
             }
             // Snapshot the connections so per-recipient redaction happens outside the
@@ -103,24 +116,22 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
                 recipients = connections.toMap(),
                 state = state,
                 outcome = outcome,
-                countdownSeconds = countdownSeconds(),
+                roster = if (outcome == Outcome.LOBBY) roster() else null,
             )
         }
 
         val gameState = plan.state
         when (plan.outcome) {
-            // Lobby phase: everyone sees the updated count (and the running countdown,
-            // if the minimum has been reached — they tick it down locally).
-            Outcome.WAITING ->
-                broadcast(
-                    WaitingForPlayers(plan.recipients.size, maxPlayers, plan.countdownSeconds),
-                    plan.recipients.values.toList(),
-                )
+            // Lobby phase: everyone sees the updated roster (names + host + any running
+            // countdown — they tick it down locally).
+            Outcome.LOBBY -> broadcast(plan.roster!!, plan.recipients.values.toList())
             // Room just filled: each connected player gets their own redacted snapshot.
             Outcome.STARTED -> sendStartedTo(plan.recipients, gameState!!)
             // Reconnect: only the returning player gets a snapshot; others see a join.
             Outcome.RECONNECTED -> {
-                plan.recipients[plan.selfId]?.let { send(it, GameStarted(gameState!!.redactedFor(PlayerId(plan.selfId)))) }
+                plan.recipients[plan.selfId]?.let {
+                    send(it, GameStarted(gameState!!.redactedFor(PlayerId(plan.selfId)), names.toMap()))
+                }
                 plan.recipients.filterKeys { it != plan.selfId }.values
                     .forEach { send(it, PlayerJoined(plan.selfId)) }
             }
@@ -129,15 +140,23 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
     }
 
     // Sends each recipient a GameStarted snapshot redacted from their viewpoint, so
-    // nobody sees another player's hidden information.
+    // nobody sees another player's hidden information. The public roster (names) rides
+    // along as transport metadata so opponents can be shown by name in-game.
     private suspend fun sendStartedTo(recipients: Map<String, DefaultWebSocketSession>, gameState: S) {
-        recipients.forEach { (pid, ws) -> send(ws, GameStarted(gameState.redactedFor(PlayerId(pid)))) }
+        val playerNames = names.toMap()
+        recipients.forEach { (pid, ws) ->
+            send(ws, GameStarted(gameState.redactedFor(PlayerId(pid)), playerNames))
+        }
     }
 
     suspend fun disconnect(playerId: String) {
         val plan = mutex.withLock {
             connections.remove(playerId)
             reservations.remove(playerId)
+            // Keep names: a player may reconnect, and the in-game roster should still
+            // show by name anyone who's part of the game even if briefly disconnected.
+            // (The lobby roster lists current connections, so departed lobby members
+            // still drop out of it.)
             val isEmpty = connections.isEmpty() && reservations.isEmpty()
             // Tell the engine the player left so the turn can move on if it was
             // theirs; capture any resulting game events to broadcast.
@@ -147,16 +166,15 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
                 state = result.state
                 result.events
             } else {
-                // Still in the lobby: if we dropped below the minimum, stop the
-                // pending auto-start so we don't launch an undersized game.
-                if (connections.size < minPlayers) cancelAutoStart()
+                // Still in the lobby. Auto lobbies stop the countdown if they dropped
+                // below the minimum; a manual lobby promotes a new host if its host left.
+                if (!manualStart && connections.size < minPlayers) cancelAutoStart()
+                if (manualStart && playerId == hostId) hostId = connections.keys.firstOrNull()
                 emptyList()
             }
-            // While still in the lobby, refresh the remaining players' count and
-            // countdown (which may have just been cancelled by this departure).
-            val lobbyUpdate = if (current == null && connections.isNotEmpty()) {
-                WaitingForPlayers(connections.size, maxPlayers, countdownSeconds())
-            } else null
+            // While still in the lobby, refresh the remaining players' roster (host
+            // and countdown may have just changed because of this departure).
+            val lobbyUpdate = if (current == null && connections.isNotEmpty()) roster() else null
             DisconnectPlan(connections.toMap(), gameEvents, isEmpty, lobbyUpdate)
         }
         // I/O outside the lock — avoids holding the mutex during sends.
@@ -171,6 +189,31 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
             onEmpty(gameId)
         }
     }
+
+    // Host-only start of a manual lobby. Validated under the lock: must be a manual
+    // lobby that hasn't started, the caller must be the host, and the minimum must be
+    // met. Returns false (and does nothing) otherwise so the route can reject it.
+    suspend fun startByHost(playerId: String): Boolean {
+        val started = mutex.withLock {
+            if (!manualStart || state != null) return false
+            if (playerId != hostId || connections.size < minPlayers) return false
+            val fresh = startState()
+            state = fresh
+            fresh to connections.toMap()
+        }
+        val (gameState, recipients) = started
+        sendStartedTo(recipients, gameState)
+        return true
+    }
+
+    // A snapshot of the current lobby for broadcast. Read under the lock.
+    private fun roster(): LobbyRoster = LobbyRoster(
+        members = connections.keys.map { LobbyMember(it, names[it] ?: it) },
+        hostId = hostId,
+        minPlayers = minPlayers,
+        maxPlayers = maxPlayers,
+        countdownSeconds = countdownSeconds(),
+    )
 
     // The game's initial state, seeded with the currently-connected players in
     // join order (reservations that never connected are left out).
@@ -245,7 +288,7 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
     }
 
     // What connecting resulted in, decided under the lock and acted on outside it.
-    private enum class Outcome { WAITING, STARTED, RECONNECTED }
+    private enum class Outcome { LOBBY, STARTED, RECONNECTED }
 
     private inner class ConnectPlan(
         val selfId: String,
@@ -253,16 +296,17 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
         val recipients: Map<String, DefaultWebSocketSession>,
         val state: S?,
         val outcome: Outcome,
-        val countdownSeconds: Int?,
+        // The roster to broadcast for a LOBBY outcome; null otherwise.
+        val roster: LobbyRoster?,
     )
 
     private inner class DisconnectPlan(
         val recipients: Map<String, DefaultWebSocketSession>,
         val events: List<E>,
         val isEmpty: Boolean,
-        // A refreshed lobby update to broadcast (count + countdown) if we're still in
-        // the lobby after this departure; null once the game has started.
-        val lobbyUpdate: WaitingForPlayers?,
+        // A refreshed roster to broadcast if we're still in the lobby after this
+        // departure; null once the game has started.
+        val lobbyUpdate: LobbyRoster?,
     )
 
     private sealed interface ActionPlan<out Ev> {

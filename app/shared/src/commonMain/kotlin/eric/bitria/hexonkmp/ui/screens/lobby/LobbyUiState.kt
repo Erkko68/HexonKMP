@@ -1,16 +1,22 @@
 package eric.bitria.hexonkmp.ui.screens.lobby
 
-// The lobby/main-menu states: choosing a name, finding a game, and waiting for the
-// room to fill. The in-game state lives in its own screen (navigated to on start).
+import eric.bitria.hexonkmp.core.protocol.LobbyMember
+
+// Lobby/main-menu states. Matchmaking and private lobbies share one waiting room
+// ([InLobby]); they differ only by data — a private lobby has a [code] and a host,
+// a matchmaking lobby has a [countdownSeconds]. The in-game state lives in its own
+// screen (navigated to when the game starts).
 sealed interface LobbyUiState {
     data object Idle : LobbyUiState
     data object Connecting : LobbyUiState
-    // [countdownSeconds] is the auto-start delay remaining once the minimum is met
-    // (null before then); the screen ticks it down locally.
-    data class Waiting(
-        val connected: Int,
-        val needed: Int,
-        val countdownSeconds: Int? = null,
+    data class InLobby(
+        val members: List<LobbyMember>,
+        val hostId: String? = null,          // which member is host (private lobby)
+        val isHost: Boolean,
+        val canStart: Boolean,
+        val maxPlayers: Int,
+        val code: String? = null,            // private lobby only
+        val countdownSeconds: Int? = null,   // matchmaking auto-start only
     ) : LobbyUiState
     data class Error(val message: String) : LobbyUiState
 }

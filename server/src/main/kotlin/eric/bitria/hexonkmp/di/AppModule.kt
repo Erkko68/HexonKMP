@@ -17,7 +17,7 @@ import org.koin.dsl.module
 fun appModule() = module {
     single<GameSessionRepository<GameState, GameAction, GameEvent>> {
         val config = ClassicCatan
-        InMemoryGameSessionRepository { gameId, onEmpty ->
+        InMemoryGameSessionRepository { gameId, manualStart, onEmpty ->
             GameSession(
                 gameId = gameId,
                 engine = CatanGameEngine(config),
@@ -25,6 +25,7 @@ fun appModule() = module {
                 minPlayers = config.rules.minPlayers,
                 maxPlayers = config.rules.maxPlayers,
                 autoStartDelaySeconds = config.rules.autoStartDelaySeconds,
+                manualStart = manualStart,
                 onEmpty = onEmpty,
             )
         }

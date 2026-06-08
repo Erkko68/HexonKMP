@@ -1,10 +1,17 @@
 package eric.bitria.hexonkmp.routes
 
+import eric.bitria.hexonkmp.core.protocol.CreateLobbyRequest
+import eric.bitria.hexonkmp.core.protocol.CreateLobbyResponse
+import eric.bitria.hexonkmp.core.protocol.ErrorResponse
 import eric.bitria.hexonkmp.core.protocol.JoinGameRequest
 import eric.bitria.hexonkmp.core.protocol.JoinGameResponse
+import eric.bitria.hexonkmp.core.protocol.JoinLobbyRequest
+import eric.bitria.hexonkmp.core.protocol.JoinLobbyResponse
 import eric.bitria.hexonkmp.core.protocol.RegisterRequest
 import eric.bitria.hexonkmp.core.protocol.RegisterResponse
+import eric.bitria.hexonkmp.core.protocol.StartLobbyRequest
 import eric.bitria.hexonkmp.repository.GameSessionRepository
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -36,17 +43,42 @@ fun Application.gameRoutes() {
             call.respond(JoinGameResponse(playerId = request.playerId, gameId = session.gameId))
         }
 
+        // POST /lobby — create a private lobby; the caller becomes its host.
+        post("/lobby") {
+            val request = call.receive<CreateLobbyRequest>()
+            val (session, code) = sessions.createLobby(request.playerId)
+            call.respond(CreateLobbyResponse(gameId = session.gameId, code = code))
+        }
+
+        // POST /lobby/join — resolve a join code and reserve the caller's seat.
+        post("/lobby/join") {
+            val request = call.receive<JoinLobbyRequest>()
+            val session = sessions.joinByCode(request.code, request.playerId)
+                ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("Lobby not found"))
+            call.respond(JoinLobbyResponse(gameId = session.gameId))
+        }
+
+        // POST /lobby/start — host-only start of a private lobby.
+        post("/lobby/start") {
+            val request = call.receive<StartLobbyRequest>()
+            val started = sessions.get(request.gameId)?.startByHost(request.playerId) ?: false
+            if (started) call.respond(HttpStatusCode.OK)
+            else call.respond(HttpStatusCode.Conflict, ErrorResponse("Cannot start this lobby"))
+        }
+
         // WS /game/{gameId} — connect to an active session
         webSocket("/game/{gameId}") {
             val gameId = call.parameters["gameId"]
                 ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing gameId"))
             val playerId = call.request.queryParameters["playerId"]
                 ?: return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Missing playerId"))
+            // Display name for the lobby roster; absent on older clients, default to id.
+            val name = call.request.queryParameters["name"] ?: playerId
 
             val session = sessions.get(gameId)
                 ?: return@webSocket close(CloseReason(CloseReason.Codes.NORMAL, "Game not found"))
 
-            if (!session.connect(playerId, this)) {
+            if (!session.connect(playerId, name, this)) {
                 return@webSocket close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "No reservation for this player"))
             }
 

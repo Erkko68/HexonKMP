@@ -1,9 +1,8 @@
 package eric.bitria.hexonkmp.ui.screens.lobby
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -20,155 +19,173 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import eric.bitria.hexonkmp.core.protocol.LobbyMember
 import eric.bitria.hexonkmp.ui.components.hud.PlayerToken
-import eric.bitria.hexonkmp.ui.components.sheets.NameDialog
 import eric.bitria.hexonkmp.ui.theme.Spacing
 import eric.bitria.hexonkmp.ui.theme.Tokens
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 
-// The lobby / main menu. Drives name selection, matchmaking, and the waiting room;
-// when the game starts it signals [onGameStarted] so the host can navigate to the
-// game screen. The live connection lives in the shared repository, so navigating
-// away doesn't drop it.
+// The waiting room (shared with MenuScreen via one LobbyViewModel). Shows the roster
+// for both matchmaking and private lobbies; the host gets a Start button, everyone a
+// Leave. On GameStarted it signals [onGameStarted]; [onExit] returns to the menu.
 @Composable
 fun LobbyScreen(
     onGameStarted: () -> Unit,
+    onExit: () -> Unit,
     viewModel: LobbyViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val playerName by viewModel.playerName.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.gameStarted.collect { onGameStarted() }
     }
 
-    Box(Modifier.fillMaxSize()) {
-        when (val s = state) {
-            LobbyUiState.Idle -> IdleContent(
-                playerName = playerName,
-                onFindGame = viewModel::joinGame,
-                onSubmitName = viewModel::submitName,
-            )
-            LobbyUiState.Connecting -> SearchingContent(
-                label = "Connecting…",
-                countdownSeconds = null,
-                onCancel = viewModel::cancelSearch,
-            )
-            is LobbyUiState.Waiting -> SearchingContent(
-                label = "Waiting for players… ${s.connected} / ${s.needed}",
-                countdownSeconds = s.countdownSeconds,
-                onCancel = viewModel::cancelSearch,
-            )
-            is LobbyUiState.Error -> ErrorContent(s.message, onRetry = viewModel::retry)
+    val leave = { viewModel.leave(); onExit() }
+
+    when (val s = state) {
+        // Matchmaking (no host): the classic waiting view. Private lobbies: the room.
+        is LobbyUiState.InLobby ->
+            if (s.hostId == null) MatchmakingView(state = s, onLeave = leave)
+            else LobbyRoom(state = s, onStart = viewModel::startGame, onLeave = leave)
+        is LobbyUiState.Error -> Centered {
+            Text("Something went wrong", style = MaterialTheme.typography.titleMedium)
+            Text(s.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            Button(onClick = leave) { Text("Back") }
+        }
+        // Connecting (and the transient Idle right after leaving) show a spinner.
+        else -> Centered {
+            CircularProgressIndicator()
+            Text("Connecting…", style = MaterialTheme.typography.bodyLarge)
+            Button(
+                onClick = leave,
+                colors = leaveColors(),
+            ) { Text("Cancel") }
         }
     }
 }
 
 @Composable
-private fun IdleContent(
-    playerName: String?,
-    onFindGame: () -> Unit,
-    onSubmitName: (String) -> Unit,
+private fun LobbyRoom(
+    state: LobbyUiState.InLobby,
+    onStart: () -> Unit,
+    onLeave: () -> Unit,
 ) {
-    // The dialog shows on first run (no name yet) or when the player taps their chip
-    // to change it.
-    var editingName by remember { mutableStateOf(false) }
-    val showDialog = playerName == null || editingName
+    // Tick the auto-start countdown down locally; re-seed on each server roster.
+    var remaining by remember(state.countdownSeconds) { mutableStateOf(state.countdownSeconds) }
+    LaunchedEffect(state.countdownSeconds) {
+        var r = state.countdownSeconds
+        while (r != null && r > 0) {
+            delay(1000); r -= 1; remaining = r
+        }
+    }
 
-    Box(Modifier.fillMaxSize()) {
-        // Identity chip, top-left, once a name has been chosen — tap to rename.
-        if (playerName != null) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(Spacing.md)
-                    .clickable { editingName = true },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                PlayerToken(
-                    color = MaterialTheme.colorScheme.primary,
-                    label = playerName,
-                    size = Tokens.tokenSm,
-                )
-                Text(playerName, style = MaterialTheme.typography.titleSmall)
+    Centered {
+        state.code?.let { code ->
+            Text("Lobby code", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatCode(code), style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary)
+        }
+
+        Text("Players ${state.members.size} / ${state.maxPlayers}", style = MaterialTheme.typography.titleMedium)
+
+        // All seats: filled members first, then greyed placeholders for empty slots.
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.lg, Alignment.CenterHorizontally)) {
+            repeat(state.maxPlayers) { index ->
+                val member = state.members.getOrNull(index)
+                if (member != null) MemberColumn(member, isHost = member.id == state.hostId)
+                else EmptySlotColumn()
             }
         }
 
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text("Hexon", style = MaterialTheme.typography.displayMedium)
-            Text("Ready to play?", style = MaterialTheme.typography.bodyLarge)
-            Button(onClick = onFindGame, enabled = playerName != null) { Text("Find Game") }
-        }
-
-        if (showDialog) {
-            NameDialog(
-                initial = playerName.orEmpty(),
-                onConfirm = { onSubmitName(it); editingName = false },
-                // First run requires a name (no cancel); renaming can be dismissed.
-                onDismiss = if (playerName == null) null else ({ editingName = false }),
-            )
-        }
-    }
-}
-
-@Composable
-private fun SearchingContent(
-    label: String,
-    countdownSeconds: Int?,
-    onCancel: () -> Unit,
-) {
-    // Tick the countdown down locally; re-seed whenever the server sends a new value.
-    var remaining by remember(countdownSeconds) { mutableStateOf(countdownSeconds) }
-    LaunchedEffect(countdownSeconds) {
-        var r = countdownSeconds
-        while (r != null && r > 0) {
-            delay(1000)
-            r -= 1
-            remaining = r
-        }
-    }
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        CircularProgressIndicator()
-        Text(label, style = MaterialTheme.typography.bodyLarge)
         remaining?.let {
-            Text(
-                "Starting in ${it}s",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text("Starting in ${it}s", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Button(
-            onClick = onCancel,
-            // Inverted accent: dark container with the amber primary as content.
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.onPrimary,
-                contentColor = MaterialTheme.colorScheme.primary,
-            ),
-        ) { Text("Cancel") }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Button(onClick = onLeave, colors = leaveColors()) { Text("Leave") }
+            if (state.isHost) {
+                Button(onClick = onStart, enabled = state.canStart) { Text("Start game") }
+            }
+        }
+    }
+}
+
+// The classic matchmaking waiting view: spinner + "Waiting for players…" + count.
+@Composable
+private fun MatchmakingView(state: LobbyUiState.InLobby, onLeave: () -> Unit) {
+    var remaining by remember(state.countdownSeconds) { mutableStateOf(state.countdownSeconds) }
+    LaunchedEffect(state.countdownSeconds) {
+        var r = state.countdownSeconds
+        while (r != null && r > 0) {
+            delay(1000); r -= 1; remaining = r
+        }
+    }
+    Centered {
+        CircularProgressIndicator()
+        Text("Waiting for players…", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "${state.members.size} / ${state.maxPlayers}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        remaining?.let {
+            Text("Starting in ${it}s", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Button(onClick = onLeave, colors = leaveColors()) { Text("Cancel") }
+    }
+}
+
+// One player in the roster: icon, name below, and "host" below the name for the host.
+@Composable
+private fun MemberColumn(member: LobbyMember, isHost: Boolean) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        PlayerToken(MaterialTheme.colorScheme.primary, member.name, size = Tokens.tokenMd)
+        Text(member.name, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+        if (isHost) {
+            Text("host", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+// An empty seat: a dimmed, greyed-out icon (as if disconnected) with "..." for a name.
+@Composable
+private fun EmptySlotColumn() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        PlayerToken(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            label = "Open slot",
+            size = Tokens.tokenMd,
+            modifier = Modifier.alpha(0.5f),
+        )
+        Text("…", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
-private fun ErrorContent(message: String, onRetry: () -> Unit) {
+private fun Centered(content: @Composable ColumnScope.() -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text("Something went wrong", style = MaterialTheme.typography.titleMedium)
-        Text(message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-        Button(onClick = onRetry) { Text("Retry") }
-    }
+        content = content,
+    )
 }
+
+// Inverted accent for Leave/Cancel: dark container with the amber primary as content.
+@Composable
+private fun leaveColors() = ButtonDefaults.buttonColors(
+    containerColor = MaterialTheme.colorScheme.onPrimary,
+    contentColor = MaterialTheme.colorScheme.primary,
+)
+
+private fun formatCode(code: String): String =
+    if (code.length == 6) "${code.substring(0, 3)} ${code.substring(3)}" else code

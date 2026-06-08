@@ -5,8 +5,10 @@ import eric.bitria.hexonkmp.core.game.action.GameAction
 import eric.bitria.hexonkmp.core.game.model.GameState
 import eric.bitria.hexonkmp.core.protocol.CatanServerEvent
 import eric.bitria.hexonkmp.core.protocol.ConnectionFailed
+import eric.bitria.hexonkmp.core.protocol.CreateLobbyResponse
 import eric.bitria.hexonkmp.core.protocol.GameStarted
 import eric.bitria.hexonkmp.core.protocol.JoinGameResponse
+import eric.bitria.hexonkmp.core.protocol.JoinLobbyResponse
 import eric.bitria.hexonkmp.core.protocol.RegisterResponse
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -35,24 +37,36 @@ class GameRepositoryImpl(private val client: GameClient) : GameRepository {
         private set
     override var startedGame: GameState? = null
         private set
+    override var startedNames: Map<String, String> = emptyMap()
+        private set
 
     override suspend fun register(name: String, existingPlayerId: String?): RegisterResponse =
         client.register(name, existingPlayerId)
 
     override suspend fun joinGame(playerId: String): JoinGameResponse = client.joinGame(playerId)
 
-    override fun connect(playerId: String, gameId: String) {
+    override suspend fun createLobby(playerId: String): CreateLobbyResponse =
+        client.createLobby(playerId)
+
+    override suspend fun joinLobby(code: String, playerId: String): JoinLobbyResponse =
+        client.joinLobby(code, playerId)
+
+    override suspend fun startLobby(gameId: String, playerId: String) =
+        client.startLobby(gameId, playerId)
+
+    override fun connect(playerId: String, name: String, gameId: String) {
         connectionJob?.cancel()
         currentPlayerId = playerId
         currentGameId = gameId
         connectionJob = scope.launch {
             try {
-                client.connectToGame(playerId, gameId, _outgoing) { event ->
+                client.connectToGame(playerId, name, gameId, _outgoing) { event ->
                     // Cache the start snapshot for the game screen's handoff (it's
                     // created only after the lobby reacts to this same event).
                     if (event is GameStarted<*>) {
                         @Suppress("UNCHECKED_CAST")
                         startedGame = (event as GameStarted<GameState>).state
+                        startedNames = event.playerNames
                     }
                     _events.emit(event)
                 }
@@ -72,6 +86,7 @@ class GameRepositoryImpl(private val client: GameClient) : GameRepository {
         connectionJob?.cancel()
         connectionJob = null
         startedGame = null
+        startedNames = emptyMap()
         currentPlayerId = null
         currentGameId = null
     }

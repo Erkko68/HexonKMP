@@ -13,22 +13,36 @@ sealed interface ServerEvent<out S, out E>
 
 // --- Lobby / matchmaking phase ---
 
-// [countdownSeconds] is the auto-start delay remaining: non-null once the lobby has
-// reached the minimum and the countdown is running (the client ticks it down locally
-// — the server sends it only on lobby changes, not every second), null otherwise.
+// A snapshot of who's in a pre-game lobby, pushed on every lobby change (a join,
+// a leave, or a host handoff). One representation serves both lobby policies:
+//  - auto / matchmaking: [hostId] is null and [countdownSeconds] counts down to an
+//    automatic start (the client ticks it locally; the server sends it only on
+//    changes, not every second).
+//  - manual / private:  [hostId] names the host who must press Start; no countdown.
 @Serializable
-@SerialName("WaitingForPlayers")
-data class WaitingForPlayers(
-    val connected: Int,
-    val needed: Int,
+@SerialName("LobbyRoster")
+data class LobbyRoster(
+    val members: List<LobbyMember>,
+    val hostId: String? = null,
+    val minPlayers: Int,
+    val maxPlayers: Int,
     val countdownSeconds: Int? = null,
 ) : ServerEvent<Nothing, Nothing>
 
+// One connected player in a lobby roster: their id and chosen display name.
+@Serializable
+data class LobbyMember(val id: String, val name: String)
+
 // Carries the initial snapshot when the room fills, and the current snapshot
-// when a player reconnects into an already-running game.
+// when a player reconnects into an already-running game. [playerNames] is the
+// public roster (playerId -> display name) carried as transport metadata — names
+// are display-only and never enter the pure game state.
 @Serializable
 @SerialName("GameStarted")
-data class GameStarted<out S>(val state: S) : ServerEvent<S, Nothing>
+data class GameStarted<out S>(
+    val state: S,
+    val playerNames: Map<String, String> = emptyMap(),
+) : ServerEvent<S, Nothing>
 
 // --- Presence (in-game) ---
 

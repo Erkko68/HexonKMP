@@ -64,7 +64,7 @@ import eric.bitria.hexonkmp.core.protocol.GameStarted
 import eric.bitria.hexonkmp.core.protocol.GameUpdate
 import eric.bitria.hexonkmp.core.protocol.PlayerJoined
 import eric.bitria.hexonkmp.core.protocol.PlayerLeft
-import eric.bitria.hexonkmp.core.protocol.WaitingForPlayers
+import eric.bitria.hexonkmp.core.protocol.LobbyRoster
 import eric.bitria.hexonkmp.data.repository.GameRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -73,10 +73,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // Upper bound for how many of a resource you can request in one proposed trade.
 private const val MAX_RECEIVE = 9
+
+// How long a transient notice stays before auto-clearing.
+private const val NOTICE_TIMEOUT_MS = 4000L
 
 class GameViewModel(
     private val repository: GameRepository,
@@ -103,6 +108,7 @@ class GameViewModel(
                 gameId = repository.currentGameId.orEmpty(),
                 state = started,
                 myPlayerId = PlayerId(me),
+                playerNames = repository.startedNames.mapKeys { PlayerId(it.key) },
             ).updated()
         }
         viewModelScope.launch {
@@ -460,10 +466,26 @@ class GameViewModel(
         repository.disconnect()
     }
 
+    // Transient on-screen notices (a player joining/leaving, a rejected action) auto-
+    // clear after a few seconds so they don't linger until the next game update.
+    private var noticeJob: Job? = null
+    private fun showNotice(text: String) {
+        noticeJob?.cancel()
+        _state.update { if (it is GameUiState.InGame) it.updated(notice = text) else it }
+        noticeJob = viewModelScope.launch {
+            delay(NOTICE_TIMEOUT_MS)
+            // Only clear if it's still this notice (a newer one may have replaced it).
+            _state.update { if (it is GameUiState.InGame && it.notice == text) it.updated(notice = null) else it }
+        }
+    }
+
+    private fun displayNameOf(playerId: String): String =
+        (_state.value as? GameUiState.InGame)?.displayName(PlayerId(playerId)) ?: playerId
+
     private fun handleServerEvent(event: CatanServerEvent) {
         when (event) {
             // Lobby-only events: handled by the LobbyViewModel, ignored here.
-            is WaitingForPlayers -> Unit
+            is LobbyRoster -> Unit
             // GameStarted reaches us only on reconnect into a running game (the
             // initial start is consumed via the handoff seed in init). Rebuild state.
             is GameStarted -> _state.update {
@@ -474,25 +496,20 @@ class GameViewModel(
                         gameId = repository.currentGameId.orEmpty(),
                         state = event.state,
                         myPlayerId = me,
+                        playerNames = event.playerNames.mapKeys { PlayerId(it.key) },
                     ).updated()
                 } else it
             }
             // --- Presence: Catan-style, players coming and going don't end the
             // game for the others — just surface a notice. ---
-            is PlayerJoined -> _state.update { s ->
-                if (s is GameUiState.InGame) s.updated(notice = "Player ${event.playerId} joined") else s
-            }
-            is PlayerLeft -> _state.update { s ->
-                if (s is GameUiState.InGame) s.updated(notice = "Player ${event.playerId} left") else s
-            }
+            is PlayerJoined -> showNotice("${displayNameOf(event.playerId)} joined")
+            is PlayerLeft -> showNotice("${displayNameOf(event.playerId)} left")
             // --- Game updates: apply the domain event to the local state copy. ---
             is GameUpdate -> _state.update { s ->
                 if (s is GameUiState.InGame) s.updated(state = applyEvent(s, event)) else s
             }
             // --- Action feedback (only the acting player receives this) ---
-            is ActionRejected -> _state.update { s ->
-                if (s is GameUiState.InGame) s.updated(notice = event.reason) else s
-            }
+            is ActionRejected -> showNotice(event.reason)
             // --- Client-local ---
             is ConnectionFailed -> {
                 repository.disconnect()
