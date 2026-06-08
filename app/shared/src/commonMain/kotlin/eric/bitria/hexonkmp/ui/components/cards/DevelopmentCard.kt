@@ -45,7 +45,6 @@ fun DevelopmentCard(
                 painter = rememberSvgPainter(DevCardPalette.icon(card)),
                 contentDescription = DevCardPalette.label(card),
                 modifier = Modifier.fillMaxSize(0.5f),
-                tint = Color.Unspecified,
             )
             Text("$count", style = MaterialTheme.typography.labelMedium)
         }
