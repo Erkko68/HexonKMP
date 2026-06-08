@@ -3,6 +3,15 @@ name: Deploy web to GitHub Pages
 on:
   push:
     branches: [main]
+    paths:
+      - 'app/**'
+      - 'core/**'
+      - 'gradle/**'
+      - 'gradlew'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle.properties'
+      - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
 
 permissions:
@@ -25,6 +34,17 @@ jobs:
           distribution: temurin
           java-version: 17
           cache: gradle
+
+      - name: Cache Kotlin/JS & Konan
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.konan
+            kotlin-js-store
+            build/js
+          key: ${{ runner.os }}-kjs-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-kjs-
 
       - name: Set production env (api subdomain + port)
         run: |

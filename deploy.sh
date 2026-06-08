@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ── Config ─────────────────────────────────────────────────────────────────────
-SERVER_HOST="YOUR_SERVER_HOST"
+SERVER_HOST="${DEPLOY_HOST:?set DEPLOY_HOST, e.g. DEPLOY_HOST=10.0.0.5 ./deploy.sh}"
 SERVER_USER="${DEPLOY_USER:-YOUR_SSH_USER}"   # override: DEPLOY_USER=eric ./deploy.sh
 REMOTE_DIR="/opt/hexon"                       # directory on the server
 REPO_URL="https://github.com/Erkko68/HexonKMP.git"  # change to your repo URL

@@ -56,10 +56,10 @@ Pushed automatically on every merge to `main` via [.github/workflows/deploy-web.
 ### Deploy script
 
 ```bash
-DEPLOY_USER=<user> ./deploy.sh
+DEPLOY_HOST=<host> DEPLOY_USER=<user> ./deploy.sh
 ```
 
-SSHes into `YOUR_SERVER_HOST`, pulls the latest `main`, and runs `docker compose up -d --build`.
+SSHes into `$DEPLOY_HOST`, pulls the latest `main`, and runs `docker compose up -d --build`.
 
 ## Environment
 
