@@ -32,10 +32,10 @@ jobs:
           echo "SERVER_PORT=8080" >> .env
 
       - name: Generate EnvConfig
-        run: ./gradlew generateEnvConfig --no-daemon
+        run: ./gradlew generateEnvConfig --no-daemon --no-configuration-cache
 
       - name: Build web bundle
-        run: ./gradlew :app:webApp:jsBrowserProductionWebpack --no-daemon
+        run: ./gradlew :app:webApp:jsBrowserProductionWebpack --no-daemon --no-configuration-cache
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
