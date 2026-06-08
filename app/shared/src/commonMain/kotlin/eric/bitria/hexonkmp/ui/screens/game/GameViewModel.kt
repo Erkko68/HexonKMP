@@ -66,7 +66,6 @@ import eric.bitria.hexonkmp.core.protocol.PlayerJoined
 import eric.bitria.hexonkmp.core.protocol.PlayerLeft
 import eric.bitria.hexonkmp.core.protocol.WaitingForPlayers
 import eric.bitria.hexonkmp.data.repository.GameRepository
-import eric.bitria.hexonkmp.data.storage.DevicePreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -81,9 +80,8 @@ private const val MAX_RECEIVE = 9
 
 class GameViewModel(
     private val repository: GameRepository,
-    private val prefs: DevicePreferences,
 ) : ViewModel() {
-    private val _state = MutableStateFlow<GameUiState>(GameUiState.Idle)
+    private val _state = MutableStateFlow<GameUiState>(GameUiState.Loading)
     val state: StateFlow<GameUiState> = _state.asStateFlow()
 
     private var myPlayerId: PlayerId? = null
@@ -94,25 +92,21 @@ class GameViewModel(
     private val engine: CatanEngine = CatanGameEngine()
 
     init {
+        // Seed from the lobby->game handoff: the connection is already live and the
+        // LobbyViewModel cached the start snapshot in the repository before navigating
+        // here. We pick it up rather than racing to catch the GameStarted event.
+        val started = repository.startedGame
+        val me = repository.currentPlayerId
+        if (started != null && me != null) {
+            myPlayerId = PlayerId(me)
+            _state.value = GameUiState.InGame(
+                gameId = repository.currentGameId.orEmpty(),
+                state = started,
+                myPlayerId = PlayerId(me),
+            ).updated()
+        }
         viewModelScope.launch {
             repository.events.collect { handleServerEvent(it) }
-        }
-    }
-
-    fun joinGame() {
-        if (_state.value != GameUiState.Idle) return
-        viewModelScope.launch {
-            _state.value = GameUiState.Connecting
-            runCatching {
-                val playerId = prefs.getOrCreatePlayerId()
-                playerId to repository.joinGame(playerId)
-            }
-                .onSuccess { (playerId, response) ->
-                    myPlayerId = PlayerId(playerId)
-                    _state.value = GameUiState.Waiting(response.gameId)
-                    repository.connect(playerId, response.gameId)
-                }
-                .onFailure { _state.value = GameUiState.Error(it.message ?: "Connection failed") }
         }
     }
 
@@ -455,14 +449,10 @@ class GameViewModel(
         return next.copy(buildOptions = computeBuildOptions(next))
     }
 
-    fun retryJoinGame() {
-        _state.value = GameUiState.Idle
-        joinGame()
-    }
-
+    // Tear down the connection. Navigation back to the lobby is the screen's job
+    // (it calls this, then pops the back stack).
     fun leaveGame() {
         repository.disconnect()
-        _state.value = GameUiState.Idle
     }
 
     override fun onCleared() {
@@ -472,17 +462,20 @@ class GameViewModel(
 
     private fun handleServerEvent(event: CatanServerEvent) {
         when (event) {
-            // --- Lobby phase ---
-            is WaitingForPlayers -> _state.update { s ->
-                if (s is GameUiState.Waiting) s.copy(connected = event.connected, needed = event.needed)
-                else s
-            }
-            is GameStarted -> _state.update { s ->
-                // Fired when the room fills, or on reconnect into a running game.
-                val me = myPlayerId
-                if (s is GameUiState.Waiting && me != null) {
-                    GameUiState.InGame(gameId = s.gameId, state = event.state, myPlayerId = me).updated()
-                } else s
+            // Lobby-only events: handled by the LobbyViewModel, ignored here.
+            is WaitingForPlayers -> Unit
+            // GameStarted reaches us only on reconnect into a running game (the
+            // initial start is consumed via the handoff seed in init). Rebuild state.
+            is GameStarted -> _state.update {
+                val me = myPlayerId ?: repository.currentPlayerId?.let { id -> PlayerId(id) }
+                if (me != null) {
+                    myPlayerId = me
+                    GameUiState.InGame(
+                        gameId = repository.currentGameId.orEmpty(),
+                        state = event.state,
+                        myPlayerId = me,
+                    ).updated()
+                } else it
             }
             // --- Presence: Catan-style, players coming and going don't end the
             // game for the others — just surface a notice. ---

@@ -30,15 +30,20 @@ import eric.bitria.hexonkmp.ui.theme.Spacing
 import io.github.erkko68.filament.Engine
 import org.koin.compose.viewmodel.koinViewModel
 
+// The in-game screen. The live connection and start snapshot are already in place
+// (handed off from the lobby via the shared repository); [onExit] navigates back to
+// the lobby when the player leaves or the game ends.
 @Composable
-fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
+fun GameScreen(
+    engine: Engine,
+    onExit: () -> Unit,
+    viewModel: GameViewModel = koinViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Box(Modifier.fillMaxSize()) {
         when (val s = state) {
-            is GameUiState.Idle -> IdleContent(onFindGame = viewModel::joinGame)
-            is GameUiState.Connecting -> ConnectingContent()
-            is GameUiState.Waiting -> WaitingContent(s)
+            GameUiState.Loading -> LoadingContent()
             is GameUiState.InGame -> {
                 InGameContent(
                     state = s,
@@ -68,53 +73,23 @@ fun GameScreen(engine: Engine, viewModel: GameViewModel = koinViewModel()) {
                     onFinalizeTrade = viewModel::finalizeTrade,
                     onCancelTrade = viewModel::cancelTrade,
                     onEndTurn = viewModel::endTurn,
-                    onReturnToMenu = viewModel::leaveGame,
+                    onReturnToMenu = { viewModel.leaveGame(); onExit() },
                 )
             }
-            is GameUiState.Error -> ErrorContent(s.message, onRetry = viewModel::retryJoinGame)
+            is GameUiState.Error -> ErrorContent(s.message, onRetry = { viewModel.leaveGame(); onExit() })
         }
     }
 }
 
 @Composable
-private fun IdleContent(onFindGame: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text("Hexon", style = MaterialTheme.typography.displayMedium)
-        Text("Ready to play?", style = MaterialTheme.typography.bodyLarge)
-        Button(onClick = onFindGame) { Text("Find Game") }
-    }
-}
-
-@Composable
-private fun ConnectingContent() {
+private fun LoadingContent() {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         CircularProgressIndicator()
-        Text("Connecting…", style = MaterialTheme.typography.bodyLarge)
-    }
-}
-
-@Composable
-private fun WaitingContent(state: GameUiState.Waiting) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        CircularProgressIndicator()
-        Text("Waiting for players…", style = MaterialTheme.typography.bodyLarge)
-        Text(
-            "${state.connected} / ${state.needed}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Text("Loading…", style = MaterialTheme.typography.bodyLarge)
     }
 }
 

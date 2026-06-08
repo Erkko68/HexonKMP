@@ -56,9 +56,9 @@ data class TradeDraft(
 )
 
 sealed class GameUiState {
-    data object Idle : GameUiState()
-    data object Connecting : GameUiState()
-    data class Waiting(val gameId: String, val connected: Int = 1, val needed: Int = 2) : GameUiState()
+    // Brief: shown only if the game screen mounts before the start snapshot is ready
+    // (in practice it's already cached at the handoff, so this rarely renders).
+    data object Loading : GameUiState()
     data class InGame(
         val gameId: String,
         val state: GameState,

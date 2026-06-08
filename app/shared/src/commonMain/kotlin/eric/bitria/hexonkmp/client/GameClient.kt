@@ -5,6 +5,8 @@ import eric.bitria.hexonkmp.core.protocol.CatanCodec
 import eric.bitria.hexonkmp.core.protocol.CatanServerEvent
 import eric.bitria.hexonkmp.core.protocol.JoinGameRequest
 import eric.bitria.hexonkmp.core.protocol.JoinGameResponse
+import eric.bitria.hexonkmp.core.protocol.RegisterRequest
+import eric.bitria.hexonkmp.core.protocol.RegisterResponse
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.websocket.*
@@ -18,6 +20,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class GameClient(private val http: HttpClient) {
+
+    // Identity handshake: send our chosen name (and prior id, if any) and get back
+    // the server-issued playerId. Separate from joinGame so it can later become auth.
+    suspend fun register(name: String, existingPlayerId: String?): RegisterResponse =
+        http.post("/register") { setBody(RegisterRequest(name, existingPlayerId)) }.body()
 
     suspend fun joinGame(playerId: String): JoinGameResponse =
         http.post("/game") { setBody(JoinGameRequest(playerId)) }.body()

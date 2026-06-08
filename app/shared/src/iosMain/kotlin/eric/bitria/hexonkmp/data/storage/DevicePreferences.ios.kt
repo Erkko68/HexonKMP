@@ -12,7 +12,6 @@ import okio.Path.Companion.toPath
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSUserDomainMask
-import kotlin.random.Random
 
 actual fun createDevicePreferences(): DevicePreferences =
     DataStoreDevicePreferences(createIosDataStore())
@@ -32,25 +31,19 @@ private class DataStoreDevicePreferences(
     private val store: DataStore<Preferences>,
 ) : DevicePreferences {
     private val playerIdKey = stringPreferencesKey("player_id")
+    private val playerNameKey = stringPreferencesKey("player_name")
 
-    override suspend fun getOrCreatePlayerId(): String {
-        val existing = store.data.map { it[playerIdKey] }.firstOrNull()
-        if (existing != null) return existing
-        val newId = randomUuid()
-        store.edit { it[playerIdKey] = newId }
-        return newId
+    override suspend fun getPlayerId(): String? =
+        store.data.map { it[playerIdKey] }.firstOrNull()
+
+    override suspend fun setPlayerId(id: String) {
+        store.edit { it[playerIdKey] = id }
     }
-}
 
-private fun randomUuid(): String {
-    val b = Random.nextBytes(16)
-    b[6] = ((b[6].toInt() and 0x0f) or 0x40).toByte()
-    b[8] = ((b[8].toInt() and 0x3f) or 0x80).toByte()
-    return b.toHexString().let {
-        "${it.substring(0,8)}-${it.substring(8,12)}-${it.substring(12,16)}-${it.substring(16,20)}-${it.substring(20)}"
+    override suspend fun getPlayerName(): String? =
+        store.data.map { it[playerNameKey] }.firstOrNull()
+
+    override suspend fun setPlayerName(name: String) {
+        store.edit { it[playerNameKey] = name }
     }
-}
-
-private fun ByteArray.toHexString() = joinToString("") {
-    it.toInt().and(0xff).toString(16).padStart(2, '0')
 }

@@ -60,6 +60,10 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
     // The pending auto-start countdown, if the lobby has reached minPlayers but
     // isn't full yet. Cancelled if the room fills or drops below minPlayers.
     private var autoStartJob: Job? = null
+    // Wall-clock instant the countdown will fire, so we can report the remaining
+    // seconds to clients on lobby changes (they tick it down locally). Null when no
+    // countdown is running.
+    private var autoStartDeadlineMs: Long? = null
 
     fun hasAvailableSlot(): Boolean = reservations.size < maxPlayers
 
@@ -94,14 +98,24 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
             }
             // Snapshot the connections so per-recipient redaction happens outside the
             // lock; GameStarted must be redacted per player (hidden information).
-            ConnectPlan(selfId = playerId, recipients = connections.toMap(), state = state, outcome = outcome)
+            ConnectPlan(
+                selfId = playerId,
+                recipients = connections.toMap(),
+                state = state,
+                outcome = outcome,
+                countdownSeconds = countdownSeconds(),
+            )
         }
 
         val gameState = plan.state
         when (plan.outcome) {
-            // Lobby phase: everyone sees the updated count.
+            // Lobby phase: everyone sees the updated count (and the running countdown,
+            // if the minimum has been reached — they tick it down locally).
             Outcome.WAITING ->
-                broadcast(WaitingForPlayers(plan.recipients.size, maxPlayers), plan.recipients.values.toList())
+                broadcast(
+                    WaitingForPlayers(plan.recipients.size, maxPlayers, plan.countdownSeconds),
+                    plan.recipients.values.toList(),
+                )
             // Room just filled: each connected player gets their own redacted snapshot.
             Outcome.STARTED -> sendStartedTo(plan.recipients, gameState!!)
             // Reconnect: only the returning player gets a snapshot; others see a join.
@@ -138,11 +152,17 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
                 if (connections.size < minPlayers) cancelAutoStart()
                 emptyList()
             }
-            DisconnectPlan(connections.toMap(), gameEvents, isEmpty)
+            // While still in the lobby, refresh the remaining players' count and
+            // countdown (which may have just been cancelled by this departure).
+            val lobbyUpdate = if (current == null && connections.isNotEmpty()) {
+                WaitingForPlayers(connections.size, maxPlayers, countdownSeconds())
+            } else null
+            DisconnectPlan(connections.toMap(), gameEvents, isEmpty, lobbyUpdate)
         }
         // I/O outside the lock — avoids holding the mutex during sends.
         if (plan.recipients.isNotEmpty()) {
             broadcast(PlayerLeft(playerId), plan.recipients.values.toList())
+            plan.lobbyUpdate?.let { broadcast(it, plan.recipients.values.toList()) }
             plan.events.forEach { broadcastRedacted(it, plan.recipients) }
         }
         if (plan.isEmpty) {
@@ -161,6 +181,7 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
     // launch() doesn't suspend, so it's safe to hold the mutex.
     private fun armAutoStart() {
         if (autoStartJob != null) return
+        autoStartDeadlineMs = System.currentTimeMillis() + autoStartDelayMs
         autoStartJob = scope.launch {
             delay(autoStartDelayMs.milliseconds)
             autoStart()
@@ -170,13 +191,20 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
     private fun cancelAutoStart() {
         autoStartJob?.cancel()
         autoStartJob = null
+        autoStartDeadlineMs = null
     }
+
+    // Seconds left on the running auto-start countdown (rounded up), or null if no
+    // countdown is active. Read under the lock.
+    private fun countdownSeconds(): Int? =
+        autoStartDeadlineMs?.let { (((it - System.currentTimeMillis()) + 999) / 1000).toInt().coerceAtLeast(0) }
 
     // Fires when the countdown elapses: starts the game with whoever is connected,
     // provided the minimum still holds and the room didn't already start/fill.
     private suspend fun autoStart() {
         val started = mutex.withLock {
             autoStartJob = null
+            autoStartDeadlineMs = null
             if (state != null || connections.size < minPlayers) return
             val fresh = startState()
             state = fresh
@@ -225,12 +253,16 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
         val recipients: Map<String, DefaultWebSocketSession>,
         val state: S?,
         val outcome: Outcome,
+        val countdownSeconds: Int?,
     )
 
     private inner class DisconnectPlan(
         val recipients: Map<String, DefaultWebSocketSession>,
         val events: List<E>,
         val isEmpty: Boolean,
+        // A refreshed lobby update to broadcast (count + countdown) if we're still in
+        // the lobby after this departure; null once the game has started.
+        val lobbyUpdate: WaitingForPlayers?,
     )
 
     private sealed interface ActionPlan<out Ev> {

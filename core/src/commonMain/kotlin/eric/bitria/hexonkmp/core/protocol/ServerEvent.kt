@@ -13,9 +13,16 @@ sealed interface ServerEvent<out S, out E>
 
 // --- Lobby / matchmaking phase ---
 
+// [countdownSeconds] is the auto-start delay remaining: non-null once the lobby has
+// reached the minimum and the countdown is running (the client ticks it down locally
+// — the server sends it only on lobby changes, not every second), null otherwise.
 @Serializable
 @SerialName("WaitingForPlayers")
-data class WaitingForPlayers(val connected: Int, val needed: Int) : ServerEvent<Nothing, Nothing>
+data class WaitingForPlayers(
+    val connected: Int,
+    val needed: Int,
+    val countdownSeconds: Int? = null,
+) : ServerEvent<Nothing, Nothing>
 
 // Carries the initial snapshot when the room fills, and the current snapshot
 // when a player reconnects into an already-running game.

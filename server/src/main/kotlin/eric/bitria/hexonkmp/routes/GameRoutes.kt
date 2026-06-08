@@ -2,6 +2,8 @@ package eric.bitria.hexonkmp.routes
 
 import eric.bitria.hexonkmp.core.protocol.JoinGameRequest
 import eric.bitria.hexonkmp.core.protocol.JoinGameResponse
+import eric.bitria.hexonkmp.core.protocol.RegisterRequest
+import eric.bitria.hexonkmp.core.protocol.RegisterResponse
 import eric.bitria.hexonkmp.repository.GameSessionRepository
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -10,12 +12,24 @@ import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import org.koin.ktor.ext.inject
+import java.util.UUID
 
 fun Application.gameRoutes() {
     val sessions by inject<GameSessionRepository<*, *, *>>()
 
     routing {
-        // POST /game — client sends its stable playerId; server finds or creates a game slot.
+        // POST /register — identity handshake, separate from matchmaking. The server
+        // is authoritative over player ids: it reuses a client-supplied id only if
+        // present (reconnection before real auth exists), otherwise it mints one.
+        // The name is echoed back for now; it's the field a future auth flow grows from.
+        post("/register") {
+            val request = call.receive<RegisterRequest>()
+            val playerId = request.existingPlayerId?.takeIf { it.isNotBlank() }
+                ?: UUID.randomUUID().toString()
+            call.respond(RegisterResponse(playerId = playerId, name = request.name))
+        }
+
+        // POST /game — client sends its server-issued playerId; server finds or creates a slot.
         post("/game") {
             val request = call.receive<JoinGameRequest>()
             val session = sessions.findOrJoin(request.playerId)

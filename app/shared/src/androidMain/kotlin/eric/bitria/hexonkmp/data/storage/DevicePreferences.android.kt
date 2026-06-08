@@ -8,7 +8,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
-import java.util.UUID
 
 object AppContext {
     lateinit var app: Application
@@ -23,12 +22,19 @@ private class DataStoreDevicePreferences(
     private val store: DataStore<Preferences>,
 ) : DevicePreferences {
     private val playerIdKey = stringPreferencesKey("player_id")
+    private val playerNameKey = stringPreferencesKey("player_name")
 
-    override suspend fun getOrCreatePlayerId(): String {
-        val existing = store.data.map { it[playerIdKey] }.firstOrNull()
-        if (existing != null) return existing
-        val newId = UUID.randomUUID().toString()
-        store.edit { it[playerIdKey] = newId }
-        return newId
+    override suspend fun getPlayerId(): String? =
+        store.data.map { it[playerIdKey] }.firstOrNull()
+
+    override suspend fun setPlayerId(id: String) {
+        store.edit { it[playerIdKey] = id }
+    }
+
+    override suspend fun getPlayerName(): String? =
+        store.data.map { it[playerNameKey] }.firstOrNull()
+
+    override suspend fun setPlayerName(name: String) {
+        store.edit { it[playerNameKey] = name }
     }
 }
