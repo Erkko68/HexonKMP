@@ -52,6 +52,9 @@ fun HttpClientConfig<*>.commonConfig(prefs: DevicePreferences) {
         }
     }
     defaultRequest {
+        // Protocol drives TLS: HTTPS here makes the WebSockets plugin upgrade to
+        // WSS too. Without it Ktor defaults to plaintext http/ws.
+        url.protocol = if (EnvConfig.SECURE) URLProtocol.HTTPS else URLProtocol.HTTP
         host = EnvConfig.SERVER_HOST
         port = EnvConfig.SERVER_PORT
         contentType(ContentType.Application.Json)

@@ -49,7 +49,7 @@ jobs:
       - name: Set production env (api subdomain + port)
         run: |
           echo "SERVER_HOST=api.hexon.biri.es" >> .env
-          echo "SERVER_PORT=8080" >> .env
+          echo "SERVER_PORT=443" >> .env
 
       - name: Generate EnvConfig
         run: ./gradlew generateEnvConfig --no-daemon --no-configuration-cache

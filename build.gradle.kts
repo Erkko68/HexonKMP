@@ -69,6 +69,10 @@ fun renderActual(pkg: String, values: Map<String, String>, isWeb: Boolean = fals
             else                        -> appendLine("    actual val $k: String = \"$v\"")
         }
     }
+    // TLS: web follows the page's own protocol (so an HTTPS bundle uses https/wss);
+    // other platforms default to plaintext but can opt in via SERVER_SECURE in .env.
+    if (isWeb) appendLine("    actual val SECURE: Boolean = window.location.protocol == \"https:\"")
+    else       appendLine("    actual val SECURE: Boolean = ${values["SERVER_SECURE"].toBoolean()}")
     appendLine("}")
 }
 
