@@ -10,10 +10,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Color
+import eric.bitria.hexonkmp.ui.theme.rememberSvgPainter
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.ui.theme.DevCardPalette
@@ -41,9 +42,10 @@ fun DevelopmentCard(
             verticalArrangement = Arrangement.Center,
         ) {
             Icon(
-                DevCardPalette.icon(card),
+                painter = rememberSvgPainter(DevCardPalette.icon(card)),
                 contentDescription = DevCardPalette.label(card),
                 modifier = Modifier.fillMaxSize(0.5f),
+                tint = Color.Unspecified,
             )
             Text("$count", style = MaterialTheme.typography.labelMedium)
         }

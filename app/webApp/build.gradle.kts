@@ -21,6 +21,7 @@ kotlin {
             implementation(libs.compose.ui)
             // Filament core is needed on JS to call Filament.init() in main().
             implementation(libs.filament.core)
+            implementation(libs.filament.compose)
             implementation(libs.kotlinx.coroutines.core)
         }
     }

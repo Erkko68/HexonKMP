@@ -1,6 +1,9 @@
 package eric.bitria.hexonkmp
 
 import androidx.compose.runtime.Composable
+import coil3.ImageLoader
+import coil3.compose.setSingletonImageLoaderFactory
+import coil3.svg.SvgDecoder
 import eric.bitria.hexonkmp.di.appModule
 import eric.bitria.hexonkmp.ui.screens.GameScreen
 import eric.bitria.hexonkmp.ui.theme.AppTheme
@@ -10,14 +13,16 @@ import org.koin.dsl.koinConfiguration
 
 @Composable
 fun App() {
-    // One Filament engine hoisted for the whole app session and passed to
-    // the board. The game is the only screen.
-    KoinApplication(configuration = koinConfiguration(declaration = { modules(appModule()) }), content = {
+    setSingletonImageLoaderFactory { context ->
+        ImageLoader.Builder(context)
+            .components { add(SvgDecoder.Factory()) }
+            .build()
+    }
+
+    KoinApplication(configuration = koinConfiguration { modules(appModule()) }) {
         AppTheme {
-            // One Filament engine hoisted for the whole app session and passed to
-            // the board. The game is the only screen.
             val engine = rememberFilamentEngine()
             GameScreen(engine = engine)
         }
-    })
+    }
 }

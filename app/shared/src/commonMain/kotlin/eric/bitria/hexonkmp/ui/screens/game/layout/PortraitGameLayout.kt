@@ -12,15 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddRoad
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.LocationCity
 import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.Style
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -35,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import eric.bitria.hexonkmp.ui.theme.rememberSvgPainter
 import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.GamePhase
 import eric.bitria.hexonkmp.core.game.model.PlayerId
@@ -234,50 +230,56 @@ fun PortraitGameLayout(
                 PortraitBottomTab.ACTIONS -> {
                     ActionBar {
                         ActionCard(
-                            icon = Icons.Filled.Home,
                             label = "Settlement",
                             enabled = opts.canSettlement,
                             selected = state.buildMode == BuildMode.SETTLEMENT,
-                            onClick = onToggleSettlement
-                        )
+                            onClick = onToggleSettlement,
+                        ) {
+                            Icon(rememberSvgPainter("files/icons/svg/ic_settlement.svg"), null, Modifier.fillMaxSize(0.6f))
+                        }
                         ActionCard(
-                            icon = Icons.Filled.AddRoad,
                             label = "Road",
                             enabled = opts.canRoad,
                             selected = state.buildMode == BuildMode.ROAD,
-                            onClick = onToggleRoad
-                        )
+                            onClick = onToggleRoad,
+                        ) {
+                            Icon(rememberSvgPainter("files/icons/svg/ic_road.svg"), null, Modifier.fillMaxSize(0.6f))
+                        }
                         ActionCard(
-                            icon = Icons.Filled.LocationCity,
                             label = "City",
                             enabled = opts.canCity,
                             selected = state.buildMode == BuildMode.CITY,
-                            onClick = onToggleCity
-                        )
+                            onClick = onToggleCity,
+                        ) {
+                            Icon(rememberSvgPainter("files/icons/svg/ic_city.svg"), null, Modifier.fillMaxSize(0.6f))
+                        }
                         ActionCard(
-                            icon = Icons.Filled.Style,
                             label = "Buy dev card",
                             enabled = opts.canBuyDevCard,
-                            onClick = onBuyDevCard
-                        )
+                            onClick = onBuyDevCard,
+                        ) {
+                            Icon(rememberSvgPainter("files/icons/svg/ic_dev_card.svg"), null, Modifier.fillMaxSize(0.6f))
+                        }
                         ActionCard(
-                            icon = Icons.Filled.SwapHoriz,
                             label = "Trade",
                             enabled = opts.canTrade,
                             selected = showTradeSheet,
                             badge = opts.tradeBadge,
-                            onClick = { showTradeSheet = true }
-                        )
+                            onClick = { showTradeSheet = true },
+                        ) {
+                            Icon(Icons.Filled.SwapHoriz, null, Modifier.fillMaxSize(0.6f))
+                        }
                         ActionCard(
-                            icon = Icons.Filled.SkipNext,
                             label = "End turn",
                             enabled = opts.canEndTurn,
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary
                             ),
-                            onClick = onEndTurn
-                        )
+                            onClick = onEndTurn,
+                        ) {
+                            Icon(Icons.Filled.SkipNext, null, Modifier.fillMaxSize(0.6f))
+                        }
                     }
                 }
                 PortraitBottomTab.INVENTORY -> {

@@ -7,14 +7,10 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-        /* Stacking context so Compose overlays (HUD, buttons) layer above the canvas. */
-        #root { width: 100%; height: 100%; position: relative; z-index: 0; }
     </style>
 </head>
 <body>
-    <div id="root"></div>
-    <!-- Filament's WebGL runtime must load before the app script. -->
-    <script src="filament.js"></script>
-    <script src="webApp.js"></script>
+<script src="filament.js"></script>
+<script src="webApp.js"></script>
 </body>
 </html>

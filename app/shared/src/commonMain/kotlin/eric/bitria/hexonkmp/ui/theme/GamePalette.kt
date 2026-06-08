@@ -1,13 +1,6 @@
 package eric.bitria.hexonkmp.ui.theme
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddRoad
-import androidx.compose.material.icons.filled.Paid
-import androidx.compose.material.icons.filled.Redeem
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import eric.bitria.hexonkmp.core.game.model.DevCard
 import eric.bitria.hexonkmp.core.game.model.PlayerId
 import eric.bitria.hexonkmp.core.game.model.board.Resource
@@ -37,6 +30,14 @@ object ResourcePalette {
         Resource.GRAIN  -> "Grain"
         Resource.ORE    -> "Ore"
     }
+
+    fun icon(resource: Resource): String = when (resource) {
+        Resource.BRICK  -> "files/icons/svg/ic_brick.svg"
+        Resource.LUMBER -> "files/icons/svg/ic_lumber.svg"
+        Resource.WOOL   -> "files/icons/svg/ic_wool.svg"
+        Resource.GRAIN  -> "files/icons/svg/ic_grain.svg"
+        Resource.ORE    -> "files/icons/svg/ic_ore.svg"
+    }
 }
 
 object DevCardPalette {
@@ -48,12 +49,12 @@ object DevCardPalette {
         DevCard.MONOPOLY       -> Color(0xFF7E57C2)
     }
 
-    fun icon(card: DevCard): ImageVector = when (card) {
-        DevCard.KNIGHT         -> Icons.Filled.Shield
-        DevCard.VICTORY_POINT  -> Icons.Filled.Star
-        DevCard.ROAD_BUILDING  -> Icons.Filled.AddRoad
-        DevCard.YEAR_OF_PLENTY -> Icons.Filled.Redeem
-        DevCard.MONOPOLY       -> Icons.Filled.Paid
+    fun icon(card: DevCard): String = when (card) {
+        DevCard.KNIGHT         -> "files/icons/svg/ic_dev_knight.svg"
+        DevCard.VICTORY_POINT  -> "files/icons/svg/ic_dev_vp.svg"
+        DevCard.ROAD_BUILDING  -> "files/icons/svg/ic_road.svg"
+        DevCard.YEAR_OF_PLENTY -> "files/icons/svg/ic_dev_year_of_plenty.svg"
+        DevCard.MONOPOLY       -> "files/icons/svg/ic_dev_monopoly.svg"
     }
 
     fun label(card: DevCard): String = when (card) {

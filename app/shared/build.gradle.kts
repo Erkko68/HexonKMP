@@ -75,6 +75,8 @@ kotlin {
             implementation(libs.ktor.client.websockets)
             implementation(libs.ktor.client.serialization.json)
             implementation(libs.filament.compose)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.svg)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

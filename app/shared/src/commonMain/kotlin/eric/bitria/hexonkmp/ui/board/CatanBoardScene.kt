@@ -51,7 +51,7 @@ private const val ROBBER_X_OFFSET = -0.32f
 
 // Port markers: a small wooden-plank rectangle at a harbor vertex, colored by its
 // resource. Sits low so it intersects the tile surface (like a dock on the coast).
-private const val PORT_Y = 0.04f
+private const val PORT_Y = 0.0f
 private val PORT_SIZE = Scale(0.34f, 0.12f, 0.22f)
 
 // Number tokens (glb models, exported flat from Blender) sit just above the tile
@@ -62,7 +62,7 @@ private const val NUMBER_SCALE = 0.8f
 // Catan colors the most-frequent tokens (6 and 8) red, the rest black.
 private fun isRedToken(token: Int): Boolean = token == 6 || token == 8
 
-private val RAD_TO_DEG = 180f / kotlin.math.PI.toFloat()
+private const val RAD_TO_DEG = 180f / kotlin.math.PI.toFloat()
 
 // Lay the (flat) number models with a 45° counterclockwise spin about the
 // up axis (positive Y rotation reads CCW from the top-down camera).

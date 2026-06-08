@@ -12,9 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Layers
+import eric.bitria.hexonkmp.ui.theme.rememberSvgPainter
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -82,7 +80,7 @@ fun LandscapePlayerPanel(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
                     Icon(
-                        Icons.Filled.Build,
+                        painter = rememberSvgPainter("files/icons/svg/ic_dev_year_of_plenty.svg"),
                         contentDescription = "Resources",
                         modifier = Modifier.size(iconSize),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -93,7 +91,7 @@ fun LandscapePlayerPanel(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Icon(
-                        Icons.Filled.Layers,
+                        painter = rememberSvgPainter("files/icons/svg/ic_dev_card.svg"),
                         contentDescription = "Dev cards",
                         modifier = Modifier.size(iconSize),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
