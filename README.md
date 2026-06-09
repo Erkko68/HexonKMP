@@ -51,7 +51,7 @@ SERVER_BIND_PORT=8080
 
 ### Web (GitHub Pages)
 
-Pushed automatically on every merge to `main` via [.github/workflows/deploy-web.yml](.github/workflows/deploy-web.yml). The JS bundle connects to `api.hexon.biri.es:8080` (baked in at build time).
+Pushed automatically on every merge to `main` via [.github/workflows/deploy-web.yml](.github/workflows/deploy-web.yml). The JS bundle connects to `https://hexon-api.biri.es` (baked in at build time; the host must be a single-label subdomain so Cloudflare's `*.biri.es` cert covers it).
 
 ### Deploy script
 
@@ -70,4 +70,4 @@ SSHes into `$DEPLOY_HOST`, pulls the latest `main`, and runs `docker compose up 
 | `SERVER_BIND_HOST` | Server | Interface Ktor binds on |
 | `SERVER_BIND_PORT` | Server | Port Ktor binds on |
 
-For the web target, `SERVER_HOST` defaults to `window.location.hostname` in dev mode (when set to `localhost`). Set it to an explicit value (e.g. `api.hexon.biri.es`) for production builds.
+For the web target, `SERVER_HOST` defaults to `window.location.hostname` in dev mode (when set to `localhost`). Set it to an explicit value (e.g. `hexon-api.biri.es`) for production builds.
