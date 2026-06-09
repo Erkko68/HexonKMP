@@ -1,5 +1,6 @@
 package eric.bitria.hexonkmp.client
 
+import eric.bitria.hexonkmp.core.config.EnvConfig
 import eric.bitria.hexonkmp.core.game.action.GameAction
 import eric.bitria.hexonkmp.core.protocol.CatanCodec
 import eric.bitria.hexonkmp.core.protocol.CatanServerEvent
@@ -68,6 +69,10 @@ class GameClient(private val http: HttpClient) {
         http.webSocket(
             path = "/game/$gameId",
             request = {
+                // The webSocket builder forces ws:// and does not inherit the HTTPS
+                // protocol from defaultRequest, so set wss:// explicitly when secure —
+                // otherwise an HTTPS page blocks the call as mixed content.
+                url.protocol = if (EnvConfig.SECURE) URLProtocol.WSS else URLProtocol.WS
                 parameter("token", token)
                 parameter("name", name)
             },
