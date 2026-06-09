@@ -18,7 +18,11 @@ class SetupPhaseTest {
     private val engine = CatanGameEngine(boardSeed = 1)
     private val alice = PlayerId("alice")
     private val bob = PlayerId("bob")
+    private val carol = PlayerId("carol")
     private val start = engine.initialState(listOf(alice, bob))
+    // Three players, so a single player leaving during setup still leaves a
+    // multi-player game (a drop to one survivor ends the game instead).
+    private val start3 = engine.initialState(listOf(alice, bob, carol))
 
     @Test
     fun gameStartsInSetupAwaitingFirstSettlementWithNoRoll() {
@@ -112,9 +116,9 @@ class SetupPhaseTest {
         // Alice is current at the very start (awaiting her first settlement).
         // When she leaves, the engine places a settlement + road for her at random
         // instead of skipping, then hands the draft to the next present player.
-        val result = engine.playerLeft(start, alice)
+        val result = engine.playerLeft(start3, alice)
         val state = result.state
-        assertEquals(setOf(bob), state.present)
+        assertEquals(setOf(bob, carol), state.present)
         // Alice got a board presence anyway.
         assertEquals(1, state.buildings.count { it.owner == alice })
         assertEquals(1, state.roads.count { it.owner == alice })
@@ -128,8 +132,8 @@ class SetupPhaseTest {
     fun leavingMidStepDuringSetupPlacesOnlyTheOwedRoad() {
         // Alice places her settlement (now awaiting her road), then leaves. Only the
         // connecting road should be auto-placed — no orphan settlement left behind.
-        val v = engine.legalSettlements(start, alice).first()
-        val awaitingRoad = engine.reduce(start, alice, PlaceSettlement(v)).state
+        val v = engine.legalSettlements(start3, alice).first()
+        val awaitingRoad = engine.reduce(start3, alice, PlaceSettlement(v)).state
         val result = engine.playerLeft(awaitingRoad, alice)
         val state = result.state
         assertEquals(1, state.buildings.count { it.owner == alice })
@@ -142,7 +146,7 @@ class SetupPhaseTest {
         // Alice leaves at the start; bob plays out the rest by hand. The engine
         // auto-fills Alice's remaining draft slot, so setup still reaches Play with
         // a full board (4 settlements, 4 roads) and never stalls on the leaver.
-        var state = engine.playerLeft(start, alice).state
+        var state = engine.playerLeft(start3, alice).state
         var guard = 0
         while (state.phase is GamePhase.Setup) {
             assertTrue(guard++ < 100)
@@ -154,8 +158,9 @@ class SetupPhaseTest {
             state = engine.reduce(state, current, PlaceRoad(edge)).state
         }
         assertEquals(GamePhase.Play, state.phase)
-        assertEquals(4, state.buildings.size)
-        assertEquals(4, state.roads.size)
+        // Three players × two pieces each.
+        assertEquals(6, state.buildings.size)
+        assertEquals(6, state.roads.size)
         // Alice's auto-placed second-round settlement granted her starting resources.
         assertTrue(state.handOf(alice).total > 0)
     }

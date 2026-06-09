@@ -872,6 +872,12 @@ class CatanGameEngine(
     override fun playerLeft(state: GameState, playerId: PlayerId): CatanResult {
         if (playerId !in state.present) return CatanResult(state)
         val base = state.copy(present = state.present - playerId)
+        // Last player standing wins: once everyone else has left an in-progress game,
+        // end it immediately with the sole survivor as winner (mirrors a normal win).
+        if (base.phase !is GamePhase.Finished && base.present.size == 1) {
+            val winner = base.present.first()
+            return CatanResult(base.copy(phase = GamePhase.Finished(winner)), events = listOf(GameEnded(winner)))
+        }
         // Discards never wait on an absent player: a leaver who still owes pays it
         // immediately (cards picked at random), then the phase proceeds once no
         // present player still owes.

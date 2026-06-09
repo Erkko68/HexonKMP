@@ -135,10 +135,14 @@ class DiscardTest {
 
     @Test
     fun aPlayerLeavingDuringDiscardAutoDiscardsAtRandomThenUnblocks() {
-        val s = play.copy(
+        // Three players, so bob leaving still leaves a present roller (alice) and the
+        // phase resolves to the robber rather than ending the game on a sole survivor.
+        val carol = PlayerId("carol")
+        val threePlay = engine.completeSetup(engine.initialState(listOf(alice, bob, carol)))
+        val s = threePlay.copy(
             phase = GamePhase.Discard(mapOf(bob to 2)),
-            hands = play.hands + (bob to ResourceCount.of(wool to 4)),
-            currentPlayerIndex = play.players.indexOf(alice),
+            hands = threePlay.hands + (bob to ResourceCount.of(wool to 4)),
+            currentPlayerIndex = threePlay.players.indexOf(alice),
         )
         val result = engine.playerLeft(s, bob)
         assertTrue(bob !in result.state.present)

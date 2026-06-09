@@ -176,7 +176,11 @@ class DevCardTest {
 
     @Test
     fun playerLeavingDuringRoadBuildingSkipsPhaseAndAdvancesTurn() {
-        val state = play.copy(devCards = mapOf(alice to listOf(DevCard.ROAD_BUILDING)))
+        // Three players, so the game keeps running after alice leaves (a leave that
+        // drops to a single survivor would instead end the game).
+        val carol = PlayerId("carol")
+        val threePlay = engine.completeSetup(engine.initialState(listOf(alice, bob, carol)))
+        val state = threePlay.copy(devCards = mapOf(alice to listOf(DevCard.ROAD_BUILDING)))
         val inRoadBuilding = engine.reduce(state, alice, PlayRoadBuilding).state
         assertEquals(GamePhase.RoadBuilding(roadsLeft = 2), inRoadBuilding.phase)
 
