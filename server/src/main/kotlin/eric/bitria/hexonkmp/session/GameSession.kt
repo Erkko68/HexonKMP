@@ -157,10 +157,14 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
             // show by name anyone who's part of the game even if briefly disconnected.
             // (The lobby roster lists current connections, so departed lobby members
             // still drop out of it.)
-            val isEmpty = connections.isEmpty() && reservations.isEmpty()
             // Tell the engine the player left so the turn can move on if it was
             // theirs; capture any resulting game events to broadcast.
             val current = state
+            // A started game with no live connections is abandoned — tear it down even
+            // if stale reservations linger (e.g. a player who reserved a seat but never
+            // opened its socket). In the lobby we also wait for reservations to clear so
+            // a freshly reserved seat isn't torn down before its socket connects.
+            val isEmpty = connections.isEmpty() && (current != null || reservations.isEmpty())
             val gameEvents = if (current != null) {
                 val result = engine.playerLeft(current, PlayerId(playerId))
                 state = result.state
