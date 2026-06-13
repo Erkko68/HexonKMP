@@ -23,4 +23,19 @@ interface GameEngine<S, A, E> {
     // rejoining is simply marked present again — the turn order is unchanged.
     fun playerLeft(state: S, playerId: PlayerId): GameResult<S, E>
     fun playerJoined(state: S, playerId: PlayerId): GameResult<S, E>
+
+    // Timer seam, so the transport can run a clock without knowing the game's
+    // rules. [timerKey] identifies the current timed situation: the transport runs
+    // one clock per distinct key and resets it whenever the key changes (a new
+    // turn, or a new phase like a discard round); null = no clock should run right
+    // now (e.g. the game is over). When the clock for the current key expires,
+    // [onTimeout] returns the actions to auto-apply — one per actor, in order,
+    // fed back through [reduce] — so a single expiry can resolve several players at
+    // once (e.g. everyone who still owes a discard). Defaults make timers a no-op
+    // for games that don't opt in.
+    fun timerKey(state: S): Any? = null
+    fun onTimeout(state: S): List<TimeoutAction<A>> = emptyList()
 }
+
+// One auto-applied action when a clock expires: [actor] is who it acts for.
+data class TimeoutAction<out A>(val actor: PlayerId, val action: A)

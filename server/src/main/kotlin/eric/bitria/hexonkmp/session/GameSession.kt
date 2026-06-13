@@ -9,9 +9,11 @@ import eric.bitria.hexonkmp.core.protocol.GameStarted
 import eric.bitria.hexonkmp.core.protocol.GameUpdate
 import eric.bitria.hexonkmp.core.protocol.LobbyMember
 import eric.bitria.hexonkmp.core.protocol.LobbyRoster
+import eric.bitria.hexonkmp.core.protocol.PartyRules
 import eric.bitria.hexonkmp.core.protocol.PlayerJoined
 import eric.bitria.hexonkmp.core.protocol.PlayerLeft
 import eric.bitria.hexonkmp.core.protocol.ServerEvent
+import eric.bitria.hexonkmp.core.protocol.TurnTimer
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.CoroutineScope
@@ -38,11 +40,19 @@ import kotlin.time.Duration.Companion.milliseconds
 // instantly the moment the room fills).
 class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
     val gameId: String,
-    private val engine: GameEngine<S, A, E>,
+    // Builds the engine for this game once it starts, given the host's victory-point
+    // override (null = the game mode's default). Deferred to start time so a private
+    // host can change the win target in the lobby before the engine is created. The
+    // transport stays game-agnostic — only the factory (in AppModule) names Catan.
+    private val engineFor: (victoryPoints: Int?) -> GameEngine<S, A, E>,
     private val codec: GameCodec<S, A, E>,
     private val minPlayers: Int,
     private val maxPlayers: Int,
     autoStartDelaySeconds: Int,
+    // The game mode's default rules a private host starts from (and that auto lobbies
+    // always use): the win target and the per-turn timer (null = no timer).
+    private val defaultVictoryPoints: Int,
+    private val defaultTurnTimerSeconds: Int?,
     // Lobby policy. false (default) = auto/matchmaking: arm a countdown at the
     // minimum and start automatically. true = manual/private: a host presses Start;
     // no countdown, and a full room does NOT auto-start.
@@ -54,6 +64,15 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
     private val onEmpty: suspend (gameId: String) -> Unit = {},
 ) {
     private val autoStartDelayMs = autoStartDelaySeconds.toLong() * 1000L
+
+    // The engine, created at start time via [engineFor] (so victory-point overrides
+    // apply). Null until the game starts; only ever read once [state] is non-null.
+    private var engine: GameEngine<S, A, E>? = null
+
+    // The rules the game starts with: the mode defaults for auto/matchmaking, or the
+    // host's chosen rules supplied at start (startByHost). Drives the start-time
+    // engine (victory points) and the turn timer.
+    private var activeRules: PartyRules = PartyRules(defaultVictoryPoints, defaultTurnTimerSeconds)
 
     private val mutex = Mutex()
     // LinkedHashSet: preserves join order, which becomes the turn order.
@@ -75,6 +94,14 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
     // countdown is running.
     private var autoStartDeadlineMs: Long? = null
 
+    // The running game clock (in-game). [turnTimerKey] is the engine's identifier for
+    // the current timed situation (a turn, a discard round, …), so the clock only
+    // re-arms when the situation actually changes — not on every intermediate
+    // build/trade. Cancelled at game over / for manual (no-timer) games.
+    private var turnTimerJob: Job? = null
+    private var turnTimerKey: Any? = null
+    private var turnDeadlineMs: Long? = null
+
     fun hasAvailableSlot(): Boolean = reservations.size < maxPlayers
 
     fun reserveSlot(playerId: String) {
@@ -93,13 +120,14 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
             val outcome = when {
                 current != null -> {
                     // Reconnect into a running game: mark the player present again.
-                    state = engine.playerJoined(current, PlayerId(playerId)).state
+                    state = engine!!.playerJoined(current, PlayerId(playerId)).state
                     Outcome.RECONNECTED
                 }
                 // A full AUTO room starts immediately; a manual room waits for its host.
                 !manualStart && connections.size >= maxPlayers -> {
                     cancelAutoStart()
                     state = startState()
+                    armTurnTimerLocked()
                     Outcome.STARTED
                 }
                 else -> {
@@ -117,6 +145,9 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
                 state = state,
                 outcome = outcome,
                 roster = if (outcome == Outcome.LOBBY) roster() else null,
+                // The current turn clock, so a just-started or reconnecting client can
+                // render the countdown immediately.
+                turnTimer = if (outcome == Outcome.LOBBY) null else TurnTimer(turnRemainingSeconds()),
             )
         }
 
@@ -125,12 +156,18 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
             // Lobby phase: everyone sees the updated roster (names + host + any running
             // countdown — they tick it down locally).
             Outcome.LOBBY -> broadcast(plan.roster!!, plan.recipients.values.toList())
-            // Room just filled: each connected player gets their own redacted snapshot.
-            Outcome.STARTED -> sendStartedTo(plan.recipients, gameState!!)
-            // Reconnect: only the returning player gets a snapshot; others see a join.
+            // Room just filled: each connected player gets their own redacted snapshot,
+            // then the shared turn clock.
+            Outcome.STARTED -> {
+                sendStartedTo(plan.recipients, gameState!!)
+                plan.turnTimer?.let { broadcast(it, plan.recipients.values.toList()) }
+            }
+            // Reconnect: only the returning player gets a snapshot (+ the turn clock);
+            // others see a join.
             Outcome.RECONNECTED -> {
                 plan.recipients[plan.selfId]?.let {
                     send(it, GameStarted(gameState!!.redactedFor(PlayerId(plan.selfId)), names.toMap()))
+                    plan.turnTimer?.let { t -> send(it, t) }
                 }
                 plan.recipients.filterKeys { it != plan.selfId }.values
                     .forEach { send(it, PlayerJoined(plan.selfId)) }
@@ -166,7 +203,7 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
             // a freshly reserved seat isn't torn down before its socket connects.
             val isEmpty = connections.isEmpty() && (current != null || reservations.isEmpty())
             val gameEvents = if (current != null) {
-                val result = engine.playerLeft(current, PlayerId(playerId))
+                val result = engine!!.playerLeft(current, PlayerId(playerId))
                 state = result.state
                 result.events
             } else {
@@ -179,13 +216,17 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
             // While still in the lobby, refresh the remaining players' roster (host
             // and countdown may have just changed because of this departure).
             val lobbyUpdate = if (current == null && connections.isNotEmpty()) roster() else null
-            DisconnectPlan(connections.toMap(), gameEvents, isEmpty, lobbyUpdate)
+            // A departure mid-game may hand the turn to the next player (or end the
+            // game) — re-arm the clock to match.
+            val turnTimer = if (current != null) armTurnTimerLocked() else null
+            DisconnectPlan(connections.toMap(), gameEvents, isEmpty, lobbyUpdate, turnTimer)
         }
         // I/O outside the lock — avoids holding the mutex during sends.
         if (plan.recipients.isNotEmpty()) {
             broadcast(PlayerLeft(playerId), plan.recipients.values.toList())
             plan.lobbyUpdate?.let { broadcast(it, plan.recipients.values.toList()) }
             plan.events.forEach { broadcastRedacted(it, plan.recipients) }
+            plan.turnTimer?.let { broadcast(it, plan.recipients.values.toList()) }
         }
         if (plan.isEmpty) {
             cancelAutoStart()
@@ -197,16 +238,23 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
     // Host-only start of a manual lobby. Validated under the lock: must be a manual
     // lobby that hasn't started, the caller must be the host, and the minimum must be
     // met. Returns false (and does nothing) otherwise so the route can reject it.
-    suspend fun startByHost(playerId: String): Boolean {
+    // Host-only start of a manual lobby, carrying the host's chosen [rules] (null =
+    // mode defaults). Validated under the lock: must be a manual lobby that hasn't
+    // started, by its host, with the minimum met. Returns false (and does nothing)
+    // otherwise so the route can reject it.
+    suspend fun startByHost(playerId: String, rules: PartyRules?): Boolean {
         val started = mutex.withLock {
             if (!manualStart || state != null) return false
             if (playerId != hostId || connections.size < minPlayers) return false
+            if (rules != null) activeRules = rules
             val fresh = startState()
             state = fresh
-            fresh to connections.toMap()
+            val timer = armTurnTimerLocked()
+            Triple(fresh, connections.toMap(), timer)
         }
-        val (gameState, recipients) = started
+        val (gameState, recipients, timer) = started
         sendStartedTo(recipients, gameState)
+        timer?.let { broadcast(it, recipients.values.toList()) }
         return true
     }
 
@@ -219,10 +267,14 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
         countdownSeconds = countdownSeconds(),
     )
 
-    // The game's initial state, seeded with the currently-connected players in
-    // join order (reservations that never connected are left out).
-    private fun startState(): S =
-        engine.initialState(reservations.filter { it in connections }.map { PlayerId(it) })
+    // The game's initial state, seeded with the currently-connected players in join
+    // order (reservations that never connected are left out). Builds the engine here
+    // so the host's victory-point override is baked in at start.
+    private fun startState(): S {
+        val eng = engineFor(activeRules.victoryPoints)
+        engine = eng
+        return eng.initialState(reservations.filter { it in connections }.map { PlayerId(it) })
+    }
 
     // Arms the lobby countdown if one isn't already running. Called under the lock;
     // launch() doesn't suspend, so it's safe to hold the mutex.
@@ -255,10 +307,82 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
             if (state != null || connections.size < minPlayers) return
             val fresh = startState()
             state = fresh
-            fresh to connections.toMap()
+            val timer = armTurnTimerLocked()
+            Triple(fresh, connections.toMap(), timer)
         }
-        val (gameState, recipients) = started
+        val (gameState, recipients, timer) = started
         sendStartedTo(recipients, gameState)
+        timer?.let { broadcast(it, recipients.values.toList()) }
+    }
+
+    // --- Game clock (in-game) ---
+
+    // (Re)arms the clock to match the engine's current [timerKey] (a turn, a discard
+    // round, …). Returns a TurnTimer event to broadcast when the running clock
+    // changed (a new key, or it stopped), else null (same situation still running,
+    // nothing to announce). Must be called under the lock; launch() doesn't suspend,
+    // so holding it is safe.
+    private fun armTurnTimerLocked(): TurnTimer? {
+        val current = state ?: return null
+        val key = engine!!.timerKey(current)
+        val seconds = activeRules.turnTimerSeconds
+        // No timer configured (manual mode) or nothing to time (game over): stop any
+        // running clock and tell clients only if one was actually running.
+        if (key == null || seconds == null) {
+            val wasRunning = turnTimerKey != null
+            cancelTurnTimer()
+            return if (wasRunning) TurnTimer(null) else null
+        }
+        // The same situation is still going: leave the clock untouched (it runs for
+        // the whole turn / whole discard round, not per intermediate action).
+        if (key == turnTimerKey && turnTimerJob != null) return null
+        // A new situation: reset the clock.
+        turnTimerJob?.cancel()
+        turnTimerKey = key
+        turnDeadlineMs = System.currentTimeMillis() + seconds * 1000L
+        turnTimerJob = scope.launch {
+            delay((seconds * 1000L).milliseconds)
+            fireTimeout(key)
+        }
+        return TurnTimer(seconds)
+    }
+
+    private fun cancelTurnTimer() {
+        turnTimerJob?.cancel()
+        turnTimerJob = null
+        turnTimerKey = null
+        turnDeadlineMs = null
+    }
+
+    // Seconds left on the running clock (rounded up), or null if none is active.
+    private fun turnRemainingSeconds(): Int? =
+        turnDeadlineMs?.let { (((it - System.currentTimeMillis()) + 999) / 1000).toInt().coerceAtLeast(0) }
+
+    // Fires when the clock for [forKey] elapses: asks the engine what to auto-apply
+    // (end the turn, resolve a robber move, discard for everyone who still owes, …)
+    // and runs each action like a normal one, then re-arms for whatever's next. Stale
+    // fires (the situation already moved on) are ignored.
+    private suspend fun fireTimeout(forKey: Any) {
+        val plan = mutex.withLock {
+            var current = state ?: return
+            if (turnTimerKey != forKey) return
+            turnTimerJob = null
+            turnDeadlineMs = null
+            turnTimerKey = null
+            val events = mutableListOf<E>()
+            for ((actor, action) in engine!!.onTimeout(current)) {
+                val result = engine!!.reduce(current, actor, action)
+                if (result.rejection == null) {
+                    current = result.state
+                    events += result.events
+                }
+            }
+            if (events.isEmpty()) return  // nothing forced; leave the clock stopped
+            state = current
+            TimeoutPlan(connections.toMap(), events, armTurnTimerLocked())
+        }
+        plan.events.forEach { broadcastRedacted(it, plan.recipients) }
+        plan.turnTimer?.let { broadcast(it, plan.recipients.values.toList()) }
     }
 
     // Runs one player action through the engine and broadcasts the outcome. The
@@ -268,20 +392,24 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
         val action = runCatching { codec.decodeAction(actionText) }.getOrNull() ?: return
         val plan = mutex.withLock {
             val current = state ?: return  // action before the game started: ignore
-            val result = engine.reduce(current, PlayerId(playerId), action)
+            val result = engine!!.reduce(current, PlayerId(playerId), action)
             val rejection = result.rejection
             if (rejection != null) {
                 ActionPlan.Rejected(connections[playerId], rejection)
             } else {
                 state = result.state
-                ActionPlan.Applied(connections.toMap(), result.events)
+                // An applied action may have ended the turn — re-arm the clock for
+                // whoever's up next (no-op while the same player keeps acting).
+                ActionPlan.Applied(connections.toMap(), result.events, armTurnTimerLocked())
             }
         }
         when (plan) {
             is ActionPlan.Rejected ->
                 plan.actor?.let { send(it, ActionRejected(plan.reason)) }
-            is ActionPlan.Applied ->
+            is ActionPlan.Applied -> {
                 plan.events.forEach { broadcastRedacted(it, plan.recipients) }
+                plan.turnTimer?.let { broadcast(it, plan.recipients.values.toList()) }
+            }
         }
     }
 
@@ -302,6 +430,8 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
         val outcome: Outcome,
         // The roster to broadcast for a LOBBY outcome; null otherwise.
         val roster: LobbyRoster?,
+        // The current turn clock to send a started/reconnecting client; null in lobby.
+        val turnTimer: TurnTimer?,
     )
 
     private inner class DisconnectPlan(
@@ -311,6 +441,15 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
         // A refreshed roster to broadcast if we're still in the lobby after this
         // departure; null once the game has started.
         val lobbyUpdate: LobbyRoster?,
+        // A re-armed turn clock to broadcast if the departure moved the turn; else null.
+        val turnTimer: TurnTimer?,
+    )
+
+    // The outcome of a turn-timer firing: events to broadcast plus the re-armed clock.
+    private inner class TimeoutPlan(
+        val recipients: Map<String, DefaultWebSocketSession>,
+        val events: List<E>,
+        val turnTimer: TurnTimer?,
     )
 
     private sealed interface ActionPlan<out Ev> {
@@ -318,6 +457,8 @@ class GameSession<S : Redactable<S>, A, E : Redactable<E>>(
         data class Applied<Ev>(
             val recipients: Map<String, DefaultWebSocketSession>,
             val events: List<Ev>,
+            // A re-armed turn clock if this action changed whose turn it is; else null.
+            val turnTimer: TurnTimer?,
         ) : ActionPlan<Ev>
     }
 

@@ -72,6 +72,11 @@ sealed class GameUiState {
         val buildOptions: BuildOptions = BuildOptions.NONE,
         val tradeDraft: TradeDraft = TradeDraft(),
         val discardDraft: ResourceCount = ResourceCount(),
+        // The current turn's clock: seconds left when the latest TurnTimer arrived
+        // (null = no timer / manual). [turnTimerToken] bumps on every TurnTimer so the
+        // UI countdown restarts each turn even when consecutive turns share a duration.
+        val turnRemainingSeconds: Int? = null,
+        val turnTimerToken: Int = 0,
     ) : GameUiState() {
         val isMyTurn: Boolean get() = state.currentPlayer == myPlayerId
 

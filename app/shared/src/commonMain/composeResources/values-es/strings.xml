@@ -32,6 +32,12 @@
     <string name="start_game">Empezar partida</string>
     <string name="lobby_host">anfitrión</string>
     <string name="open_slot">Plaza libre</string>
+    <string name="lobby_rules">Reglas de la partida</string>
+    <string name="rule_victory_points">Puntos de victoria</string>
+    <string name="vp_abbr">PV</string>
+    <string name="rule_turn_timer">Tiempo por turno</string>
+    <string name="rule_turn_no_timer">Sin tiempo</string>
+    <string name="rule_seconds">%1$ds</string>
     <string name="something_went_wrong">Algo salió mal</string>
     <string name="connection_failed">Error de conexión</string>
 

@@ -35,7 +35,15 @@ interface GameEngine<S, A, E> {                 // transport-facing, game-agnost
     fun reduce(state: S, actor: PlayerId, action: A): GameResult<S, E>
     fun playerLeft(state: S, playerId: PlayerId): GameResult<S, E>
     fun playerJoined(state: S, playerId: PlayerId): GameResult<S, E>
+    // Game-clock seam (default no-op): timerKey identifies the current timed
+    // situation (one clock per key, reset when it changes; null = no clock), and
+    // onTimeout returns the actions to auto-apply when it expires — one per actor,
+    // so a single expiry can resolve several players (e.g. a discard round). See
+    // lobbies-and-turn-timer.md.
+    fun timerKey(state: S): Any? = null
+    fun onTimeout(state: S): List<TimeoutAction<A>> = emptyList()
 }
+data class TimeoutAction<out A>(val actor: PlayerId, val action: A)
 
 // Catan binds the generics and adds the legal-move queries the client UI uses:
 interface CatanEngine : GameEngine<GameState, GameAction, GameEvent> {
@@ -144,10 +152,13 @@ phase:
 
 | Phase        | Events                                              |
 |--------------|-----------------------------------------------------|
-| Lobby        | `WaitingForPlayers(connected, needed)`, `GameStarted(state: S)` |
+| Lobby        | `LobbyRoster(members, hostId?, min/max, countdownSeconds?)`, `GameStarted(state: S, playerNames)` |
 | Presence     | `PlayerJoined(playerId)`, `PlayerLeft(playerId)`    |
-| Game updates | `GameUpdate(event: E)` wrapping a `GameEvent`, `ActionRejected(reason)` |
+| Game updates | `GameUpdate(event: E)` wrapping a `GameEvent`, `ActionRejected(reason)`, `TurnTimer(remainingSeconds?)` |
 | Client-local | `ConnectionFailed(reason)` (never sent over the wire)|
+
+The lobby model (one roster, two policies), `rules`, and `TurnTimer` are covered
+in [lobbies-and-turn-timer.md](lobbies-and-turn-timer.md).
 
 The snapshot in `GameStarted` and each `GameUpdate` are shipped **per recipient,
 redacted** — see *Hidden information* below.
@@ -258,9 +269,10 @@ robbed tile produces for nobody while occupied. The client renders the robber as
 a cylinder, shows a forced discard sheet while you owe, and makes tiles tappable
 during the Robber phase.
 
-> The same pattern fits future automatic effects (e.g. a turn timer auto-ending
-> a turn): drive them through the engine as state transitions that emit events,
-> never as trusted client actions.
+> The same pattern drives the **turn timer**: when a player's clock expires the
+> server asks the engine (`onTimeout`) what legal action to apply on their behalf
+> and runs it through `reduce` like any other action — never a trusted client
+> action. See [lobbies-and-turn-timer.md](lobbies-and-turn-timer.md).
 
 ```mermaid
 sequenceDiagram
@@ -459,41 +471,54 @@ All three are **generic over `S/A/E`** and name no game type:
   state `S`, but contains **no rules**. It calls the engine, redacts per recipient
   (`S : Redactable<S>`, `E : Redactable<E>`), and broadcasts via the codec. All
   state mutation happens under a `Mutex`; the actual socket sends happen *outside*
-  the lock (snapshot recipients inside, send outside). Matchmaking limits
-  (`minPlayers`, `maxPlayers`, `autoStartDelaySeconds`) are constructor params, so
-  the session reads no Catan config.
+  the lock (snapshot recipients inside, send outside). Limits and timings
+  (`minPlayers`, `maxPlayers`, `autoStartDelaySeconds`, `defaultTurnTimerSeconds`,
+  `manualStart`) are constructor params, so the session reads no Catan config. The
+  engine itself is created **at start** via an injected
+  `engineFor(victoryPoints): GameEngine` factory, so a private host's VP override
+  bakes into the rules without the session naming a Catan type. It also runs the
+  per-turn clock (see [lobbies-and-turn-timer.md](lobbies-and-turn-timer.md)).
 - **`GameSessionRepository<S, A, E>`** — matchmaking: find-or-create a session,
   map `playerId → gameId` so a returning player rejoins the session they left.
   `InMemoryGameSessionRepository` builds sessions through an injected
   `newSession` factory, so it too is game-agnostic.
 
-**The one place that names Catan** is the server's `AppModule` (Koin): it binds
-`CatanGameEngine` + `CatanCodec` + `ClassicCatan`'s match limits into the
-`newSession` factory and registers a
-`GameSessionRepository<GameState, GameAction, GameEvent>`.
+**The one place that names Catan** is the server's `AppModule` (Koin): it builds
+the `engineFor` factory (binding `CatanGameEngine` + `ClassicCatan`), passes
+`CatanCodec` + `ClassicCatan`'s limits/timings into the `newSession` factory, and
+registers a `GameSessionRepository<GameState, GameAction, GameEvent>`.
 
-### Matchmaking & auto-start
+### Lobbies, matchmaking & auto-start
 
-The room holds up to `maxPlayers`. Once `minPlayers` are connected, the session
-arms an `autoStartDelaySeconds` countdown (config-driven) and then starts with
-whoever is connected; filling to `maxPlayers` starts instantly and cancels the
-timer, and dropping back below `minPlayers` in the lobby cancels it. The countdown
-runs on a session-owned `CoroutineScope`, cancelled when the room empties.
+A session is one of two policies — **auto** (matchmaking) or **manual** (private,
+host-started) — both fronted by HTTP lifecycle endpoints (`POST /game`, `/lobby`,
+`/lobby/join`, `/lobby/start`) and a single `LobbyRoster` broadcast. For an auto room, once `minPlayers` connect the session arms an
+`autoStartDelaySeconds` countdown and then starts with whoever's connected;
+filling to `maxPlayers` starts instantly, and dropping below `minPlayers` cancels
+it. A manual room never auto-starts; the host presses Start. The full lobby model
+(roster, party rules, host promotion) is in
+[lobbies-and-turn-timer.md](lobbies-and-turn-timer.md). The countdown and the turn
+timer both run on a session-owned `CoroutineScope`, cancelled when the room empties.
 
 ### Connection lifecycle
 
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
-    Idle --> Connecting: joinGame()
-    Connecting --> Waiting: POST /game ok, ws open
-    Waiting --> Waiting: WaitingForPlayers (count)
-    Waiting --> InGame: GameStarted (room full / auto-start timer / rejoin)
-    InGame --> InGame: GameUpdate / PlayerJoined / PlayerLeft
+    Idle --> Connecting: findGame() / createLobby() / joinLobby(code)
+    Connecting --> InLobby: POST ok, ws open, first LobbyRoster
+    InLobby --> InLobby: LobbyRoster (join / leave / host change / rules / countdown)
+    InLobby --> InGame: GameStarted (host Start / auto-start timer / full auto room / rejoin)
+    InGame --> InGame: GameUpdate / PlayerJoined / PlayerLeft / TurnTimer
     Connecting --> Error: timeout / failure
-    InGame --> Idle: leave
+    InGame --> Idle: leave / game over
     Error --> Connecting: retry
 ```
+
+> The client splits this across two screens (lobby and game) with separate
+> ViewModels over one shared connection; see the repository-handoff seam in the
+> codebase. `GameStarted` (and the `TurnTimer` that follows it) are cached at the
+> handoff so the freshly-mounted game screen doesn't miss them.
 
 `GameStarted` is **server-authoritative** and fires once when the room first
 fills. A player who reconnects into a running game also gets `GameStarted` (with
@@ -601,22 +626,27 @@ changes — `GameUpdate` already carries any `GameEvent`.
 
 ## What is intentionally NOT here yet
 
-- Remaining dev cards: **Buy + Knight + Largest Army are done** (VP cards count
-  too); the progress cards **Road Building, Year of Plenty, Monopoly** are the
-  next slice. **Longest road** is still unimplemented (largest army is done).
+- **Discard-phase turn timeouts** for non-active players (the turn clock force-
+  resolves the *active* player's decisions only; idle non-active dischargers are
+  still only auto-resolved on leave). See
+  [lobbies-and-turn-timer.md](lobbies-and-turn-timer.md).
 - Persistence (state is in-memory; a server restart loses games).
-- Auth (the `playerId` from the query string is trusted as-is).
+- Authoring game modes as external JSON resources (the types are `@Serializable`
+  and ready for it; modes are still authored in Kotlin).
 - Server-side reconnect of game state validation beyond the slot mapping.
 
 *Built this far:* hex board + generation, resources/hands, setup draft (with
 random auto-placement for leavers), auto-roll + production, settlement/road
 building with costs and connectivity (incl. opponent-building road blocking),
-city upgrades, the robber on a 7 (discard-half + move + auto-steal, robbed tile
-blocked), bank trades, player-to-player trades (end to end), the victory-point
-win condition (`GameEnded` → `GamePhase.Finished(winner)` + winner overlay),
-config-driven matchmaking with an auto-start countdown, a per-recipient
-hidden-information seam (dev cards + resource hands shown as counts), development
-cards (buy + Knight + Largest Army, VP cards counting toward the win), and a fully
-**generic transport** (`S/A/E`) with Catan as one wiring.
+city upgrades, the robber on a 7 (discard-half + move + auto-steal, with steal-
+target selection on multi-opponent tiles), bank trades, player-to-player trades
+(end to end), **all** dev cards (Buy/Knight/Road Building/Year of Plenty/Monopoly
++ VP cards), **Largest Army** and **Longest Road** awards, ports/harbors (lower
+bank ratios), the victory-point win condition (`GameEnded` →
+`GamePhase.Finished(winner)` + winner overlay), token-authenticated identity
+(`/register`), the unified **lobby** model (matchmaking + private code lobbies)
+with **host-configurable party rules** (victory points, turn duration) and a
+server-authoritative **turn timer**, a per-recipient hidden-information seam, and
+a fully **generic transport** (`S/A/E`) with Catan as one wiring.
 
 These build on top of the seam above without reshaping it.

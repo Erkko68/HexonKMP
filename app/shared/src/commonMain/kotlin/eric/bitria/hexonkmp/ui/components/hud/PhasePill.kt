@@ -16,6 +16,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -24,6 +29,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eric.bitria.hexonkmp.ui.theme.Shapes
 import eric.bitria.hexonkmp.ui.theme.Spacing
+import kotlinx.coroutines.delay
+
+// A live "M:SS" countdown for the current turn, ticked down locally each second.
+// [remainingSeconds] is the server's reading (null = no timer → "∞"); [token]
+// changes on every server TurnTimer so the countdown restarts for each new turn even
+// when consecutive turns share the same duration.
+@Composable
+fun rememberTurnCountdownLabel(remainingSeconds: Int?, token: Int): String {
+    if (remainingSeconds == null) return "∞"
+    var seconds by remember(token) { mutableStateOf(remainingSeconds) }
+    LaunchedEffect(token) {
+        seconds = remainingSeconds
+        while (seconds > 0) {
+            delay(1000)
+            seconds -= 1
+        }
+    }
+    return "${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')}"
+}
 
 // Phase + timer pill shown in both game headers.
 // [compact] uses smaller padding/typography for portrait; default is landscape size.

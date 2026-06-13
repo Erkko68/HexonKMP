@@ -10,6 +10,7 @@ import eric.bitria.hexonkmp.core.protocol.JoinLobbyRequest
 import eric.bitria.hexonkmp.core.protocol.JoinLobbyResponse
 import eric.bitria.hexonkmp.core.protocol.RegisterRequest
 import eric.bitria.hexonkmp.core.protocol.RegisterResponse
+import eric.bitria.hexonkmp.core.protocol.PartyRules
 import eric.bitria.hexonkmp.core.protocol.StartLobbyRequest
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -52,9 +53,9 @@ class GameClient(private val http: HttpClient) {
         return response.body()
     }
 
-    // Host-only: start a private lobby.
-    suspend fun startLobby(gameId: String) {
-        http.post("/lobby/start") { setBody(StartLobbyRequest(gameId)) }
+    // Host-only: start a private lobby with the host's chosen rules.
+    suspend fun startLobby(gameId: String, rules: PartyRules) {
+        http.post("/lobby/start") { setBody(StartLobbyRequest(gameId, rules)) }
     }
 
     suspend fun connectToGame(

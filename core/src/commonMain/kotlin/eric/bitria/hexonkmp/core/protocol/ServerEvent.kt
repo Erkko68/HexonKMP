@@ -66,6 +66,14 @@ data class GameUpdate<out E>(val event: E) : ServerEvent<Nothing, E>
 @SerialName("ActionRejected")
 data class ActionRejected(val reason: String) : ServerEvent<Nothing, Nothing>
 
+// The current player's turn clock. Broadcast whenever the active turn changes (or
+// the timer re-arms): [remainingSeconds] is how long they have left right now, so
+// the client anchors a local countdown to its own clock (avoiding cross-device
+// skew). Null means no turn timer is running (manual mode, or the game is over).
+@Serializable
+@SerialName("TurnTimer")
+data class TurnTimer(val remainingSeconds: Int?) : ServerEvent<Nothing, Nothing>
+
 // --- Client-local only ---
 
 // Never sent over the wire — emitted by the client when the WebSocket fails or

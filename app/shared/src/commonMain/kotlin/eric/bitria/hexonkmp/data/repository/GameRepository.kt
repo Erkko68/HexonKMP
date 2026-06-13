@@ -6,6 +6,7 @@ import eric.bitria.hexonkmp.core.protocol.CatanServerEvent
 import eric.bitria.hexonkmp.core.protocol.CreateLobbyResponse
 import eric.bitria.hexonkmp.core.protocol.JoinGameResponse
 import eric.bitria.hexonkmp.core.protocol.JoinLobbyResponse
+import eric.bitria.hexonkmp.core.protocol.PartyRules
 import eric.bitria.hexonkmp.core.protocol.RegisterResponse
 import kotlinx.coroutines.flow.Flow
 
@@ -29,6 +30,12 @@ interface GameRepository {
     // showing opponents by name in-game. Travels with the snapshot at the handoff.
     val startedNames: Map<String, String>
 
+    // The most recent turn-timer reading (seconds left on the current turn, or null
+    // for no timer), cached as it passes through the stream. Same handoff seam as
+    // [startedGame]: the server sends TurnTimer right after GameStarted, possibly
+    // before the game screen subscribes, so the GameViewModel seeds from here.
+    val startedTurnRemainingSeconds: Int?
+
     // register is the auth/refresh endpoint (token in the body). The other HTTP calls
     // authenticate via the client's Auth bearer header, so they take no token.
     suspend fun register(name: String, token: String?): RegisterResponse
@@ -37,7 +44,7 @@ interface GameRepository {
     // Private lobbies.
     suspend fun createLobby(): CreateLobbyResponse
     suspend fun joinLobby(code: String): JoinLobbyResponse
-    suspend fun startLobby(gameId: String)
+    suspend fun startLobby(gameId: String, rules: PartyRules)
 
     // The WS authenticates with [token] (query param); [playerId] is the caller's own
     // id (known from registration) kept for local bookkeeping, and [name] feeds the roster.

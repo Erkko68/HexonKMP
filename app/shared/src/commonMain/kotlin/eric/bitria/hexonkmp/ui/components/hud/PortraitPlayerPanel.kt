@@ -28,6 +28,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import eric.bitria.hexonkmp.ui.theme.Spacing
 import eric.bitria.hexonkmp.ui.theme.Tokens
+import hexonkmp.app.shared.generated.resources.Res
+import hexonkmp.app.shared.generated.resources.vp_abbr
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun PortraitPlayerPanel(
@@ -111,7 +114,7 @@ fun PortraitPlayerPanel(
                 }
 
                 Text(
-                    "$victoryPoints VP",
+                    "$victoryPoints ${stringResource(Res.string.vp_abbr)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )

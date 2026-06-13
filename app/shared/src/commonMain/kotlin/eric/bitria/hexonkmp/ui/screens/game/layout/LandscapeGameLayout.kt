@@ -39,6 +39,7 @@ import eric.bitria.hexonkmp.ui.components.cards.ActionCard
 import eric.bitria.hexonkmp.ui.components.cards.DevelopmentBar
 import eric.bitria.hexonkmp.ui.components.cards.ResourceBar
 import eric.bitria.hexonkmp.ui.components.hud.LandscapeGameHeader
+import eric.bitria.hexonkmp.ui.components.hud.rememberTurnCountdownLabel
 import eric.bitria.hexonkmp.ui.components.hud.LandscapePlayerPanel
 import eric.bitria.hexonkmp.ui.components.hud.NoticeChip
 import eric.bitria.hexonkmp.ui.components.sheets.DiscardSheet
@@ -115,7 +116,7 @@ fun LandscapeGameLayout(
         Column(modifier = Modifier.fillMaxSize()) {
             LandscapeGameHeader(
                 phaseLabel = phaseLabel(state.state.phase),
-                timeLabel = "00:00",
+                timeLabel = rememberTurnCountdownLabel(state.turnRemainingSeconds, state.turnTimerToken),
                 lastRoll = state.state.lastRoll,
                 victoryPoints = victoryPointsOf(me),
                 victoryGoal = state.state.config.rules.victoryPointsToWin,

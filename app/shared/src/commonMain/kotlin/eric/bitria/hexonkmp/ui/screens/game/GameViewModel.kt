@@ -1,86 +1,33 @@
 package eric.bitria.hexonkmp.ui.screens.game
 
+// BuildMode is in this package (GameUiState.kt)
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import eric.bitria.hexonkmp.core.game.action.BankTrade
-import eric.bitria.hexonkmp.core.game.action.BuyDevCard
-import eric.bitria.hexonkmp.core.game.action.CancelTrade
-import eric.bitria.hexonkmp.core.game.action.DiscardResources
-import eric.bitria.hexonkmp.core.game.action.EndTurn
-import eric.bitria.hexonkmp.core.game.action.FinalizeTrade
-import eric.bitria.hexonkmp.core.game.action.MoveRobber
-import eric.bitria.hexonkmp.core.game.action.PlaceRoad
-import eric.bitria.hexonkmp.core.game.action.PlaceSettlement
-import eric.bitria.hexonkmp.core.game.action.PlayKnight
-import eric.bitria.hexonkmp.core.game.action.PlayMonopoly
-import eric.bitria.hexonkmp.core.game.action.PlayRoadBuilding
-import eric.bitria.hexonkmp.core.game.action.PlayYearOfPlenty
-import eric.bitria.hexonkmp.core.game.action.StealFrom
-import eric.bitria.hexonkmp.core.game.action.UpgradeCity
-import eric.bitria.hexonkmp.core.game.action.ProposeTrade
-import eric.bitria.hexonkmp.core.game.action.RespondTrade
+import eric.bitria.hexonkmp.core.game.action.*
+import eric.bitria.hexonkmp.core.game.config.Buildable
 import eric.bitria.hexonkmp.core.game.engine.CatanEngine
 import eric.bitria.hexonkmp.core.game.engine.CatanGameEngine
-import eric.bitria.hexonkmp.core.game.event.BuildingPlaced
-import eric.bitria.hexonkmp.core.game.event.CityUpgraded
-import eric.bitria.hexonkmp.core.game.event.DevCardBought
-import eric.bitria.hexonkmp.core.game.event.DevCardPlayed
-import eric.bitria.hexonkmp.core.game.event.DiceRolled
-import eric.bitria.hexonkmp.core.game.event.GameEnded
-import eric.bitria.hexonkmp.core.game.event.GameEvent
-import eric.bitria.hexonkmp.core.game.event.PhaseChanged
-import eric.bitria.hexonkmp.core.game.event.ResourcesProduced
-import eric.bitria.hexonkmp.core.game.event.RoadPlaced
-import eric.bitria.hexonkmp.core.game.event.RobberMoved
-import eric.bitria.hexonkmp.core.game.event.ResourceStolen
-import eric.bitria.hexonkmp.core.game.event.ResourcesDiscarded
-import eric.bitria.hexonkmp.core.game.event.BankTraded
-import eric.bitria.hexonkmp.core.game.event.MonopolyUsed
-import eric.bitria.hexonkmp.core.game.event.TradeCancelled
-import eric.bitria.hexonkmp.core.game.event.TradeFinalized
-import eric.bitria.hexonkmp.core.game.event.TradeOffersCleared
-import eric.bitria.hexonkmp.core.game.event.TradeProposed
-import eric.bitria.hexonkmp.core.game.event.TradeResponded
-import eric.bitria.hexonkmp.core.game.event.TurnChanged
-import eric.bitria.hexonkmp.core.game.event.LargestArmyChanged
-import eric.bitria.hexonkmp.core.game.event.LongestRoadChanged
-import eric.bitria.hexonkmp.core.game.event.YearOfPlentyUsed
-import eric.bitria.hexonkmp.core.game.config.Buildable
-import eric.bitria.hexonkmp.core.game.model.Building
-import eric.bitria.hexonkmp.core.game.model.DevCard
-import eric.bitria.hexonkmp.core.game.model.GamePhase
-import eric.bitria.hexonkmp.core.game.model.GameState
-// BuildMode is in this package (GameUiState.kt)
-import eric.bitria.hexonkmp.core.game.model.PlayerId
-import eric.bitria.hexonkmp.core.game.model.ResourceCount
+import eric.bitria.hexonkmp.core.game.event.*
+import eric.bitria.hexonkmp.core.game.model.*
 import eric.bitria.hexonkmp.core.game.model.board.Axial
 import eric.bitria.hexonkmp.core.game.model.board.Edge
 import eric.bitria.hexonkmp.core.game.model.board.Resource
 import eric.bitria.hexonkmp.core.game.model.board.Vertex
-import eric.bitria.hexonkmp.core.protocol.ActionRejected
-import eric.bitria.hexonkmp.core.protocol.CatanServerEvent
-import eric.bitria.hexonkmp.core.protocol.ConnectionFailed
-import eric.bitria.hexonkmp.core.protocol.GameStarted
-import eric.bitria.hexonkmp.core.protocol.GameUpdate
-import eric.bitria.hexonkmp.core.protocol.PlayerJoined
-import eric.bitria.hexonkmp.core.protocol.PlayerLeft
-import eric.bitria.hexonkmp.core.protocol.LobbyRoster
+import eric.bitria.hexonkmp.core.protocol.*
 import eric.bitria.hexonkmp.data.repository.GameRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import hexonkmp.app.shared.generated.resources.Res
 import hexonkmp.app.shared.generated.resources.notice_player_joined
 import hexonkmp.app.shared.generated.resources.notice_player_left
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
+import kotlin.time.Duration.Companion.milliseconds
 
 // Upper bound for how many of a resource you can request in one proposed trade.
 private const val MAX_RECEIVE = 9
@@ -114,6 +61,9 @@ class GameViewModel(
                 state = started,
                 myPlayerId = PlayerId(me),
                 playerNames = repository.startedNames.mapKeys { PlayerId(it.key) },
+                // Seed the turn clock from the handoff (the TurnTimer event may have
+                // fired before this screen subscribed — same race as the snapshot).
+                turnRemainingSeconds = repository.startedTurnRemainingSeconds,
             ).updated()
         }
         viewModelScope.launch {
@@ -478,7 +428,7 @@ class GameViewModel(
         noticeJob?.cancel()
         _state.update { if (it is GameUiState.InGame) it.updated(notice = text) else it }
         noticeJob = viewModelScope.launch {
-            delay(NOTICE_TIMEOUT_MS)
+            delay(NOTICE_TIMEOUT_MS.milliseconds)
             // Only clear if it's still this notice (a newer one may have replaced it).
             _state.update { if (it is GameUiState.InGame && it.notice == text) it.updated(notice = null) else it }
         }
@@ -498,7 +448,7 @@ class GameViewModel(
             is LobbyRoster -> Unit
             // GameStarted reaches us only on reconnect into a running game (the
             // initial start is consumed via the handoff seed in init). Rebuild state.
-            is GameStarted -> _state.update {
+            is GameStarted -> _state.update { it ->
                 val me = myPlayerId ?: repository.currentPlayerId?.let { id -> PlayerId(id) }
                 if (me != null) {
                     myPlayerId = me
@@ -517,6 +467,13 @@ class GameViewModel(
             // --- Game updates: apply the domain event to the local state copy. ---
             is GameUpdate -> _state.update { s ->
                 if (s is GameUiState.InGame) s.updated(state = applyEvent(s, event)) else s
+            }
+            // --- Turn clock: the server (re)armed the timer; re-seed the local
+            // countdown. Bump the token so the UI ticker restarts for the new turn. ---
+            is TurnTimer -> _state.update { s ->
+                if (s is GameUiState.InGame)
+                    s.copy(turnRemainingSeconds = event.remainingSeconds, turnTimerToken = s.turnTimerToken + 1)
+                else s
             }
             // --- Action feedback (only the acting player receives this) ---
             is ActionRejected -> showNotice(event.reason)

@@ -22,11 +22,20 @@ fun appModule() = module {
         InMemoryGameSessionRepository { gameId, manualStart, onEmpty ->
             GameSession(
                 gameId = gameId,
-                engine = CatanGameEngine(config),
+                // The one Catan-aware spot: bake a private host's victory-point
+                // override into the engine's rules at start (null = the mode default).
+                engineFor = { victoryPoints ->
+                    val rules = config.rules.copy(
+                        victoryPointsToWin = victoryPoints ?: config.rules.victoryPointsToWin,
+                    )
+                    CatanGameEngine(config.copy(rules = rules))
+                },
                 codec = CatanCodec,
                 minPlayers = config.rules.minPlayers,
                 maxPlayers = config.rules.maxPlayers,
                 autoStartDelaySeconds = config.rules.autoStartDelaySeconds,
+                defaultVictoryPoints = config.rules.victoryPointsToWin,
+                defaultTurnTimerSeconds = config.rules.turnTimerSeconds,
                 manualStart = manualStart,
                 onEmpty = onEmpty,
             )

@@ -943,6 +943,62 @@ class CatanGameEngine(
         return CatanResult(state.copy(present = state.present + playerId))
     }
 
+    // The current timed situation. A normal turn (including its robber sub-phases)
+    // shares one key so the clock runs for the whole turn; a Discard round gets its
+    // own key so it starts a fresh GLOBAL countdown that waits on every ower. Null
+    // when the game is over (no clock).
+    override fun timerKey(state: GameState): Any? = when (state.phase) {
+        is GamePhase.Finished -> null
+        is GamePhase.Discard -> "discard:${state.turn}"
+        else -> "turn:${state.turn}:${state.currentPlayer.value}"
+    }
+
+    // What to auto-apply when the current key's clock expires, so the game can't
+    // stall on an idle player. Deterministic legal choices (reusing the same
+    // legal-move queries the client uses) keep the engine pure. Discard resolves
+    // EVERY present player who still owes in one go (random-ish, by hand order).
+    override fun onTimeout(state: GameState): List<TimeoutAction<GameAction>> {
+        val current = state.currentPlayer
+        fun one(action: GameAction?) = action?.let { listOf(TimeoutAction(current, it)) } ?: emptyList()
+        return when (val phase = state.phase) {
+            // A normal turn: dice are auto-rolled at turn start, so just pass.
+            GamePhase.Play -> one(EndTurn)
+            // Owes a robber move: relocate to any other tile (auto-steal follows).
+            GamePhase.Robber ->
+                one(state.board.tiles.map { it.hex }.firstOrNull { it != state.board.robber }?.let { MoveRobber(it) })
+            // Must name a steal victim: pick one of the eligible opponents.
+            is GamePhase.ChooseStealTarget -> one(phase.victims.firstOrNull()?.let { StealFrom(it) })
+            // Placing free roads (Road Building) or a setup piece: place a legal one.
+            is GamePhase.RoadBuilding -> one(legalRoads(state, current).firstOrNull()?.let { PlaceRoad(it) })
+            is GamePhase.Setup -> one(
+                when (phase.awaiting) {
+                    Placement.SETTLEMENT -> legalSettlements(state, current).firstOrNull()?.let { PlaceSettlement(it) }
+                    Placement.ROAD -> legalRoads(state, current).firstOrNull()?.let { PlaceRoad(it) }
+                }
+            )
+            // Global discard deadline: every present player who still owes discards
+            // their required count automatically (others may have already paid).
+            is GamePhase.Discard -> phase.pending
+                .filterKeys { it in state.present }
+                .map { (player, owed) -> TimeoutAction(player, DiscardResources(autoDiscard(state.handOf(player), owed))) }
+            is GamePhase.Finished -> emptyList()
+        }
+    }
+
+    // Pick [count] cards to discard from [hand], deterministically by hand order
+    // (the engine stays pure; reduce() validates the count and that the hand covers).
+    private fun autoDiscard(hand: ResourceCount, count: Int): ResourceCount {
+        var cards = ResourceCount()
+        var left = count
+        for ((res, held) in hand.amounts) {
+            if (left == 0) break
+            val take = minOf(held, left)
+            if (take > 0) cards += ResourceCount.of(res to take)
+            left -= take
+        }
+        return cards
+    }
+
     override fun legalSettlements(state: GameState, player: PlayerId): Set<Vertex> {
         if (player != state.currentPlayer) return emptySet()
         return when (val phase = state.phase) {

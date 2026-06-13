@@ -34,10 +34,20 @@ data class JoinLobbyRequest(val code: String)
 @Serializable
 data class JoinLobbyResponse(val gameId: String)
 
-// Host-only: start a private lobby. 409 if the caller isn't the host or the lobby
+// The rules a private-lobby host picks before starting. [victoryPoints] is the
+// target to win; [turnTimerSeconds] is the per-turn clock — null means no timer.
+// The host edits these locally and sends them once, with the Start request.
+@Serializable
+data class PartyRules(
+    val victoryPoints: Int,
+    val turnTimerSeconds: Int?,
+)
+
+// Host-only: start a private lobby, carrying the host's chosen [rules] (null falls
+// back to the game mode's defaults). 409 if the caller isn't the host or the lobby
 // isn't startable yet (below the minimum).
 @Serializable
-data class StartLobbyRequest(val gameId: String)
+data class StartLobbyRequest(val gameId: String, val rules: PartyRules? = null)
 
 @Serializable
 data class ErrorResponse(val message: String)

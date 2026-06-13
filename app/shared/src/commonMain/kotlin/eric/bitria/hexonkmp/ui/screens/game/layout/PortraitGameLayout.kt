@@ -47,6 +47,7 @@ import eric.bitria.hexonkmp.ui.components.cards.ResourceBar
 import eric.bitria.hexonkmp.ui.components.hud.PortraitPlayerPanel
 import eric.bitria.hexonkmp.ui.components.hud.NoticeChip
 import eric.bitria.hexonkmp.ui.components.hud.PortraitGameHeader
+import eric.bitria.hexonkmp.ui.components.hud.rememberTurnCountdownLabel
 import eric.bitria.hexonkmp.ui.components.sheets.DiscardSheet
 import eric.bitria.hexonkmp.ui.components.sheets.StealTargetSheet
 import eric.bitria.hexonkmp.ui.components.sheets.TradeSheet
@@ -130,8 +131,10 @@ fun PortraitGameLayout(
         Column(modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth()) {
             PortraitGameHeader(
                 phaseLabel = phaseLabel(state.state.phase),
-                timeLabel = "00:00",
+                timeLabel = rememberTurnCountdownLabel(state.turnRemainingSeconds, state.turnTimerToken),
                 lastRoll = state.state.lastRoll,
+                myVictoryPoints = victoryPointsOf(me),
+                victoryGoal = state.state.config.rules.victoryPointsToWin,
                 onLeave = onReturnToMenu,
             )
             Column(

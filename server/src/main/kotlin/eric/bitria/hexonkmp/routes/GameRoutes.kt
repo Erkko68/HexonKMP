@@ -72,11 +72,12 @@ fun Application.gameRoutes() {
             call.respond(JoinLobbyResponse(gameId = session.gameId))
         }
 
-        // POST /lobby/start — host-only start of a private lobby.
+        // POST /lobby/start — host-only start of a private lobby, carrying the host's
+        // chosen rules (victory points + turn timer).
         post("/lobby/start") {
             val playerId = authedPlayerId() ?: return@post
             val request = call.receive<StartLobbyRequest>()
-            val started = sessions.get(request.gameId)?.startByHost(playerId) ?: false
+            val started = sessions.get(request.gameId)?.startByHost(playerId, request.rules) ?: false
             if (started) call.respond(HttpStatusCode.OK)
             else call.respond(HttpStatusCode.Conflict, ErrorResponse("Cannot start this lobby"))
         }

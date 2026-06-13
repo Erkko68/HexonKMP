@@ -9,7 +9,9 @@ import eric.bitria.hexonkmp.core.protocol.CreateLobbyResponse
 import eric.bitria.hexonkmp.core.protocol.GameStarted
 import eric.bitria.hexonkmp.core.protocol.JoinGameResponse
 import eric.bitria.hexonkmp.core.protocol.JoinLobbyResponse
+import eric.bitria.hexonkmp.core.protocol.PartyRules
 import eric.bitria.hexonkmp.core.protocol.RegisterResponse
+import eric.bitria.hexonkmp.core.protocol.TurnTimer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +41,8 @@ class GameRepositoryImpl(private val client: GameClient) : GameRepository {
         private set
     override var startedNames: Map<String, String> = emptyMap()
         private set
+    override var startedTurnRemainingSeconds: Int? = null
+        private set
 
     override suspend fun register(name: String, token: String?): RegisterResponse =
         client.register(name, token)
@@ -49,7 +53,8 @@ class GameRepositoryImpl(private val client: GameClient) : GameRepository {
 
     override suspend fun joinLobby(code: String): JoinLobbyResponse = client.joinLobby(code)
 
-    override suspend fun startLobby(gameId: String) = client.startLobby(gameId)
+    override suspend fun startLobby(gameId: String, rules: PartyRules) =
+        client.startLobby(gameId, rules)
 
     override fun connect(token: String, playerId: String, name: String, gameId: String) {
         connectionJob?.cancel()
@@ -65,6 +70,8 @@ class GameRepositoryImpl(private val client: GameClient) : GameRepository {
                         startedGame = (event as GameStarted<GameState>).state
                         startedNames = event.playerNames
                     }
+                    // Cache the latest turn clock for the handoff (same race as above).
+                    if (event is TurnTimer) startedTurnRemainingSeconds = event.remainingSeconds
                     _events.emit(event)
                 }
             } catch (e: CancellationException) {
@@ -84,6 +91,7 @@ class GameRepositoryImpl(private val client: GameClient) : GameRepository {
         connectionJob = null
         startedGame = null
         startedNames = emptyMap()
+        startedTurnRemainingSeconds = null
         currentPlayerId = null
         currentGameId = null
     }

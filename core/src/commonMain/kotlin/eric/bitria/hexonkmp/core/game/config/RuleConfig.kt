@@ -38,6 +38,10 @@ data class RuleConfig(
     // to keep waiting for more players before starting the game automatically. The
     // game starts immediately if [maxPlayers] is reached first.
     val autoStartDelaySeconds: Int = 30,
+    // How long each player has on their turn before the server auto-resolves it
+    // (auto-ends a Play turn; auto-resolves a pending robber/steal/road decision).
+    // null means no timer — a turn ends only when the player acts (manual skip).
+    val turnTimerSeconds: Int? = 45,
 ) {
     // The cost of a buildable as a ResourceCount (empty if free/undefined).
     fun cost(buildable: Buildable): ResourceCount =

@@ -19,9 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import eric.bitria.hexonkmp.ui.theme.Spacing
 import hexonkmp.app.shared.generated.resources.Res
 import hexonkmp.app.shared.generated.resources.app_name
+import hexonkmp.app.shared.generated.resources.vp_abbr
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -63,20 +65,10 @@ fun LandscapeGameHeader(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.End) {
-                    Text("Victory Points", style = MaterialTheme.typography.labelSmall)
-                    Text(
-                        "$victoryPoints / $victoryGoal",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-                VerticalDivider(
-                    modifier = Modifier.fillMaxHeight(0.5f).padding(horizontal = Spacing.xs),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                )
+                VictoryPointsChip(points = victoryPoints, goal = victoryGoal, compact = false)
+                
                 IconButton(onClick = onLeave) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Logout,

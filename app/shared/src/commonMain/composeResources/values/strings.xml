@@ -36,6 +36,12 @@
     <string name="start_game">Start game</string>
     <string name="lobby_host">host</string>
     <string name="open_slot">Open slot</string>
+    <string name="lobby_rules">Party rules</string>
+    <string name="rule_victory_points">Victory points</string>
+    <string name="vp_abbr">VP</string>
+    <string name="rule_turn_timer">Turn timer</string>
+    <string name="rule_turn_no_timer">No timer</string>
+    <string name="rule_seconds">%1$ds</string>
     <string name="something_went_wrong">Something went wrong</string>
     <string name="connection_failed">Connection failed</string>
 

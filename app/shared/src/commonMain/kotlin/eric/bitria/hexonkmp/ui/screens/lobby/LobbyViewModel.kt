@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import eric.bitria.hexonkmp.core.protocol.ConnectionFailed
 import eric.bitria.hexonkmp.core.protocol.GameStarted
 import eric.bitria.hexonkmp.core.protocol.LobbyRoster
+import eric.bitria.hexonkmp.core.protocol.PartyRules
 import eric.bitria.hexonkmp.data.repository.GameRepository
 import eric.bitria.hexonkmp.data.storage.DevicePreferences
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -164,11 +165,12 @@ class LobbyViewModel(
         _joinError.value = null
     }
 
-    // Host-only: ask the server to start. The server broadcasts GameStarted, which
-    // flows back as the [gameStarted] navigation signal.
-    fun startGame() {
+    // Host-only: ask the server to start, carrying the host's chosen [rules] (the
+    // host edits them locally in the room and they ride along here). The server
+    // broadcasts GameStarted, which flows back as the [gameStarted] navigation signal.
+    fun startGame(rules: PartyRules) {
         val gameId = repository.currentGameId ?: return
-        viewModelScope.launch { runCatching { repository.startLobby(gameId) } }
+        viewModelScope.launch { runCatching { repository.startLobby(gameId, rules) } }
     }
 
     // Leave the lobby (cancel matchmaking or exit a private lobby): drop the

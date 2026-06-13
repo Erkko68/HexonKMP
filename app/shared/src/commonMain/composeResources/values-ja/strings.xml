@@ -32,6 +32,12 @@
     <string name="start_game">ゲームを開始</string>
     <string name="lobby_host">ホスト</string>
     <string name="open_slot">空きスロット</string>
+    <string name="lobby_rules">ルール</string>
+    <string name="rule_victory_points">勝利ポイント</string>
+    <string name="vp_abbr">VP</string>
+    <string name="rule_turn_timer">ターン時間</string>
+    <string name="rule_turn_no_timer">制限なし</string>
+    <string name="rule_seconds">%1$d秒</string>
     <string name="something_went_wrong">問題が発生しました</string>
     <string name="connection_failed">接続に失敗しました</string>
 

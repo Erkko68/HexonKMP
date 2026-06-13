@@ -32,6 +32,12 @@
     <string name="start_game">开始游戏</string>
     <string name="lobby_host">房主</string>
     <string name="open_slot">空位</string>
+    <string name="lobby_rules">规则</string>
+    <string name="rule_victory_points">胜利点数</string>
+    <string name="vp_abbr">VP</string>
+    <string name="rule_turn_timer">回合时间</string>
+    <string name="rule_turn_no_timer">无限制</string>
+    <string name="rule_seconds">%1$d秒</string>
     <string name="something_went_wrong">出现错误</string>
     <string name="connection_failed">连接失败</string>
 
