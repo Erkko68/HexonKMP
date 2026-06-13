@@ -1,7 +1,6 @@
 package eric.bitria.hexonkmp.ui.components.hud
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -30,31 +29,27 @@ fun PortraitGameHeader(
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
-        BoxWithConstraints(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            contentAlignment = Alignment.Center,
+                .padding(start = Spacing.md).padding(vertical = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            val showPill = maxWidth >= 340.dp
-
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 lastRoll?.let { DiceChip(it, compact = true) }
+                PhasePill(phaseLabel = phaseLabel, timeLabel = timeLabel, compact = true)
+            }
 
-                if (showPill) {
-                    PhasePill(phaseLabel = phaseLabel, timeLabel = timeLabel, compact = true)
-                }
-
-                IconButton(onClick = onLeave) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = "Leave game",
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.85f),
-                    )
-                }
+            IconButton(onClick = onLeave) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                    contentDescription = "Leave game",
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.85f),
+                )
             }
         }
     }

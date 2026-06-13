@@ -65,10 +65,9 @@ fun TradeSidePanel(
     ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(bottom = Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                modifier = Modifier.fillMaxWidth().padding(start = Spacing.md, end = Spacing.xs).padding(vertical = Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -83,6 +82,7 @@ fun TradeSidePanel(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.md)
+                    .padding(top = Spacing.md)
                     .verticalScroll(rememberScrollState()),
             ) {
                 TradeBody(

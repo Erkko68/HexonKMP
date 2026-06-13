@@ -4,16 +4,20 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import eric.bitria.hexonkmp.ui.theme.Shapes
 import eric.bitria.hexonkmp.ui.theme.Spacing
+import eric.bitria.hexonkmp.ui.theme.rememberSvgPainter
 
 // Pill chip showing the most recent dice roll. Uses error colors on a 7 (robber),
 // tertiary container otherwise. Padding matches PhasePill so they align in a Row.
@@ -30,6 +34,8 @@ fun DiceChip(roll: Int, modifier: Modifier = Modifier, compact: Boolean = false)
     val hPad = if (compact) Spacing.sm else Spacing.md
     val vPad = if (compact) Spacing.xs else Spacing.sm
     val textStyle = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleMedium
+    // Match the icon to the roll text so the two read as one unit at any font scale.
+    val iconSize = with(LocalDensity.current) { textStyle.fontSize.toDp() }
 
     Surface(
         modifier = modifier,
@@ -43,7 +49,11 @@ fun DiceChip(roll: Int, modifier: Modifier = Modifier, compact: Boolean = false)
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            Text("🎲", style = textStyle)
+            Icon(
+                painter = rememberSvgPainter("files/icons/svg/ic_dices.svg"),
+                contentDescription = "Dice roll",
+                modifier = Modifier.size(iconSize),
+            )
             Text("$roll", style = textStyle, fontWeight = FontWeight.ExtraBold)
         }
     }
